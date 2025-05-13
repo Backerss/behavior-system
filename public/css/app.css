@@ -1,0 +1,473 @@
+/* Custom theme colors */
+:root {
+  --primary-app: #1020AD;
+  --secondary-app: #F6E200;
+  --accent-app: #95A4D8;
+}
+
+/* Background colors */
+.bg-primary-app {
+  background-color: var(--primary-app) !important;
+}
+.bg-secondary-app {
+  background-color: var(--secondary-app) !important;
+}
+.bg-accent-app {
+  background-color: var(--accent-app) !important;
+}
+
+/* Text colors */
+.text-primary-app {
+  color: var(--primary-app) !important;
+}
+.text-secondary-app {
+  color: var(--secondary-app) !important;
+}
+.text-accent-app {
+  color: var(--accent-app) !important;
+}
+
+/* Button styles */
+.btn-primary-app {
+  background-color: var(--primary-app);
+  color: #fff;
+  border: none;
+}
+.btn-primary-app:hover, .btn-primary-app:active, .btn-primary-app:focus {
+  background-color: #0b158d;
+  color: #fff;
+}
+
+.btn-secondary-app {
+  background-color: var(--secondary-app);
+  color: #000;
+  border: none;
+}
+.btn-secondary-app:hover, .btn-secondary-app:active, .btn-secondary-app:focus {
+  background-color: #e6d400;
+  color: #000;
+}
+
+.btn-accent-app {
+  background-color: var(--accent-app);
+  color: #fff;
+  border: none;
+}
+.btn-accent-app:hover, .btn-accent-app:active, .btn-accent-app:focus {
+  background-color: #7d90cf;
+  color: #fff;
+}
+
+/* Mobile app style utilities */
+.app-container {
+  width: 100%;
+  max-width: 100%; /* เปลี่ยนจาก 540px เป็น 100% */
+  margin: 0 auto;
+  min-height: 100vh;
+  position: relative;
+  padding-bottom: 70px; /* Space for bottom navbar */
+}
+
+/* Bottom navbar for mobile */
+.bottom-navbar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background-color: #fff;
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+}
+.bottom-navbar .nav-link {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0.75rem 0.5rem;
+  font-size: 0.75rem;
+  position: relative;
+  transition: color 0.3s ease;
+}
+.bottom-navbar .nav-link i {
+  font-size: 1.25rem;
+  margin-bottom: 0.25rem;
+}
+.bottom-navbar .nav-link::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 3px;
+  background-color: var(--primary-app);
+  transition: width 0.3s ease;
+}
+.bottom-navbar .nav-link.text-primary-app::after {
+  width: 50%;
+}
+
+/* Card styles */
+.app-card {
+  border-radius: 15px;
+  border: none;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+/* General mobile app styling */
+body {
+  font-family: 'Prompt', sans-serif;
+  touch-action: manipulation;
+  -webkit-overflow-scrolling: touch;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+}
+
+/* Animation effects */
+.btn-hover-effect {
+  transition: transform 0.3s, box-shadow 0.3s;
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-hover-effect:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.btn-hover-effect::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(255, 255, 255, 0.2);
+  transform: translateX(-100%);
+  transition: transform 0.4s;
+}
+
+.btn-hover-effect:hover::after {
+  transform: translateX(100%);
+}
+
+/* Feature cards hover effect */
+.feature-card {
+  transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.feature-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+}
+
+/* Icon animation */
+.icon-animation {
+  transition: transform 0.5s ease;
+}
+
+.feature-card:hover .icon-animation {
+  transform: rotate(360deg);
+}
+
+/* Hero image effect */
+.hero-image {
+  transition: transform 0.5s ease;
+  position: relative;
+  z-index: 1;
+}
+
+.hero-image:hover {
+  transform: scale(1.03);
+}
+
+/* Stats container */
+.stats-container {
+  position: relative;
+}
+
+.stats-container::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 80%;
+  background-color: rgba(149, 164, 216, 0.05);
+  border-radius: 1rem;
+  transform: translateX(-50%);
+  z-index: -1;
+}
+
+/* CTA card with shapes */
+.cta-card {
+  overflow: hidden;
+  position: relative;
+}
+
+.cta-shape-1 {
+  position: absolute;
+  right: -20px;
+  top: -20px;
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
+  background-color: rgba(255, 255, 255, 0.1);
+  z-index: 0;
+}
+
+.cta-shape-2 {
+  position: absolute;
+  left: -20px;
+  bottom: -20px;
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  background-color: var(--secondary-app);
+  opacity: 0.2;
+  z-index: 0;
+}
+
+/* Floating animation */
+@keyframes float {
+  0% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-15px);
+  }
+  100% {
+    transform: translateY(0px);
+  }
+}
+
+.floating-element {
+  animation: float 5s ease-in-out infinite;
+}
+
+/* Animation for floating cards */
+.floating-card {
+  animation: float-card 3s ease-in-out infinite;
+}
+
+@keyframes float-card {
+  0% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+  100% {
+    transform: translateY(0px);
+  }
+}
+
+/* Custom cursor on interactive elements */
+a, button {
+  cursor: pointer;
+}
+
+/* Testimonial card shadow */
+.testimonial-swiper .app-card {
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Swiper pagination styling */
+.swiper-pagination-bullet {
+  background-color: var(--primary-app);
+  opacity: 0.5;
+  width: 10px;
+  height: 10px;
+}
+
+.swiper-pagination-bullet-active {
+  opacity: 1;
+  background-color: var(--primary-app);
+  width: 20px;
+  border-radius: 5px;
+}
+
+/* Fancy text highlight */
+h1 .text-accent-app {
+  position: relative;
+  display: inline-block;
+}
+
+h1 .text-accent-app:after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 8px;
+  background-color: var(--secondary-app);
+  border-radius: 4px;
+  z-index: -1;
+  opacity: 0.5;
+}
+
+/* เพิ่ม CSS สำหรับ particles */
+.particles-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -1;
+  background-color: #f8f9fa;
+  opacity: 0.7;
+}
+
+/* School info swiper styling */
+.info-swiper {
+  padding-bottom: 50px;
+}
+
+.info-swiper .swiper-slide {
+  height: auto;
+}
+
+.info-swiper .app-card {
+  transition: transform 0.3s;
+}
+
+.info-swiper .app-card:hover {
+  transform: translateY(-5px);
+}
+
+/* School specific styling */
+.school-logo {
+  max-height: 60px;
+}
+
+/* System benefit items */
+.benefit-item {
+  transition: all 0.3s ease;
+  border-radius: 10px;
+}
+
+.benefit-item:hover {
+  background-color: rgba(149, 164, 216, 0.1);
+}
+
+@media (min-width: 992px) {
+  .app-container {
+    max-width: 100%; /* เปลี่ยนจาก 960px เป็น 100% */
+    padding-bottom: 0;
+    box-shadow: none; /* ลบเงาออก */
+    margin-top: 0;
+    margin-bottom: 0;
+    border-radius: 0; /* ลบมุมโค้ง */
+  }
+  
+  /* ปรับขนาด container ให้เหมาะสมกับหน้าจอกว้าง */
+  .container {
+    max-width: 1400px; /* เพิ่มความกว้างสูงสุดของ container */
+  }
+  
+  .bottom-navbar {
+    position: relative;
+    box-shadow: none;
+  }
+
+  .parallax-bg {
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .parallax-bg::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: url('https://placehold.co/1920x1080') no-repeat center center;
+    background-size: cover;
+    z-index: -1;
+    opacity: 0.05;
+    transform: translateZ(-1px) scale(1.5);
+  }
+}
+
+/* ปรับแต่ง layout สำหรับหน้าจอกว้าง */
+@media (min-width: 1200px) {
+  /* ปรับขนาดตัวอักษรให้เหมาะกับหน้าจอกว้าง */
+  h1.display-4 {
+    font-size: 3.5rem;
+  }
+  
+  /* เพิ่มระยะห่างด้านบนและล่างสำหรับแต่ละส่วน */
+  .container.py-5 {
+    padding-top: 4rem !important;
+    padding-bottom: 4rem !important;
+  }
+  
+  /* ทำให้การ์ดเรียงตัวในแนวนอน */
+  .feature-card {
+    height: 100%;
+    min-height: 280px;
+    transition: transform 0.4s ease, box-shadow 0.4s ease;
+  }
+  
+  /* เพิ่มขนาดไอคอน */
+  .icon-animation {
+    width: 80px !important;
+    height: 80px !important;
+  }
+  
+  /* ปรับขนาด Swiper ให้เหมาะสมกับหน้าจอกว้าง */
+  .testimonial-swiper {
+    height: 300px;
+  }
+  
+  /* เพิ่ม spacing ให้กับ content */
+  .stats-container {
+    padding: 2rem 0;
+  }
+  
+  /* เพิ่มขนาดให้ CTA section */
+  .cta-card {
+    padding: 4rem !important;
+    transform: scale(1.02);
+  }
+}
+
+/* ปรับการแสดงผลสำหรับหน้าจอกว้างพิเศษ */
+@media (min-width: 1600px) {
+  .container {
+    max-width: 1520px;
+  }
+  
+  .hero-section-wrapper {
+    min-height: 80vh;
+    display: flex;
+    align-items: center;
+  }
+}
+
+/* เพิ่มโครงสร้างกริด */
+.grid-section {
+  position: relative;
+}
+
+.grid-section::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: linear-gradient(rgba(16, 32, 173, 0.03) 1px, transparent 1px),
+                    linear-gradient(90deg, rgba(16, 32, 173, 0.03) 1px, transparent 1px);
+  background-size: 20px 20px;
+  z-index: -1;
+}
+
+/* ปรับปรุงส่วนเนื้อหาตรงกลาง */
+.content-wrapper {
+  max-width: 1200px;
+  margin: 0 auto;
+}

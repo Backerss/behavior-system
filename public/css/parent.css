@@ -1,0 +1,583 @@
+/* Parent Dashboard Specific Styles - Optimized Version */
+
+:root {
+  --transition-speed: 0.3s;
+  --card-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  --card-shadow-hover: 0 8px 20px rgba(0, 0, 0, 0.15);
+  --border-radius: 0.75rem;
+  --border-radius-sm: 0.5rem;
+}
+
+/* Optimized animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideIn {
+  from { transform: translateX(-15px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.04); }
+  100% { transform: scale(1); }
+}
+
+@keyframes notificationPulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.08); }
+  100% { transform: scale(1); }
+}
+
+/* Common base styles */
+.app-card {
+  border-radius: var(--border-radius);
+  box-shadow: var(--card-shadow);
+  background: #ffffff;
+  transition: all var(--transition-speed) ease;
+  overflow: hidden;
+}
+
+.app-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--card-shadow-hover);
+}
+
+.dark-theme .app-card {
+  background: #2a2a2a;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+/* Parent info card */
+.parent-info-card {
+  background: linear-gradient(to right, #ffffff, #f8f9ff);
+  animation: fadeIn 0.6s ease forwards;
+}
+
+.dark-theme .parent-info-card {
+  background: linear-gradient(to right, #2a2a2a, #32364a);
+}
+
+.parent-avatar {
+  position: relative;
+  transition: transform var(--transition-speed) ease;
+}
+
+.parent-avatar:hover {
+  transform: scale(1.05);
+}
+
+.parent-avatar::after {
+  content: '';
+  position: absolute;
+  width: calc(100% + 6px);
+  height: calc(100% + 6px);
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.5);
+  top: -3px;
+  left: -3px;
+  animation: pulse 3s infinite;
+}
+
+.notification-badge i {
+  color: var(--primary-app);
+  transition: all 0.3s ease;
+}
+
+.notification-badge:hover i {
+  transform: rotate(15deg);
+}
+
+.notification-badge .badge {
+  animation: notificationPulse 2s infinite;
+}
+
+/* Student selector - improved scrolling */
+.student-selector {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  padding-bottom: 0.5rem;
+}
+
+.student-selector::-webkit-scrollbar {
+  height: 4px;
+}
+
+.student-selector::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+}
+
+.student-tabs {
+  display: flex;
+  gap: 0.75rem;
+  padding: 0.5rem 0.25rem;
+  min-width: max-content;
+}
+
+.student-tab {
+  display: flex;
+  align-items: center;
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 50px;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #495057;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  white-space: nowrap;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+}
+
+.student-tab:hover {
+  background: #f1f3f5;
+  border-color: #dee2e6;
+  transform: translateY(-2px) scale(1.02);
+}
+
+.student-tab.active {
+  background: var(--primary-app);
+  color: white;
+  border-color: var(--primary-app);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+}
+
+.student-avatar-small {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background-color: var(--bs-primary);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 0.5rem;
+  font-size: 0.75rem;
+  transition: all 0.3s ease;
+}
+
+.student-tab.active .student-avatar-small {
+  background-color: white;
+  color: var(--primary-app);
+  transform: scale(1.1);
+}
+
+/* Student summary cards */
+.desktop-grid-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.student-summary-card {
+  border-radius: var(--border-radius);
+  transition: all 0.3s cubic-bezier(0.165, 0.84, 0.44, 1);
+  animation: fadeIn 0.6s ease forwards;
+  position: relative;
+  overflow: hidden;
+}
+
+.student-summary-card::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  opacity: 0;
+  transform: rotate(30deg);
+  background: linear-gradient(to right, 
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.3) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  transition: all 0.6s ease;
+}
+
+.student-summary-card:hover::after {
+  opacity: 1;
+  transform: rotate(30deg) translate(80%, -100%);
+}
+
+.dark-theme .student-summary-card::after {
+  background: linear-gradient(to right, 
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.1) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
+}
+
+.student-avatar-summary {
+  width: 40px;
+  height: 40px;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+}
+
+.student-summary-card:hover .student-avatar-summary {
+  transform: scale(1.1) rotate(5deg);
+}
+
+.view-details-link {
+  font-size: 0.875rem;
+  color: var(--primary-app);
+  text-decoration: none;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+}
+
+.view-details-link i {
+  transition: transform 0.3s ease;
+  margin-left: 0.25rem;
+}
+
+.view-details-link:hover {
+  color: var(--primary-app);
+}
+
+.view-details-link:hover i {
+  transform: translateX(4px);
+}
+
+/* Enhanced progress bar */
+.progress {
+  border-radius: var(--border-radius-sm);
+  background-color: #f1f3f5;
+  overflow: hidden;
+  height: 8px;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.progress-bar {
+  transition: width 1.2s cubic-bezier(0.22, 1, 0.36, 1);
+  background-image: linear-gradient(to right, rgba(255,255,255,0.1), rgba(255,255,255,0.2));
+}
+
+/* Best performer effect */
+.best-performer {
+  position: relative;
+}
+
+.best-performer::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border: 2px solid #ffc107;
+  border-radius: var(--border-radius);
+  opacity: 0.7;
+  pointer-events: none;
+  animation: pulse 2s infinite;
+}
+
+.best-performer-badge {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background: white;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+  animation: fadeIn 0.8s ease;
+}
+
+.dark-theme .best-performer-badge {
+  background: #333;
+}
+
+/* Enhanced notification & event lists */
+.notification-list,
+.event-list,
+.parenting-tips {
+  max-height: 350px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
+  padding-right: 4px;
+}
+
+.notification-list::-webkit-scrollbar,
+.event-list::-webkit-scrollbar,
+.parenting-tips::-webkit-scrollbar {
+  width: 4px;
+}
+
+.notification-list::-webkit-scrollbar-thumb,
+.event-list::-webkit-scrollbar-thumb,
+.parenting-tips::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+}
+
+.notification-item,
+.event-item,
+.tip-item {
+  transition: all 0.3s ease;
+  border-bottom: 1px solid #e9ecef;
+  opacity: 0;
+  padding: 0.75rem 0;
+  border-radius: var(--border-radius-sm);
+}
+
+.notification-item.animated,
+.event-item.animated,
+.tip-item.animated {
+  opacity: 1;
+  animation: slideIn 0.5s ease forwards;
+}
+
+.notification-item:hover,
+.event-item:hover,
+.tip-item:hover {
+  background-color: rgba(0, 0, 0, 0.02);
+  transform: translateX(2px);
+}
+
+.dark-theme .notification-item:hover,
+.dark-theme .event-item:hover,
+.dark-theme .tip-item:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.notification-icon,
+.event-icon,
+.tip-icon,
+.activity-icon {
+  transition: all 0.3s ease;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.notification-item:hover .notification-icon,
+.event-item:hover .event-icon,
+.tip-item:hover .tip-icon,
+.activity-item:hover .activity-icon {
+  transform: scale(1.1) rotate(5deg);
+}
+
+/* Enhanced section headers */
+.section-header {
+  margin: 1.5rem 0 1rem;
+  position: relative;
+}
+
+.section-header h3 {
+  color: var(--primary-app);
+  font-weight: 600;
+  position: relative;
+  display: inline-block;
+}
+
+.section-header h3::after {
+  content: '';
+  position: absolute;
+  bottom: -5px;
+  left: 0;
+  width: 40%;
+  height: 3px;
+  background: var(--primary-app);
+  border-radius: 2px;
+}
+
+/* Enhanced individual student view */
+.student-header {
+  background: linear-gradient(to right, #f8f9ff, #ffffff);
+  border-radius: var(--border-radius);
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.student-header::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 100px;
+  height: 100%;
+  background: linear-gradient(to left, rgba(var(--primary-app-rgb), 0.05), transparent);
+}
+
+.dark-theme .student-header {
+  background: linear-gradient(to right, #32364a, #2a2a2a);
+}
+
+.back-to-all {
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.back-to-all:hover {
+  transform: translateX(-3px);
+}
+
+.back-to-all i {
+  transition: transform 0.2s ease;
+}
+
+.back-to-all:hover i {
+  transform: translateX(-2px);
+}
+
+/* Enhanced teacher contact card */
+.teacher-avatar {
+  transition: all 0.3s ease;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.1);
+}
+
+/* Enhanced attendance chart */
+.attendance-chart-container {
+  height: 200px;
+  margin-bottom: 1rem;
+}
+
+.attendance-stats {
+  background: #f8f9ff;
+  border-radius: var(--border-radius);
+  padding: 1.25rem;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+}
+
+.dark-theme .attendance-stats {
+  background: #32364a;
+}
+
+.attendance-stat-item {
+  transition: all 0.2s ease;
+  padding: 0.625rem;
+  border-radius: var(--border-radius-sm);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.attendance-stat-item:hover {
+  background-color: rgba(0, 0, 0, 0.03);
+  transform: translateX(2px);
+}
+
+.dark-theme .attendance-stat-item:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+/* Enhanced contact teacher button */
+.contact-teacher-btn {
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  padding: 0.75rem 2.5rem;
+  border-radius: 50px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  position: relative;
+  overflow: hidden;
+}
+
+.contact-teacher-btn::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(to right, transparent, rgba(255,255,255,0.2), transparent);
+  transform: translateX(-100%);
+}
+
+.contact-teacher-btn:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15);
+}
+
+.contact-teacher-btn:hover::after {
+  transform: translateX(100%);
+  transition: transform 0.6s ease;
+}
+
+/* Enhanced scroll to top button */
+.scroll-top-btn {
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  opacity: 0;
+  visibility: hidden;
+}
+
+.scroll-top-btn.visible {
+  opacity: 1;
+  visibility: visible;
+}
+
+.scroll-top-btn:hover {
+  transform: translateY(-3px) scale(1.1);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.25);
+}
+
+/* Communication modal styles */
+.chat-container {
+  border: 1px solid rgba(0,0,0,0.1);
+  background: #f8f9fa;
+  border-radius: var(--border-radius);
+}
+
+.dark-theme .chat-container {
+  background: #333;
+  border-color: rgba(255,255,255,0.1);
+}
+
+.message-body {
+  border-radius: var(--border-radius-sm);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  transition: all 0.2s ease;
+}
+
+.message-body:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 3px 5px rgba(0,0,0,0.15);
+}
+
+/* Responsive optimizations */
+@media (max-width: 991.98px) {
+  .desktop-grid-summary {
+    grid-template-columns: 1fr;
+  }
+  
+  .student-tab span {
+    max-width: 100px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  
+  .notification-list,
+  .event-list,
+  .parenting-tips {
+    max-height: 300px;
+  }
+  
+  .section-header {
+    margin: 1.25rem 0 0.75rem;
+  }
+}
+
+@media (min-width: 992px) {
+  .student-selector .student-tabs {
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  
+  .app-card {
+    border-radius: calc(var(--border-radius) + 0.25rem);
+  }
+}
