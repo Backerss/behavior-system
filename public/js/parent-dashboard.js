@@ -889,8 +889,10 @@ function showCommunicationModal() {
     
     // Set up event handler for cleanup
     modal.addEventListener('hidden.bs.modal', function () {
-        // Remove modal from DOM after hiding
-        document.body.removeChild(modal);
+        // Check if modal is still a child of document.body before removing
+        if (modal.parentNode === document.body) {
+            document.body.removeChild(modal);
+        }
     });
     
     // Set up send button handler
@@ -1049,5 +1051,18 @@ function addScrollToTopButton() {
             top: 0,
             behavior: 'smooth'
         });
+    });
+}
+
+/**
+ * Initialize communication log functionality
+ */
+function initializeCommunicationLog() {
+    // Add communication log tab functionality
+    const contactBtn = document.querySelector('.contact-teacher-btn');
+    if (!contactBtn) return;
+    
+    contactBtn.addEventListener('click', function() {
+        showCommunicationModal();
     });
 }

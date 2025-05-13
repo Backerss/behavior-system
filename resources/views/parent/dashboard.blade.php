@@ -66,8 +66,8 @@
             <div class="app-card parent-info-card mb-4 p-3">
                 <div class="d-flex align-items-center">
                     <div class="me-3">
-                        <div class="parent-avatar bg-primary-app text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
-                            <i class="fas fa-user-tie fa-2x"></i>
+                        <div class="parent-avatar rounded-circle d-flex align-items-center justify-content-center overflow-hidden" style="width: 60px; height: 60px;">
+                            <img src="{{ asset('images/profile.png') }}" alt="โปรไฟล์ผู้ปกครอง" class="w-100 h-100 object-fit-cover">
                         </div>
                     </div>
                     <div>
@@ -276,44 +276,7 @@
                         </div>
                     </div>
                 </div>
-                
-                <!-- Upcoming Events for Parents -->
-                <div class="section-header d-flex justify-content-between align-items-center mt-4 mb-3">
-                    <h3 class="h5 mb-0">กิจกรรมที่กำลังจะมาถึง</h3>
-                </div>
-
-                <div class="app-card p-3 mb-4">
-                    <div class="event-list">
-                        <div class="event-item d-flex py-2 border-bottom">
-                            <div class="me-3">
-                                <div class="bg-info rounded-circle event-icon d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
-                                    <i class="fas fa-calendar-day text-white"></i>
-                                </div>
-                            </div>
-                            <div>
-                                <p class="mb-0 fw-medium">ประชุมผู้ปกครองประจำภาคเรียนที่ 1</p>
-                                <p class="text-muted small mb-0">20 พ.ค. 2568, 09:00 - 12:00 น.</p>
-                            </div>
-                            <div class="ms-auto align-self-center">
-                                <a href="javascript:void(0);" class="btn btn-sm btn-outline-primary">รายละเอียด</a>
-                            </div>
-                        </div>
-                        <div class="event-item d-flex py-2">
-                            <div class="me-3">
-                                <div class="bg-primary-app rounded-circle event-icon d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
-                                    <i class="fas fa-book text-white"></i>
-                                </div>
-                            </div>
-                            <div>
-                                <p class="mb-0 fw-medium">กำหนดส่งเอกสารยืนยันการเรียนพิเศษ</p>
-                                <p class="text-muted small mb-0">25 พ.ค. 2568</p>
-                            </div>
-                            <div class="ms-auto align-self-center">
-                                <a href="javascript:void(0);" class="btn btn-sm btn-outline-primary">ดาวน์โหลด</a>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+            
             </div>
 
             <!-- Individual Student View (initially hidden) -->
