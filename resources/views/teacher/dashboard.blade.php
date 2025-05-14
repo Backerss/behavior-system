@@ -48,10 +48,13 @@
                     <i class="fas fa-user-circle"></i>
                     <span>โปรไฟล์</span>
                 </a>
-                <a href="/logout" class="menu-item mt-auto">
+                <a href="javascript:void(0);" onclick="document.getElementById('logout-form').submit();" class="menu-item mt-auto">
                     <i class="fas fa-sign-out-alt"></i>
                     <span>ออกจากระบบ</span>
                 </a>
+                <form id="logout-form" action="{{ route('logout') }}" method="POST" class="d-none">
+                    @csrf
+                </form>
             </div>
         </div>
         
@@ -68,7 +71,7 @@
                         <img src="https://ui-avatars.com/api/?name=ครูใจดี&background=1020AD&color=fff" class="rounded-circle" width="40" height="40" data-bs-toggle="dropdown">
                         <div class="dropdown-menu dropdown-menu-end">
                             <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#profileModal">โปรไฟล์</a>
-                            <a class="dropdown-item" href="/logout">ออกจากระบบ</a>
+                            <a class="dropdown-item" href="javascript:void(0);" onclick="document.getElementById('logout-form').submit();">ออกจากระบบ</a>
                         </div>
                     </div>
                 </div>
@@ -80,12 +83,12 @@
                     <!-- Welcome Section -->
                     <div class="welcome-section d-flex justify-content-between align-items-center mb-4">
                         <div>
-                            <h1 class="fw-bold">สวัสดี, คุณครูใจดี</h1>
-                            <p class="text-muted">วันนี้คือวันที่ <span class="current-date">12 พฤษภาคม 2568</span></p>
+                            <h1 class="fw-bold">สวัสดี, {{ $user->name_prefix }}{{ $user->first_name }} {{ $user->last_name }}</h1>
+                            <p class="text-muted">วันนี้คือวันที่ <span class="current-date">{{ date('d F Y') }}</span></p>
                         </div>
                         <div class="d-none d-md-flex">
                             <button class="btn btn-primary-app me-2" data-bs-toggle="modal" data-bs-target="#newViolationModal">
-                                <i class="fas fa-plus-circle me-2"></i>บันทึกพฤติกรรมใหม่
+                                <i class="fas fa-plus me-2"></i> บันทึกพฤติกรรม
                             </button>
                         </div>
                     </div>
@@ -529,18 +532,28 @@
                 <div class="modal-body">
                     <div class="text-center mb-4">
                         <div class="position-relative d-inline-block">
-                            <img src="https://ui-avatars.com/api/?name=ครูใจดี&background=1020AD&color=fff" class="rounded-circle" width="100" height="100">
+                            @if($user->profile_image)
+                                <img src="{{ asset('storage/'.$user->profile_image) }}" class="rounded-circle" width="100" height="100">
+                            @else
+                                <img src="https://ui-avatars.com/api/?name={{ urlencode($user->first_name) }}&background=1020AD&color=fff" class="rounded-circle" width="100" height="100">
+                            @endif
                             <button class="btn btn-sm btn-primary-app position-absolute bottom-0 end-0 rounded-circle">
                                 <i class="fas fa-camera"></i>
                             </button>
                         </div>
-                        <h4 class="mt-3 mb-1">ครูใจดี มีเมตตา</h4>
-                        <p class="text-muted">ครูประจำชั้น ม.5/1</p>
+                        <h4 class="mt-3 mb-1">{{ $user->name_prefix }}{{ $user->first_name }} {{ $user->last_name }}</h4>
+                        <p class="text-muted">
+                            @if($user->teacher && $user->teacher->position)
+                                {{ $user->teacher->position }}
+                            @else
+                                ครู
+                            @endif
+                        </p>
                     </div>
                     
                     <div class="mb-3">
                         <label class="form-label">อีเมล</label>
-                        <input type="email" class="form-control" value="teacher@school.ac.th" disabled>
+                        <input type="email" class="form-control" value="{{ $user->email }}" disabled>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">ชื่อ-นามสกุล</label>

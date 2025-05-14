@@ -748,6 +748,24 @@
         <!-- Main Content -->
         <div class="container py-4 flex-grow-1 d-flex flex-column">
             <div class="app-form-container">
+                <!-- เพิ่มการแสดงข้อความผิดพลาด -->
+                @if ($errors->any())
+                <div class="alert alert-danger mb-4">
+                    <ul class="mb-0">
+                        @foreach ($errors->all() as $error)
+                            <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
+                </div>
+                @endif
+
+                <!-- แสดงข้อผิดพลาดของระบบ -->
+                @if ($errors->has('system_error'))
+                <div class="alert alert-danger mb-4">
+                    {{ $errors->first('system_error') }}
+                </div>
+                @endif
+
                 <!-- Registration Progress -->
                 <div class="mb-4">
                     <div class="d-flex justify-content-between align-items-center mb-1">
@@ -766,7 +784,8 @@
                 </div>
                 
                 <!-- Registration Form -->
-                <form id="registrationForm" class="needs-validation" novalidate>
+                <form id="registrationForm" class="needs-validation" method="POST" action="{{ route('register') }}" novalidate>
+                    @csrf
                     <!-- Step 1: Select Role -->
                     <div class="form-step active" id="step1">
                         <h5 class="section-heading fw-semibold mb-4">เลือกประเภทผู้ใช้งาน</h5>
@@ -884,7 +903,7 @@
                             
                             <div class="mb-3">
                                 <div class="form-floating">
-                                    <input type="text" class="form-control" id="student_code" name="student_code" placeholder="รหัสนักเรียน" required>
+                                    <input type="text" class="form-control" id="student_code" name="student_code" placeholder="รหัสนักเรียน" data-required="true">
                                     <label for="student_code">รหัสนักเรียน</label>
                                     <div class="invalid-feedback">กรุณากรอกรหัสนักเรียน</div>
                                 </div>
@@ -948,7 +967,7 @@
                             
                             <div class="mb-3">
                                 <div class="form-floating">
-                                    <select class="form-select" id="relationship_to_student" name="relationship_to_student" required>
+                                    <select class="form-select" id="relationship_to_student" name="relationship_to_student" data-required="true">
                                         <option value="" selected disabled>เลือกความสัมพันธ์</option>
                                         <option value="บิดา">บิดา</option>
                                         <option value="มารดา">มารดา</option>
@@ -1054,7 +1073,7 @@
                         
                         <div class="mb-3">
                             <div class="form-floating">
-                                <input type="tel" class="form-control" id="phone" name="phone" placeholder="เบอร์โทรศัพท์" required>
+                                <input type="tel" class="form-control" id="phone" name="phone_number" placeholder="เบอร์โทรศัพท์" required>
                                 <label for="phone">เบอร์โทรศัพท์</label>
                                 <div class="invalid-feedback">กรุณากรอกเบอร์โทรศัพท์</div>
                             </div>
@@ -1258,25 +1277,78 @@
             
             // Form validation
             form.addEventListener('submit', function(event) {
+                event.preventDefault();
+                
+                // ดึงบทบาทที่เลือกไว้
+                const selectedRole = selectedRoleInput.value;
+                
+                // ยกเลิกการตรวจสอบความถูกต้องในฟิลด์ที่ไม่เกี่ยวข้องกับบทบาท
+                disableIrrelevantFields(selectedRole);
+                
                 if (!form.checkValidity()) {
-                    event.preventDefault();
                     event.stopPropagation();
                     errorToast.show();
-                } else {
-                    event.preventDefault(); // สำหรับการเดโม
                     
+                    // Log validation errors to console
+                    const invalidFields = form.querySelectorAll(':invalid');
+                    console.group('Form Validation Errors:');
+                    invalidFields.forEach(field => {
+                        console.error(`Field: ${field.name || field.id} - Error: ${field.validationMessage}`);
+                    });
+                    console.groupEnd();
+                } else {
                     // แสดง loading overlay
                     document.getElementById('loadingOverlay').classList.add('show');
                     
-                    // จำลองการส่งฟอร์ม (ในกรณีจริงคุณจะลบโค้ดนี้)
-                    setTimeout(() => {
-                        document.getElementById('loadingOverlay').classList.remove('show');
-                        // จากนี้คุณจะส่งฟอร์มจริงหรือเปลี่ยนเส้นทาง
-                    }, 2000);
+                    // ส่งฟอร์มจริง
+                    form.submit();
                 }
                 
                 form.classList.add('was-validated');
             });
+            
+            // ฟังก์ชันยกเลิกการตรวจสอบความถูกต้องในฟิลด์ที่ไม่เกี่ยวข้อง
+            function disableIrrelevantFields(role) {
+                // เริ่มต้นโดยยกเลิกการตรวจสอบทุกฟิลด์เฉพาะของแต่ละบทบาท
+                document.querySelectorAll('#teacher-fields input, #teacher-fields select, #teacher-fields textarea').forEach(field => {
+                    field.disabled = true;
+                    field.required = false;
+                });
+                
+                document.querySelectorAll('#student-fields input, #student-fields select, #student-fields textarea').forEach(field => {
+                    field.disabled = true;
+                    field.required = false;
+                });
+                
+                document.querySelectorAll('#parent-fields input, #parent-fields select, #parent-fields textarea').forEach(field => {
+                    field.disabled = true;
+                    field.required = false;
+                });
+                
+                // เปิดใช้งานเฉพาะฟิลด์ที่เกี่ยวข้องกับบทบาทที่เลือกและฟิลด์ทั่วไป
+                if (role === 'teacher') {
+                    document.querySelectorAll('#teacher-fields input, #teacher-fields select, #teacher-fields textarea').forEach(field => {
+                        field.disabled = false;
+                        if (field.hasAttribute('data-required')) {
+                            field.required = true;
+                        }
+                    });
+                } else if (role === 'student') {
+                    document.querySelectorAll('#student-fields input, #student-fields select, #student-fields textarea').forEach(field => {
+                        field.disabled = false;
+                        if (field.hasAttribute('data-required')) {
+                            field.required = true;
+                        }
+                    });
+                } else if (role === 'parent') {
+                    document.querySelectorAll('#parent-fields input, #parent-fields select, #parent-fields textarea').forEach(field => {
+                        field.disabled = false;
+                        if (field.hasAttribute('data-required')) {
+                            field.required = true;
+                        }
+                    });
+                }
+            }
             
             // Password confirmation validation
             const password = document.getElementById('password');

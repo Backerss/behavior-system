@@ -354,13 +354,42 @@
             background: linear-gradient(135deg, var(--accent-app), var(--accent-dark));
             border: none;
             color: white;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 500;
+            padding: 12px 20px;
+            overflow: hidden;
+            position: relative;
+            z-index: 1;
         }
-        
-        .btn-accent-app:hover {
+
+        .btn-accent-app:hover, .btn-accent-app:focus {
             background: linear-gradient(135deg, var(--accent-dark), var(--primary-app));
-            transform: translateY(-3px);
-            box-shadow: var(--box-shadow-md);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+            transform: translateY(-2px);
             color: white;
+        }
+
+        .btn-accent-app:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .btn-spinner {
+            margin-left: 8px;
+        }
+
+        .btn.is-loading .btn-text {
+            visibility: hidden;
+            opacity: 0;
+        }
+
+        .btn.is-loading .btn-spinner {
+            visibility: visible;
+            opacity: 1;
         }
         
         .btn-link {
@@ -566,6 +595,17 @@
         <!-- Main Content -->
         <div class="container py-4 flex-grow-1 d-flex flex-column">
             <div class="app-form-container">
+                <!-- แสดงข้อความ Error หลัก -->
+                @if ($errors->any() && !$errors->has('email') && !$errors->has('password') && !$errors->has('parent_phone') && !$errors->has('student_code'))
+                    <div class="alert alert-danger mb-4">
+                        <ul class="mb-0">
+                            @foreach ($errors->all() as $error)
+                                <li>{{ $error }}</li>
+                            @endforeach
+                        </ul>
+                    </div>
+                @endif
+
                 <!-- Form Title -->
                 <div class="form-title">
                     <h2 class="text-primary-app fw-bold">เข้าสู่ระบบ</h2>
@@ -579,7 +619,7 @@
                     <div class="row g-3 role-cards-container">
                         <!-- Teacher Role -->
                         <div class="col-md-4">
-                            <div class="card role-card" data-role="teacher">
+                            <div class="card role-card" data-role="teacher" data-target="teacherLoginForm">
                                 <div class="card-body text-center p-4">
                                     <div class="role-icon bg-white">
                                         <img src="{{ asset('images/teacher.png') }}" alt="ครู" class="img-fluid role-image">
@@ -591,7 +631,7 @@
                         
                         <!-- Student Role -->
                         <div class="col-md-4">
-                            <div class="card role-card" data-role="student">
+                            <div class="card role-card" data-role="student" data-target="studentLoginForm">
                                 <div class="card-body text-center p-4">
                                     <div class="role-icon bg-white">
                                         <img src="{{ asset('images/student.png') }}" alt="นักเรียน" class="img-fluid role-image">
@@ -603,7 +643,7 @@
                         
                         <!-- Parent Role -->
                         <div class="col-md-4">
-                            <div class="card role-card" data-role="parent">
+                            <div class="card role-card" data-role="parent" data-target="parentLoginForm">
                                 <div class="card-body text-center p-4">
                                     <div class="role-icon bg-white">
                                         <img src="{{ asset('images/parental.png') }}" alt="ผู้ปกครอง" class="img-fluid role-image">
@@ -622,159 +662,147 @@
                 <!-- Login Forms Container -->
                 <div class="login-forms-container mt-4">
                     <!-- Teacher Login Form -->
-                    <form id="teacherLoginForm" class="login-form needs-validation" novalidate>
-                        <div class="login-form-header mb-4">
-                            <h5 class="text-primary-app fw-bold">เข้าสู่ระบบสำหรับครู</h5>
-                            <p class="text-muted small">กรอกข้อมูลอีเมลและรหัสผ่านของท่าน</p>
-                        </div>
-                        
+                    <form id="teacherLoginForm" class="login-form needs-validation" method="POST" action="{{ route('login') }}" novalidate>
+                        @csrf
+                        <input type="hidden" name="role" value="teacher">
                         <div class="mb-3">
                             <div class="form-floating">
-                                <input type="email" class="form-control" id="teacherEmail" name="email" placeholder="อีเมล" required>
-                                <label for="teacherEmail">อีเมล</label>
+                                <input type="email" class="form-control @error('email') is-invalid @enderror" id="teacherEmail" name="email" placeholder="อีเมลครู" required>
+                                <label for="teacherEmail">อีเมลครู</label>
                                 <div class="invalid-feedback">
                                     กรุณากรอกอีเมลให้ถูกต้อง
                                 </div>
                             </div>
+                            @error('email')
+                                <div class="text-danger">{{ $message }}</div>
+                            @enderror
                         </div>
-                        
                         <div class="mb-3 password-field">
                             <div class="form-floating">
-                                <input type="password" class="form-control" id="teacherPassword" name="password" placeholder="รหัสผ่าน" required>
+                                <input type="password" class="form-control @error('password') is-invalid @enderror" id="teacherPassword" name="password" placeholder="รหัสผ่าน" required>
                                 <label for="teacherPassword">รหัสผ่าน</label>
-                                <button type="button" class="password-toggle" data-target="teacherPassword">
+                                <button type="button" class="password-toggle" tabindex="-1">
                                     <i class="fas fa-eye"></i>
                                 </button>
                                 <div class="invalid-feedback">
                                     กรุณากรอกรหัสผ่าน
                                 </div>
                             </div>
+                            @error('password')
+                                <div class="text-danger">{{ $message }}</div>
+                            @enderror
                         </div>
-                        
-                        <div class="d-flex justify-content-between mb-4">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
                             <div class="form-check">
-                                <input class="form-check-input" type="checkbox" id="teacherRemember" name="remember">
-                                <label class="form-check-label" for="teacherRemember">
-                                    จดจำฉัน
-                                </label>
+                                <input type="checkbox" class="form-check-input" id="teacherRemember" name="remember">
+                                <label class="form-check-label" for="teacherRemember">จดจำฉัน</label>
                             </div>
-                            <a href="#" class="btn-link text-primary-app">ลืมรหัสผ่าน?</a>
+                            <a href="#" class="btn-link text-muted">ลืมรหัสผ่าน?</a>
                         </div>
-                        
-                        <div class="d-grid gap-2">
-                            <button type="submit" class="btn btn-accent-app btn-lg rounded-pill">
-                                <span class="btn-text">เข้าสู่ระบบ</span>
-                                <span class="spinner-border spinner-border-sm btn-spinner" role="status" aria-hidden="true"></span>
-                            </button>
-                            
-                            <a href="{{ url('register') }}" class="btn btn-outline-primary mt-3 rounded-pill">
-                                <i class="fas fa-user-plus me-2"></i> สมัครสมาชิกใหม่
-                            </a>
-                        </div>
+                        <button type="submit" class="btn btn-accent-app btn-lg w-100 d-flex align-items-center justify-content-center">
+                            <span class="btn-text">เข้าสู่ระบบ</span>
+                            <span class="spinner-border spinner-border-sm btn-spinner d-none" role="status" aria-hidden="true"></span>
+                        </button>
                     </form>
-                    
+
                     <!-- Student Login Form -->
-                    <form id="studentLoginForm" class="login-form needs-validation" novalidate>
-                        <div class="login-form-header mb-4">
-                            <h5 class="text-primary-app fw-bold">เข้าสู่ระบบสำหรับนักเรียน</h5>
-                            <p class="text-muted small">กรอกข้อมูลอีเมลโรงเรียน (@school.ac.th) และรหัสผ่าน</p>
-                        </div>
-                        
+                    <form id="studentLoginForm" class="login-form needs-validation" method="POST" action="{{ route('login') }}" novalidate>
+                        @csrf
+                        <input type="hidden" name="role" value="student">
                         <div class="mb-3">
                             <div class="form-floating">
-                                <input type="email" class="form-control" id="studentEmail" name="email" placeholder="อีเมลโรงเรียน" required
-                                       pattern="[a-zA-Z0-9._%+-]+@school\.ac\.th$">
-                                <label for="studentEmail">อีเมลโรงเรียน (@school.ac.th)</label>
+                                <input type="email" class="form-control @error('email') is-invalid @enderror" id="studentEmail" name="email" placeholder="อีเมลนักเรียน" required>
+                                <label for="studentEmail">อีเมลนักเรียน</label>
                                 <div class="invalid-feedback">
-                                    กรุณากรอกอีเมลโรงเรียนที่ลงท้ายด้วย @school.ac.th
+                                    กรุณากรอกอีเมลให้ถูกต้อง (@school.ac.th)
                                 </div>
                             </div>
+                            @error('email')
+                                <div class="text-danger">{{ $message }}</div>
+                            @enderror
                         </div>
-                        
                         <div class="mb-3 password-field">
                             <div class="form-floating">
-                                <input type="password" class="form-control" id="studentPassword" name="password" placeholder="รหัสผ่าน" required>
+                                <input type="password" class="form-control @error('password') is-invalid @enderror" id="studentPassword" name="password" placeholder="รหัสผ่าน" required>
                                 <label for="studentPassword">รหัสผ่าน</label>
-                                <button type="button" class="password-toggle" data-target="studentPassword">
+                                <button type="button" class="password-toggle" tabindex="-1">
                                     <i class="fas fa-eye"></i>
                                 </button>
                                 <div class="invalid-feedback">
                                     กรุณากรอกรหัสผ่าน
                                 </div>
                             </div>
+                            @error('password')
+                                <div class="text-danger">{{ $message }}</div>
+                            @enderror
                         </div>
-                        
-                        <div class="d-flex justify-content-between mb-4">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
                             <div class="form-check">
-                                <input class="form-check-input" type="checkbox" id="studentRemember" name="remember">
-                                <label class="form-check-label" for="studentRemember">
-                                    จดจำฉัน
-                                </label>
+                                <input type="checkbox" class="form-check-input" id="studentRemember" name="remember">
+                                <label class="form-check-label" for="studentRemember">จดจำฉัน</label>
                             </div>
-                            <a href="#" class="btn-link text-primary-app">ลืมรหัสผ่าน?</a>
+                            <a href="#" class="btn-link text-muted">ลืมรหัสผ่าน?</a>
                         </div>
-                        
-                        <div class="d-grid gap-2">
-                            <button type="submit" class="btn btn-accent-app btn-lg rounded-pill">
-                                <span class="btn-text">เข้าสู่ระบบ</span>
-                                <span class="spinner-border spinner-border-sm btn-spinner" role="status" aria-hidden="true"></span>
-                            </button>
-                            
-                            <a href="{{ url('register') }}" class="btn btn-outline-primary mt-3 rounded-pill">
-                                <i class="fas fa-user-plus me-2"></i> สมัครสมาชิกใหม่
-                            </a>
-                        </div>
+                        <button type="submit" class="btn btn-accent-app btn-lg w-100 d-flex align-items-center justify-content-center">
+                            <span class="btn-text">เข้าสู่ระบบ</span>
+                            <span class="spinner-border spinner-border-sm btn-spinner d-none" role="status" aria-hidden="true"></span>
+                        </button>
                     </form>
-                    
+
                     <!-- Parent Login Form -->
-                    <form id="parentLoginForm" class="login-form needs-validation" novalidate>
-                        <div class="login-form-header mb-4">
-                            <h5 class="text-primary-app fw-bold">เข้าสู่ระบบสำหรับผู้ปกครอง</h5>
-                            <p class="text-muted small">กรอกเบอร์โทรศัพท์และรหัสนักเรียนของบุตรหลาน</p>
-                        </div>
-                        
+                    <form id="parentLoginForm" class="login-form needs-validation" method="POST" action="{{ route('login') }}" novalidate>
+                        @csrf
+                        <input type="hidden" name="role" value="guardian">
                         <div class="mb-3">
                             <div class="form-floating">
-                                <input type="tel" class="form-control" id="parentPhone" name="phone" placeholder="เบอร์โทรศัพท์" 
-                                       required pattern="[0-9]{10}" maxlength="10">
-                                <label for="parentPhone">เบอร์โทรศัพท์ (10 หลัก)</label>
+                                <input type="tel" class="form-control @error('parent_phone') is-invalid @enderror" id="parentPhone" name="parent_phone" placeholder="เบอร์โทรศัพท์ผู้ปกครอง" required>
+                                <label for="parentPhone">เบอร์โทรศัพท์ผู้ปกครอง</label>
                                 <div class="invalid-feedback">
-                                    กรุณากรอกเบอร์โทรศัพท์ให้ครบ 10 หลัก
+                                    กรุณากรอกเบอร์โทรศัพท์ให้ถูกต้อง
                                 </div>
                             </div>
+                            @error('parent_phone')
+                                <div class="text-danger">{{ $message }}</div>
+                            @enderror
                         </div>
-                        
                         <div class="mb-3">
                             <div class="form-floating">
-                                <input type="text" class="form-control" id="studentCode" name="student_code" placeholder="รหัสนักเรียน" 
-                                       required pattern="ST[0-9]{3,}">
-                                <label for="studentCode">รหัสนักเรียน (เช่น ST001)</label>
+                                <input type="text" class="form-control @error('student_code') is-invalid @enderror" id="studentCode" name="student_code" placeholder="รหัสนักเรียน" required>
+                                <label for="studentCode">รหัสนักเรียน</label>
                                 <div class="invalid-feedback">
-                                    กรุณากรอกรหัสนักเรียนให้ถูกต้อง (ขึ้นต้นด้วย ST ตามด้วยตัวเลข)
+                                    กรุณากรอกรหัสนักเรียนให้ถูกต้อง
                                 </div>
                             </div>
+                            @error('student_code')
+                                <div class="text-danger">{{ $message }}</div>
+                            @enderror
                         </div>
-                        
-                        <div class="d-flex justify-content-between mb-4">
+                        <div class="mb-3 password-field">
+                            <div class="form-floating">
+                                <input type="password" class="form-control @error('password') is-invalid @enderror" id="parentPassword" name="password" placeholder="รหัสผ่าน" required>
+                                <label for="parentPassword">รหัสผ่าน</label>
+                                <button type="button" class="password-toggle" tabindex="-1">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                <div class="invalid-feedback">
+                                    กรุณากรอกรหัสผ่าน
+                                </div>
+                            </div>
+                            @error('password')
+                                <div class="text-danger">{{ $message }}</div>
+                            @enderror
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mb-3">
                             <div class="form-check">
-                                <input class="form-check-input" type="checkbox" id="parentRemember" name="remember">
-                                <label class="form-check-label" for="parentRemember">
-                                    จดจำฉัน
-                                </label>
+                                <input type="checkbox" class="form-check-input" id="parentRemember" name="remember">
+                                <label class="form-check-label" for="parentRemember">จดจำฉัน</label>
                             </div>
-                            <a href="#" class="btn-link text-primary-app">ต้องการความช่วยเหลือ?</a>
+                            <a href="#" class="btn-link text-muted">ลืมรหัสผ่าน?</a>
                         </div>
-                        
-                        <div class="d-grid gap-2">
-                            <button type="submit" class="btn btn-accent-app btn-lg rounded-pill">
-                                <span class="btn-text">เข้าสู่ระบบ</span>
-                                <span class="spinner-border spinner-border-sm btn-spinner" role="status" aria-hidden="true"></span>
-                            </button>
-                            
-                            <a href="{{ url('register') }}" class="btn btn-outline-primary mt-3 rounded-pill">
-                                <i class="fas fa-user-plus me-2"></i> สมัครสมาชิกใหม่
-                            </a>
-                        </div>
+                        <button type="submit" class="btn btn-accent-app btn-lg w-100 d-flex align-items-center justify-content-center">
+                            <span class="btn-text">เข้าสู่ระบบ</span>
+                            <span class="spinner-border spinner-border-sm btn-spinner d-none" role="status" aria-hidden="true"></span>
+                        </button>
                     </form>
                 </div>
             </div>
@@ -807,25 +835,12 @@
     <script src="https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js"></script>
     
     <script>
+        // คำสั่ง JavaScript สำหรับ login.blade.php
         document.addEventListener('DOMContentLoaded', function() {
             // Initialize particles background for desktop only
             if (window.innerWidth > 992) {
-                particlesJS("particles-js", {
-                    particles: {
-                        number: { value: 80, density: { enable: true, value_area: 800 } },
-                        color: { value: "#95A4D8" },
-                        shape: { type: "circle" },
-                        opacity: { value: 0.5, random: true },
-                        size: { value: 3, random: true },
-                        line_linked: { enable: true, distance: 150, color: "#1020AD", opacity: 0.2, width: 1 },
-                        move: { enable: true, speed: 1, direction: "none", random: true, straight: false, out_mode: "out" }
-                    },
-                    interactivity: {
-                        detect_on: "canvas",
-                        events: { onhover: { enable: true, mode: "grab" }, onclick: { enable: true, mode: "push" } },
-                        modes: { grab: { distance: 140, line_linked: { opacity: 0.3 } }, push: { particles_nb: 3 } }
-                    },
-                    retina_detect: true
+                particlesJS('particles-js', {
+                    // กำหนดค่า particles ตามต้องการ
                 });
             }
             
@@ -838,55 +853,29 @@
             const passwordToggles = document.querySelectorAll('.password-toggle');
             passwordToggles.forEach(toggle => {
                 toggle.addEventListener('click', function() {
-                    const targetId = this.getAttribute('data-target');
-                    const passwordInput = document.getElementById(targetId);
-                    const icon = this.querySelector('i');
-                    
-                    if (passwordInput.type === 'password') {
-                        passwordInput.type = 'text';
-                        icon.classList.remove('fa-eye');
-                        icon.classList.add('fa-eye-slash');
-                    } else {
-                        passwordInput.type = 'password';
-                        icon.classList.remove('fa-eye-slash');
-                        icon.classList.add('fa-eye');
-                    }
+                    const passwordField = this.closest('.password-field').querySelector('input');
+                    const type = passwordField.getAttribute('type') === 'password' ? 'text' : 'password';
+                    passwordField.setAttribute('type', type);
+                    this.querySelector('i').classList.toggle('fa-eye');
+                    this.querySelector('i').classList.toggle('fa-eye-slash');
                 });
             });
             
             // Role card selection
             roleCards.forEach(card => {
                 card.addEventListener('click', function() {
-                    // Remove selected class from all cards
+                    // Reset selected state
                     roleCards.forEach(c => c.classList.remove('selected'));
-                    
-                    // Add selected class to current card
                     this.classList.add('selected');
                     
-                    // Get selected role
-                    const selectedRole = this.dataset.role;
-                    
-                    // Hide all forms
-                    loginForms.forEach(form => form.classList.remove('active'));
+                    // Hide all forms first
+                    loginForms.forEach(form => {
+                        form.classList.remove('active');
+                    });
                     
                     // Show selected form
-                    document.getElementById(`${selectedRole}LoginForm`).classList.add('active');
-                    
-                    // Hide role error if any
-                    document.getElementById('roleError').style.display = 'none';
-                    
-                    // Animation
-                    const roleIcon = this.querySelector('.role-icon');
-                    roleIcon.classList.add('animate-float');
-                    
-                    // Add hover animation to role icons
-                    const imageElement = this.querySelector('.role-image');
-                    imageElement && imageElement.classList.add('animate-float');
-                    
-                    setTimeout(() => {
-                        roleIcon.classList.remove('animate-float');
-                        imageElement && imageElement.classList.remove('animate-float');
-                    }, 1000);
+                    const targetFormId = this.dataset.target;
+                    document.getElementById(targetFormId).classList.add('active');
                 });
             });
             
@@ -894,89 +883,53 @@
             const forms = document.querySelectorAll('.needs-validation');
             
             forms.forEach(form => {
-                form.addEventListener('submit', event => {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    
+                form.addEventListener('submit', function(event) {
                     if (!form.checkValidity()) {
+                        event.preventDefault();
+                        event.stopPropagation();
                         errorToast.show();
                     } else {
-                        // Show loading state
-                        const submitButton = form.querySelector('[type="submit"]');
-                        submitButton.classList.add('is-loading');
-                        submitButton.disabled = true;
+                        // ถ้าฟอร์มถูกต้อง แสดง loading
+                        const submitBtn = form.querySelector('button[type="submit"]');
+                        submitBtn.querySelector('.btn-spinner').classList.remove('d-none');
+                        submitBtn.disabled = true;
                         
-                        // Simulate server request
-                        setTimeout(() => {
-                            submitButton.classList.remove('is-loading');
-                            submitButton.disabled = false;
-                            
-                            // Here would go your actual login logic
-                            // For demo, we'll redirect to dashboard
-                            window.location.href = '/dashboard';
-                        }, 1500);
+                        // ปล่อยให้ฟอร์มถูกส่งตามปกติ
                     }
-                    
                     form.classList.add('was-validated');
                 });
             });
-            
-            // Special validation for student email (must end with @school.ac.th)
-            const studentEmailInput = document.getElementById('studentEmail');
-            studentEmailInput.addEventListener('input', function() {
-                const email = this.value;
-                const isSchoolEmail = /@school\.ac\.th$/.test(email);
+
+            // ถ้ามีการส่งฟอร์มแล้วเกิดข้อผิดพลาด ให้แสดงฟอร์มที่มีปัญหา
+            // (ทำงานเมื่อมีการรีเฟรชหน้าหลังส่งฟอร์มผิดพลาด)
+            if (document.querySelector('.is-invalid')) {
+                // ดูว่ามีฟอร์มไหนที่มีข้อผิดพลาด
+                let formWithError = null;
                 
-                if (email && !isSchoolEmail) {
-                    this.setCustomValidity('อีเมลต้องลงท้ายด้วย @school.ac.th');
-                } else {
-                    this.setCustomValidity('');
-                }
-            });
-            
-            // Format phone number as user types
-            const parentPhoneInput = document.getElementById('parentPhone');
-            parentPhoneInput.addEventListener('input', function() {
-                // Remove non-digit characters
-                let phoneNumber = this.value.replace(/\D/g, '');
-                
-                // Ensure it's no more than 10 digits
-                if (phoneNumber.length > 10) {
-                    phoneNumber = phoneNumber.substring(0, 10);
+                if (document.querySelector('#teacherLoginForm .is-invalid')) {
+                    formWithError = 'teacherLoginForm';
+                } else if (document.querySelector('#studentLoginForm .is-invalid')) {
+                    formWithError = 'studentLoginForm';
+                } else if (document.querySelector('#parentLoginForm .is-invalid')) {
+                    formWithError = 'parentLoginForm';
                 }
                 
-                // Update the input value
-                this.value = phoneNumber;
-                
-                // Validate length
-                if (phoneNumber.length !== 10) {
-                    this.setCustomValidity('เบอร์โทรศัพท์ต้องมี 10 หลัก');
-                } else {
-                    this.setCustomValidity('');
+                if (formWithError) {
+                    // ซ่อนทุกฟอร์มก่อน
+                    loginForms.forEach(form => form.classList.remove('active'));
+                    
+                    // แสดงเฉพาะฟอร์มที่มีปัญหา
+                    document.getElementById(formWithError).classList.add('active');
+                    
+                    // หา role card ที่ตรงกับฟอร์มและเลือกมัน
+                    roleCards.forEach(card => {
+                        card.classList.remove('selected');
+                        if (card.dataset.target === formWithError) {
+                            card.classList.add('selected');
+                        }
+                    });
                 }
-            });
-            
-            // Format student code as user types
-            const studentCodeInput = document.getElementById('studentCode');
-            studentCodeInput.addEventListener('input', function() {
-                let code = this.value;
-                
-                // If it doesn't start with ST, add it
-                if (!code.startsWith('ST')) {
-                    code = 'ST' + code.replace(/ST/gi, '');
-                }
-                
-                // Format as STxxx
-                code = code.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
-                this.value = code;
-                
-                // Validate format
-                if (!/^ST\d{3,}$/.test(code)) {
-                    this.setCustomValidity('รหัสนักเรียนต้องขึ้นต้นด้วย ST ตามด้วยตัวเลขอย่างน้อย 3 หลัก');
-                } else {
-                    this.setCustomValidity('');
-                }
-            });
+            }
         });
     </script>
 </body>

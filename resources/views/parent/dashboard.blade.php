@@ -49,6 +49,14 @@
                         <i class="fas fa-user"></i>
                         <span>โปรไฟล์</span>
                     </a>
+                    <!-- เพิ่มปุ่มออกจากระบบในเมนู -->
+                    <a href="javascript:void(0);" onclick="document.getElementById('logout-form').submit();" class="desktop-nav-link">
+                        <i class="fas fa-sign-out-alt"></i>
+                        <span>ออกจากระบบ</span>
+                    </a>
+                    <form id="logout-form" action="{{ route('logout') }}" method="POST" class="d-none">
+                        @csrf
+                    </form>
                 </div>
             </div>
         </nav>
@@ -67,19 +75,27 @@
                 <div class="d-flex align-items-center">
                     <div class="me-3">
                         <div class="parent-avatar rounded-circle d-flex align-items-center justify-content-center overflow-hidden" style="width: 60px; height: 60px;">
-                            <img src="{{ asset('images/profile.png') }}" alt="โปรไฟล์ผู้ปกครอง" class="w-100 h-100 object-fit-cover">
+                            @if($user->profile_image)
+                                <img src="{{ asset('storage/'.$user->profile_image) }}" alt="โปรไฟล์ผู้ปกครอง" class="w-100 h-100 object-fit-cover">
+                            @else
+                                <img src="{{ asset('images/profile.png') }}" alt="โปรไฟล์ผู้ปกครอง" class="w-100 h-100 object-fit-cover">
+                            @endif
                         </div>
                     </div>
                     <div>
-                        <h2 class="h5 mb-1">สวัสดี คุณ ขจรศักดิ์ ภูมิมาลา</h2>
-                        <p class="text-muted mb-0">ผู้ปกครองนักเรียน 3 คน</p>
+                        <h2 class="h5 mb-1">สวัสดี {{ $user->name_prefix }}{{ $user->first_name }} {{ $user->last_name }}</h2>
+                        <p class="text-muted mb-0">
+                            ผู้ปกครองนักเรียน {{ $user->guardian && $user->guardian->students ? $user->guardian->students->count() : 0 }} คน
+                        </p>
                     </div>
                     <div class="ms-auto notification-badge">
                         <span class="position-relative">
                             <i class="fas fa-bell fs-4"></i>
+                            @if($user->notifications && $user->notifications->where('read_at', null)->count() > 0)
                             <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
-                                2
+                                {{ $user->notifications->where('read_at', null)->count() }}
                             </span>
+                            @endif
                         </span>
                     </div>
                 </div>
@@ -93,24 +109,17 @@
                         <i class="fas fa-users"></i>
                         <span>ทั้งหมด</span>
                     </button>
-                    <button class="student-tab" data-student="student1">
-                        <div class="student-avatar-small">
-                            <i class="fas fa-user-graduate"></i>
-                        </div>
-                        <span>ด.ช. กล้า ภูมิมาลา</span>
-                    </button>
-                    <button class="student-tab" data-student="student2">
-                        <div class="student-avatar-small">
-                            <i class="fas fa-user-graduate"></i>
-                        </div>
-                        <span>ด.ญ. ใจดี ภูมิมาลา</span>
-                    </button>
-                    <button class="student-tab" data-student="student3">
-                        <div class="student-avatar-small">
-                            <i class="fas fa-user-graduate"></i>
-                        </div>
-                        <span>ด.ช. จริง ภูมิมาลา</span>
-                    </button>
+                    
+                    @if($user->guardian && $user->guardian->students)
+                        @foreach($user->guardian->students as $index => $student)
+                            <button class="student-tab" data-student="student{{ $index+1 }}">
+                                <div class="student-avatar-small">
+                                    <i class="fas fa-user-graduate"></i>
+                                </div>
+                                <span>{{ $student->user->name_prefix }}{{ $student->user->first_name }} {{ $student->user->last_name }}</span>
+                            </button>
+                        @endforeach
+                    @endif
                 </div>
             </div>
 

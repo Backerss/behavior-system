@@ -48,6 +48,13 @@
                         <i class="fas fa-user"></i>
                         <span>โปรไฟล์</span>
                     </a>
+                    <a href="javascript:void(0);" onclick="document.getElementById('logout-form').submit();" class="desktop-nav-link">
+                        <i class="fas fa-sign-out-alt"></i>
+                        <span>ออกจากระบบ</span>
+                    </a>
+                    <form id="logout-form" action="{{ route('logout') }}" method="POST" class="d-none">
+                        @csrf
+                    </form>
                 </div>
             </div>
         </nav>
@@ -70,8 +77,15 @@
                         </div>
                     </div>
                     <div>
-                        <h2 class="h5 mb-1">สวัสดี นักเรียน XXXXXXXXX</h2>
-                        <p class="text-muted mb-0">ชั้น ม.X/X เลขที่ XX</p>
+                        <h2 class="h5 mb-1">สวัสดี {{ $user->name_prefix }}{{ $user->first_name }} {{ $user->last_name }}</h2>
+                        <p class="text-muted mb-0">
+                            @if($user->student)
+                                ชั้น {{ $user->student->class ? $user->student->class->level.$user->student->class->room_number : 'ไม่ระบุชั้นเรียน' }}
+                                รหัสนักเรียน {{ $user->student->student_code }}
+                            @else
+                                ข้อมูลนักเรียนไม่สมบูรณ์
+                            @endif
+                        </p>
                     </div>
                 </div>
             </div>
@@ -84,7 +98,9 @@
                     <div class="app-card stats-card p-3">
                         <div class="text-center">
                             <h3 class="h5 text-primary-app mb-3">คะแนนความประพฤติ</h3>
-                            <p class="display-4 fw-bold mb-2 stats-value" id="behavior-points">100</p>
+                            <p class="display-4 fw-bold mb-2 stats-value" id="behavior-points">
+                                {{ $user->student ? $user->student->current_score : 0 }}
+                            </p>
                             <span class="badge bg-success">ดีมาก</span>
                         </div>
                     </div>

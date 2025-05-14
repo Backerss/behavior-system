@@ -2,47 +2,65 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
 class User extends Authenticatable
 {
-    /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory, Notifiable;
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var list<string>
-     */
+    protected $table = 'tb_users';
+
     protected $fillable = [
-        'name',
+        'name_prefix',
+        'first_name',
+        'last_name',
         'email',
+        'phone_number',
         'password',
+        'role',
+        'profile_image',
+        'birthdate',
+        'created_at',
+        'updated_at'
     ];
 
-    /**
-     * The attributes that should be hidden for serialization.
-     *
-     * @var list<string>
-     */
     protected $hidden = [
         'password',
-        'remember_token',
     ];
 
-    /**
-     * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
-     */
-    protected function casts(): array
+    protected $casts = [
+        'birthdate' => 'date',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
+    ];
+
+    // เพิ่มบรรทัดนี้เพื่อบอก Laravel ว่า model นี้ไม่ใช้ remember_token
+    public $rememberTokenName = false;
+
+    public function getAuthPassword()
     {
-        return [
-            'email_verified_at' => 'datetime',
-            'password' => 'hashed',
-        ];
+        return $this->password;
+    }
+
+    public function student()
+    {
+        return $this->hasOne(Student::class, 'user_id');
+    }
+
+    public function teacher()
+    {
+        return $this->hasOne(Teacher::class, 'user_id');
+    }
+
+    public function guardian()
+    {
+        return $this->hasOne(Guardian::class, 'user_id');
+    }
+    
+    public function notifications()
+    {
+        return $this->hasMany(Notification::class, 'user_id');
     }
 }
