@@ -40,6 +40,10 @@
                     <i class="fas fa-exclamation-triangle"></i>
                     <span>บันทึกพฤติกรรม</span>
                 </a>
+                <a href="#" data-bs-toggle="modal" data-bs-target="#violationTypesModal" class="menu-item">
+                    <i class="fas fa-list-ul"></i>
+                    <span>จัดการประเภทพฤติกรรม</span>
+                </a>
                 <a href="#" data-bs-toggle="modal" data-bs-target="#importExportModal" class="menu-item">
                     <i class="fas fa-file-import"></i>
                     <span>นำเข้า/ส่งออก</span>
@@ -503,9 +507,9 @@
                         </a>
                     </div>
                     <div class="col">
-                        <a href="#" class="nav-link text-center" data-bs-toggle="modal" data-bs-target="#importExportModal">
-                            <i class="fas fa-file-import"></i>
-                            <span>นำเข้า</span>
+                        <a href="#" class="nav-link text-center" data-bs-toggle="modal" data-bs-target="#violationTypesModal">
+                            <i class="fas fa-list-ul"></i>
+                            <span>ประเภท</span>
                         </a>
                     </div>
                     <div class="col">
@@ -660,6 +664,183 @@
                 <div class="modal-footer border-0 pt-0">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
                     <button type="button" class="btn btn-primary-app">บันทึกพฤติกรรม</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Violation Types Modal -->
+    <div class="modal fade" id="violationTypesModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title">จัดการประเภทพฤติกรรม</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- การค้นหาและการเพิ่มใหม่ -->
+                    <div class="d-flex justify-content-between mb-3">
+                        <div class="input-group" style="max-width: 300px;">
+                            <input type="text" class="form-control" id="violationTypeSearch" placeholder="ค้นหาประเภทพฤติกรรม...">
+                            <button class="btn btn-primary-app" type="button"><i class="fas fa-search"></i></button>
+                        </div>
+                        <button class="btn btn-primary-app" id="btnShowAddViolationType">
+                            <i class="fas fa-plus me-2"></i>เพิ่มประเภทพฤติกรรมใหม่
+                        </button>
+                    </div>
+                    
+                    <!-- ส่วนแสดงรายการประเภทพฤติกรรม -->
+                    <div id="violationTypesList" class="mb-4">
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th style="width: 35%">ชื่อพฤติกรรม</th>
+                                        <th style="width: 15%">ระดับความรุนแรง</th>
+                                        <th style="width: 15%">คะแนนที่หัก</th>
+                                        <th style="width: 25%">รายละเอียด</th>
+                                        <th style="width: 10%"></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>ผิดระเบียบการแต่งกาย</td>
+                                        <td><span class="badge bg-warning text-dark">ปานกลาง</span></td>
+                                        <td>5</td>
+                                        <td class="text-truncate" style="max-width: 200px;">นักเรียนแต่งกายไม่ถูกระเบียบตามข้อกำหนดของโรงเรียน</td>
+                                        <td>
+                                            <div class="btn-group">
+                                                <button type="button" class="btn btn-sm btn-outline-primary edit-violation-btn" data-id="1">
+                                                    <i class="fas fa-edit"></i>
+                                                </button>
+                                                <button type="button" class="btn btn-sm btn-outline-danger delete-violation-btn" data-id="1">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>มาสาย</td>
+                                        <td><span class="badge bg-info text-white">เบา</span></td>
+                                        <td>3</td>
+                                        <td class="text-truncate" style="max-width: 200px;">นักเรียนมาโรงเรียนหลังเวลา 08:00 น.</td>
+                                        <td>
+                                            <div class="btn-group">
+                                                <button type="button" class="btn btn-sm btn-outline-primary edit-violation-btn" data-id="2">
+                                                    <i class="fas fa-edit"></i>
+                                                </button>
+                                                <button type="button" class="btn btn-sm btn-outline-danger delete-violation-btn" data-id="2">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>ทะเลาะวิวาท</td>
+                                        <td><span class="badge bg-danger text-white">รุนแรง</span></td>
+                                        <td>20</td>
+                                        <td class="text-truncate" style="max-width: 200px;">นักเรียนก่อเหตุทะเลาะวิวาท ทำร้ายร่างกายผู้อื่น</td>
+                                        <td>
+                                            <div class="btn-group">
+                                                <button type="button" class="btn btn-sm btn-outline-primary edit-violation-btn" data-id="3">
+                                                    <i class="fas fa-edit"></i>
+                                                </button>
+                                                <button type="button" class="btn btn-sm btn-outline-danger delete-violation-btn" data-id="3">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <!-- Pagination -->
+                        <nav>
+                            <ul class="pagination pagination-sm justify-content-end mt-3 mb-0">
+                                <li class="page-item disabled"><a class="page-link" href="#">Previous</a></li>
+                                <li class="page-item active"><a class="page-link" href="#">1</a></li>
+                                <li class="page-item"><a class="page-link" href="#">2</a></li>
+                                <li class="page-item"><a class="page-link" href="#">Next</a></li>
+                            </ul>
+                        </nav>
+                    </div>
+                    
+                    <!-- ฟอร์มเพิ่ม/แก้ไขประเภทพฤติกรรม (ซ่อนไว้ก่อน) -->
+                    <div class="card d-none" id="violationTypeForm">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h5 class="card-title mb-0" id="formViolationTitle">เพิ่มประเภทพฤติกรรมใหม่</h5>
+                                <button type="button" class="btn-close" id="btnCloseViolationForm"></button>
+                            </div>
+                            
+                            <form id="formViolationType">
+                                <input type="hidden" id="violationTypeId" name="violations_id">
+                                
+                                <div class="mb-3">
+                                    <label for="violations_name" class="form-label">ชื่อประเภทพฤติกรรม <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="violations_name" name="violations_name" 
+                                           placeholder="ระบุชื่อประเภทพฤติกรรม เช่น ผิดระเบียบการแต่งกาย" required maxlength="150">
+                                    <div class="form-text">สูงสุด 150 ตัวอักษร</div>
+                                </div>
+                                
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="violations_category" class="form-label">ระดับความรุนแรง <span class="text-danger">*</span></label>
+                                        <select class="form-select" id="violations_category" name="violations_category" required>
+                                            <option value="" selected disabled>เลือกระดับความรุนแรง</option>
+                                            <option value="light">เบา (light)</option>
+                                            <option value="medium">ปานกลาง (medium)</option>
+                                            <option value="severe">รุนแรง (severe)</option>
+                                        </select>
+                                        <div class="form-text">เลือกระดับความรุนแรงตามประเภทของพฤติกรรม</div>
+                                    </div>
+                                    
+                                    <div class="col-md-6 mb-3">
+                                        <label for="violations_points_deducted" class="form-label">คะแนนที่หัก <span class="text-danger">*</span></label>
+                                        <input type="number" class="form-control" id="violations_points_deducted" name="violations_points_deducted" 
+                                               min="1" max="100" required placeholder="ระบุคะแนนที่จะหัก">
+                                        <div class="form-text">ระบุเป็นตัวเลขระหว่าง 1-100</div>
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-4">
+                                    <label for="violations_description" class="form-label">รายละเอียดเพิ่มเติม</label>
+                                    <textarea class="form-control" id="violations_description" name="violations_description" rows="3"
+                                              placeholder="อธิบายรายละเอียดเพิ่มเติมเกี่ยวกับพฤติกรรมนี้..."></textarea>
+                                </div>
+                                
+                                <div class="d-flex justify-content-end">
+                                    <button type="button" class="btn btn-secondary me-2" id="btnCancelViolationType">ยกเลิก</button>
+                                    <button type="submit" class="btn btn-primary-app" id="btnSaveViolationType">บันทึก</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ปิด</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Violation Confirmation Modal -->
+    <div class="modal fade" id="deleteViolationModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+            <div class="modal-content">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title">ยืนยันการลบ</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body text-center">
+                    <i class="fas fa-exclamation-triangle text-warning fa-3x mb-3"></i>
+                    <h5>ยืนยันการลบประเภทพฤติกรรมนี้?</h5>
+                    <p class="text-muted">การลบประเภทพฤติกรรมนี้อาจส่งผลกระทบต่อข้อมูลพฤติกรรมที่บันทึกไว้แล้ว</p>
+                    <input type="hidden" id="deleteViolationId">
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+                    <button type="button" class="btn btn-danger" id="confirmDeleteViolation">ยืนยันการลบ</button>
                 </div>
             </div>
         </div>

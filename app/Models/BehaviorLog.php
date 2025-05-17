@@ -10,6 +10,7 @@ class BehaviorLog extends Model
     use HasFactory;
     
     protected $table = 'tb_behavior_logs';
+    public $timestamps = false;
     
     protected $fillable = [
         'behavior_report_id',
@@ -26,15 +27,13 @@ class BehaviorLog extends Model
         'created_at' => 'datetime'
     ];
 
-    public $timestamps = false;
-
     public function behaviorReport()
     {
-        return $this->belongsTo(BehaviorReport::class, 'behavior_report_id');
+        return $this->belongsTo(BehaviorReport::class, 'behavior_report_id', 'reports_id');
     }
     
     public function user()
     {
-        return $this->belongsTo(User::class, 'performed_by');
+        return $this->belongsTo(User::class, 'performed_by', 'users_id');
     }
 }

@@ -32,7 +32,7 @@ class AuthController extends Controller
             'name_prefix' => 'required|string|max:20',
             'first_name' => 'required|string|max:100',
             'last_name' => 'required|string|max:100',
-            'email' => 'required|email|max:150|unique:tb_users,email',
+            'email' => 'required|email|max:150|unique:tb_users,users_email',
             'phone_number' => 'required|string|max:20',
             'password' => 'required|min:8|confirmed',
             'birthdate' => 'required|date',
@@ -41,22 +41,22 @@ class AuthController extends Controller
         // เพิ่มกฎเฉพาะตาม role
         switch ($request->role) {
             case 'teacher':
-                $rules['employee_code'] = 'required|string|max:20|unique:tb_teachers,employee_code';
+                $rules['employee_code'] = 'required|string|max:20|unique:tb_teachers,teachers_employee_code';
                 $rules['position'] = 'nullable|string|max:50';
                 $rules['department'] = 'nullable|string|max:100';
                 $rules['major'] = 'nullable|string|max:100';
                 break;
                 
             case 'student':
-                $rules['student_code'] = 'required|string|max:20|unique:tb_students,student_code';
-                $rules['class_id'] = 'required|exists:tb_classes,id';
+                $rules['student_code'] = 'required|string|max:20|unique:tb_students,students_student_code';
+                $rules['class_id'] = 'required|exists:tb_classes,classes_id';
                 $rules['academic_year'] = 'required|string|max:10';
                 $rules['gender'] = 'required|in:male,female,other';
                 break;
                 
             case 'guardian':
                 $rules['relationship_to_student'] = 'required|string|max:50';
-                $rules['student_code'] = 'required|string|max:20|exists:tb_students,student_code';
+                $rules['student_code'] = 'required|string|max:20|exists:tb_students,students_student_code';
                 $rules['line_id'] = 'nullable|string|max:100';
                 $rules['preferred_contact_method'] = 'nullable|in:phone,email,line';
                 break;
@@ -76,58 +76,58 @@ class AuthController extends Controller
         try {
             // สร้างบัญชีผู้ใช้
             $user = new User();
-            $user->name_prefix = $request->name_prefix;
-            $user->first_name = $request->first_name;
-            $user->last_name = $request->last_name;
-            $user->email = $request->email;
-            $user->phone_number = $request->phone_number;
-            $user->password = Hash::make($request->password);
-            $user->role = $request->role;
-            $user->birthdate = $request->birthdate;
+            $user->users_name_prefix = $request->name_prefix;
+            $user->users_first_name = $request->first_name;
+            $user->users_last_name = $request->last_name;
+            $user->users_email = $request->email;
+            $user->users_phone_number = $request->phone_number;
+            $user->users_password = Hash::make($request->password);
+            $user->users_role = $request->role;
+            $user->users_birthdate = $request->birthdate;
             $user->save();
 
             // สร้างข้อมูลตามประเภทของผู้ใช้
             switch ($request->role) {
                 case 'teacher':
                     $teacher = new Teacher();
-                    $teacher->user_id = $user->id;
-                    $teacher->employee_code = $request->employee_code;
-                    $teacher->position = $request->position ?? 'ครู';
-                    $teacher->department = $request->department;
-                    $teacher->major = $request->major;
-                    $teacher->is_homeroom_teacher = false;
+                    $teacher->user_id = $user->users_id;
+                    $teacher->teachers_employee_code = $request->employee_code;
+                    $teacher->teachers_position = $request->position ?? 'ครู';
+                    $teacher->teachers_department = $request->department;
+                    $teacher->teachers_major = $request->major;
+                    $teacher->teachers_is_homeroom_teacher = false;
                     $teacher->save();
                     break;
                     
                 case 'student':
                     $student = new Student();
-                    $student->user_id = $user->id;
-                    $student->student_code = $request->student_code;
+                    $student->user_id = $user->users_id;
+                    $student->students_student_code = $request->student_code;
                     $student->class_id = $request->class_id;
-                    $student->academic_year = $request->academic_year;
-                    $student->current_score = 100; // เริ่มต้นที่ 100 คะแนน
-                    $student->status = 'active';
-                    $student->gender = $request->gender;
+                    $student->students_academic_year = $request->academic_year;
+                    $student->students_current_score = 100; // เริ่มต้นที่ 100 คะแนน
+                    $student->students_status = 'active';
+                    $student->students_gender = $request->gender;
                     $student->save();
                     break;
                     
                 case 'guardian':
                     $guardian = new Guardian();
-                    $guardian->user_id = $user->id;
-                    $guardian->relationship_to_student = $request->relationship_to_student;
-                    $guardian->phone = $request->phone_number;
-                    $guardian->email = $request->email;
-                    $guardian->line_id = $request->line_id;
-                    $guardian->preferred_contact_method = $request->preferred_contact_method ?? 'phone';
+                    $guardian->user_id = $user->users_id;
+                    $guardian->guardians_relationship_to_student = $request->relationship_to_student;
+                    $guardian->guardians_phone = $request->phone_number;
+                    $guardian->guardians_email = $request->email;
+                    $guardian->guardians_line_id = $request->line_id;
+                    $guardian->guardians_preferred_contact_method = $request->preferred_contact_method ?? 'phone';
                     $guardian->save();
                     
                     // เชื่อมโยงกับนักเรียน
-                    $student = Student::where('student_code', $request->student_code)->first();
+                    $student = Student::where('students_student_code', $request->student_code)->first();
                     if ($student) {
                         \DB::table('tb_guardian_student')->insert([
-                            'guardian_id' => $guardian->id,
-                            'student_id' => $student->id,
-                            'created_at' => now()
+                            'guardian_id' => $guardian->guardians_id,
+                            'student_id' => $student->students_id,
+                            'guardian_student_created_at' => now()
                         ]);
                     }
                     break;
@@ -183,32 +183,32 @@ class AuthController extends Controller
                 case 'teacher':
                 case 'student':
                     $credentials = [
-                        'email' => $request->email,
-                        'password' => $request->password,
-                        'role' => $role
+                        'users_email' => $request->email, // แก้จาก email เป็น users_email
+                        'users_password' => $request->password, // แก้จาก password เป็น users_password
+                        'users_role' => $role // แก้จาก role เป็น users_role
                     ];
                     break;
                     
                 case 'guardian':
                     // ค้นหา user ที่เป็น guardian จากหมายเลขโทรศัพท์และรหัสนักเรียน
-                    $guardian = Guardian::where('phone', $request->parent_phone)->first();
+                    $guardian = Guardian::where('guardians_phone', $request->parent_phone)->first(); // แก้จาก phone เป็น guardians_phone
                     if ($guardian) {
                         $user = User::find($guardian->user_id);
                         if ($user) {
                             // ตรวจสอบว่า guardian คนนี้เป็นผู้ปกครองของนักเรียนรหัสนี้จริงหรือไม่
-                            $student = Student::where('student_code', $request->student_code)->first();
+                            $student = Student::where('students_student_code', $request->student_code)->first(); // แก้จาก student_code เป็น students_student_code
                             if ($student) {
                                 $isGuardianOfStudent = \DB::table('tb_guardian_student')
-                                    ->where('guardian_id', $guardian->id)
-                                    ->where('student_id', $student->id)
+                                    ->where('guardian_id', $guardian->guardians_id) // แก้จาก id เป็น guardians_id
+                                    ->where('student_id', $student->students_id) // แก้จาก id เป็น students_id
                                     ->exists();
                                     
                                 if ($isGuardianOfStudent) {
                                     // ใส่ข้อมูลให้ตรงกับ guardian
                                     $credentials = [
-                                        'email' => $user->email,
-                                        'password' => $request->password,
-                                        'role' => 'guardian'
+                                        'users_email' => $user->users_email, // แก้จาก email เป็น users_email
+                                        'users_password' => $request->password, // แก้จาก password เป็น users_password
+                                        'users_role' => 'guardian' // แก้จาก role เป็น users_role
                                     ];
                                 }
                             }
@@ -217,10 +217,24 @@ class AuthController extends Controller
                     break;
             }
             
-            // พยายามเข้าสู่ระบบ แต่ไม่ใช้ remember me
-            if (!empty($credentials) && Auth::attempt($credentials, false)) {
-                $request->session()->regenerate();
-                return redirect()->intended('dashboard');
+            // เพิ่ม code สำหรับ debug ข้อมูล login
+            \Log::info('Login attempt with credentials:', [
+                'credentials' => $credentials,
+                'request_data' => $request->all()
+            ]);
+
+            // พยายามเข้าสู่ระบบ แต่ไม่ใช้ remember me ด้วยชื่อฟิลด์ที่ถูกต้อง
+            if (!empty($credentials)) {
+                // ตรวจสอบการ login แบบ manual
+                $user = User::where('users_email', $credentials['users_email'])
+                            ->where('users_role', $credentials['users_role'])
+                            ->first();
+                
+                if ($user && Hash::check($request->password, $user->users_password)) {
+                    Auth::login($user, false);
+                    $request->session()->regenerate();
+                    return redirect()->intended('dashboard');
+                }
             }
             
             // กรณีที่เข้าสู่ระบบไม่สำเร็จ

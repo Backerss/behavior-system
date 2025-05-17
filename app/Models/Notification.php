@@ -9,6 +9,7 @@ class Notification extends Model
     use HasFactory;
     
     protected $table = 'tb_notifications';
+    public $timestamps = false;
     
     protected $fillable = [
         'user_id',
@@ -24,11 +25,9 @@ class Notification extends Model
         'created_at' => 'datetime'
     ];
 
-    public $timestamps = false;
-
     public function user()
     {
-        return $this->belongsTo(User::class, 'user_id');
+        return $this->belongsTo(User::class, 'user_id', 'users_id');
     }
     
     public function markAsRead()
