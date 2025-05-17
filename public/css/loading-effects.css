@@ -1,0 +1,121 @@
+/* Progress bar style - เหมือนที่ YouTube, GitHub หรือ LinkedIn ใช้ */
+.progress-bar-top {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #1020AD, #3949cc);
+    width: 0%;
+    z-index: 10000;
+    box-shadow: 0 0 5px rgba(16, 32, 173, 0.5);
+    transition: width 0.3s ease, opacity 0.3s ease;
+}
+
+.progress-bar-animated {
+    background-size: 30px 30px;
+    background-image: linear-gradient(135deg, rgba(255, 255, 255, 0.15) 25%, transparent 25%, 
+                      transparent 50%, rgba(255, 255, 255, 0.15) 50%, rgba(255, 255, 255, 0.15) 75%, 
+                      transparent 75%, transparent);
+    animation: animate-stripes 1s linear infinite;
+}
+
+@keyframes animate-stripes {
+    0% {background-position: 0 0;}
+    100% {background-position: 60px 0;}
+}
+
+/* Skeleton loading styles */
+.skeleton-loader {
+    width: 100%;
+    padding: 15px;
+}
+
+.skeleton-text-lg {
+    height: 28px;
+    width: 180px;
+    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+    border-radius: 4px;
+}
+
+.skeleton-button {
+    height: 38px;
+    width: 120px;
+    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+    border-radius: 4px;
+}
+
+.skeleton-cell {
+    height: 24px;
+    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+    border-radius: 4px;
+}
+
+@keyframes shimmer {
+    0% {background-position: -200% 0;}
+    100% {background-position: 200% 0;}
+}
+
+/* Fade effects */
+.fade-in {
+    animation: fadeIn 0.3s ease;
+}
+
+.fade-out {
+    animation: fadeOut 0.3s ease;
+    opacity: 0;
+}
+
+@keyframes fadeIn {
+    from {opacity: 0;}
+    to {opacity: 1;}
+}
+
+@keyframes fadeOut {
+    from {opacity: 1;}
+    to {opacity: 0;}
+}
+
+/* Content loading effect */
+.content-loading {
+    position: relative;
+}
+
+.content-loading::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(255, 255, 255, 0.5);
+    backdrop-filter: blur(2px);
+    z-index: 1;
+}
+
+/* เพิ่ม CSS เพื่อแก้ปัญหา loading ซ้อน */
+
+.loading-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 10000;
+    background: rgba(255, 255, 255, 0.9);
+}
+
+.loading-overlay {
+    backdrop-filter: blur(2px);
+    z-index: 10001;
+}
+
+/* ปรับปรุง progress bar ให้แสดงเพียงครั้งเดียว */
+#top-progress-bar {
+    z-index: 10500;
+}

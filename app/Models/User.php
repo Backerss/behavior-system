@@ -10,6 +10,9 @@ class User extends Authenticatable
 {
     use HasFactory, Notifiable;
 
+    // เพิ่มบรรทัดนี้เพื่อปิดการใช้งาน timestamps
+    public $timestamps = false;
+
     protected $table = 'tb_users';
     protected $primaryKey = 'users_id';
 
@@ -24,11 +27,13 @@ class User extends Authenticatable
         'users_profile_image',
         'users_birthdate',
         'users_created_at',
-        'users_updated_at'
+        'users_updated_at',
+        'users_status'
     ];
 
     protected $hidden = [
         'users_password',
+        'remember_token',
     ];
 
     protected $casts = [
@@ -88,7 +93,7 @@ class User extends Authenticatable
 
     public function teacher()
     {
-        return $this->hasOne(Teacher::class, 'user_id', 'users_id');
+        return $this->hasOne(Teacher::class, 'users_id', 'users_id');
     }
 
     public function guardian()

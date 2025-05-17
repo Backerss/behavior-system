@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\ViolationController;
 
 // หน้าหลัก
 Route::get('/', function () {
@@ -27,3 +28,18 @@ Route::middleware('auth')->group(function () {
     // หน้าแดชบอร์ด
     Route::get('/dashboard', [AuthController::class, 'dashboard'])->name('dashboard');
 });
+
+// เพิ่ม API Routes สำหรับจัดการประเภทพฤติกรรม - เพิ่มตรงนี้
+Route::prefix('api/violations')->group(function () {
+    Route::get('/', [ViolationController::class, 'index']);
+    Route::get('/all', [ViolationController::class, 'getAll']);
+    Route::post('/', [ViolationController::class, 'store']);
+    Route::get('/{id}', [ViolationController::class, 'show']);
+    Route::put('/{id}', [ViolationController::class, 'update']);
+    Route::delete('/{id}', [ViolationController::class, 'destroy']);
+});
+
+// เพิ่ม route สำหรับการอัพเดตโปรไฟล์ผู้ใช้
+Route::put('/teacher/profile/update', [App\Http\Controllers\TeacherController::class, 'updateProfile'])
+     ->name('teacher.profile.update')
+     ->middleware('auth');

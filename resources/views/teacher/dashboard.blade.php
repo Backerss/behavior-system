@@ -16,6 +16,8 @@
     <link href="/css/app.css" rel="stylesheet">
     <!-- Dashboard CSS -->
     <link href="/css/teacher-dashboard.css" rel="stylesheet">
+    <link href="/css/loading-effects.css" rel="stylesheet">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
 </head>
 <body>
     <div class="dashboard-container">
@@ -527,66 +529,198 @@
 
     <!-- Profile Modal -->
     <div class="modal fade" id="profileModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
             <div class="modal-content">
                 <div class="modal-header border-0 pb-0">
                     <h5 class="modal-title">โปรไฟล์ของฉัน</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <div class="modal-body">
-                    <div class="text-center mb-4">
-                        <div class="position-relative d-inline-block">
-                            @if($user->profile_image)
-                                <img src="{{ asset('storage/'.$user->profile_image) }}" class="rounded-circle" width="100" height="100">
-                            @else
-                                <img src="https://ui-avatars.com/api/?name={{ urlencode($user->first_name) }}&background=1020AD&color=fff" class="rounded-circle" width="100" height="100">
-                            @endif
-                            <button class="btn btn-sm btn-primary-app position-absolute bottom-0 end-0 rounded-circle">
-                                <i class="fas fa-camera"></i>
-                            </button>
+                
+                <form action="{{ route('teacher.profile.update') }}" method="POST" enctype="multipart/form-data">
+                    @csrf
+                    @method('PUT')
+                    
+                    <div class="modal-body">
+                        @if ($errors->any())
+                            <div class="alert alert-danger mb-3">
+                                <ul class="mb-0">
+                                    @foreach ($errors->all() as $error)
+                                        <li>{{ $error }}</li>
+                                    @endforeach
+                                </ul>
+                            </div>
+                        @endif
+
+                        @if (session('success'))
+                            <div class="alert alert-success mb-3">
+                                {{ session('success') }}
+                            </div>
+                        @endif
+
+                        <div class="row">
+                            <!-- คอลัมน์ซ้าย: รูปและข้อมูลพื้นฐาน -->
+                            <div class="col-md-4 mb-3">
+                                <div class="text-center mb-4">
+                                    <div class="position-relative d-inline-block">
+                                        @if($user->users_profile_image)
+                                            <img src="{{ asset('storage/'.$user->users_profile_image) }}" class="rounded-circle" width="100" height="100" id="profile-preview">
+                                        @else
+                                            <img src="https://ui-avatars.com/api/?name={{ urlencode($user->users_first_name) }}&background=1020AD&color=fff" class="rounded-circle" width="100" height="100" id="profile-preview">
+                                        @endif
+                                        <label for="profile_image" class="btn btn-sm btn-primary-app position-absolute bottom-0 end-0 rounded-circle" style="cursor: pointer;">
+                                            <i class="fas fa-camera"></i>
+                                        </label>
+                                        <input type="file" name="profile_image" id="profile_image" style="display: none;" accept="image/*">
+                                    </div>
+                                    <h5 class="mt-3 mb-1">{{ $user->users_name_prefix }}{{ $user->users_first_name }} {{ $user->users_last_name }}</h5>
+                                    <p class="text-muted">
+                                        @if($user->teacher && $user->teacher->teachers_position)
+                                            {{ $user->teacher->teachers_position }}
+                                        @else
+                                            ครู
+                                        @endif
+                                    </p>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label">อีเมล</label>
+                                    <input type="email" class="form-control" name="users_email" value="{{ $user->users_email }}" disabled>
+                                    <div class="form-text">อีเมลไม่สามารถแก้ไขได้</div>
+                                </div>
+                            </div>
+                            
+                            <!-- คอลัมน์ขวา: แท็บข้อมูลและการตั้งค่า -->
+                            <div class="col-md-8">
+                                <ul class="nav nav-tabs mb-3" id="profileTab" role="tablist">
+                                    <li class="nav-item" role="presentation">
+                                        <button class="nav-link active" id="personal-tab" data-bs-toggle="tab" data-bs-target="#personal" type="button" role="tab" aria-selected="true">ข้อมูลส่วนตัว</button>
+                                    </li>
+                                    <li class="nav-item" role="presentation">
+                                        <button class="nav-link" id="work-tab" data-bs-toggle="tab" data-bs-target="#work" type="button" role="tab" aria-selected="false">ข้อมูลการทำงาน</button>
+                                    </li>
+                                    <li class="nav-item" role="presentation">
+                                        <button class="nav-link" id="password-tab" data-bs-toggle="tab" data-bs-target="#password" type="button" role="tab" aria-selected="false">รหัสผ่าน</button>
+                                    </li>
+                                </ul>
+                                
+                                <div class="tab-content" id="profileTabContent">
+                                    <!-- แท็บข้อมูลส่วนตัว -->
+                                    <div class="tab-pane fade show active" id="personal" role="tabpanel" aria-labelledby="personal-tab">
+                                        <div class="row">
+                                            <div class="col-4 mb-3">
+                                                <label class="form-label">คำนำหน้า</label>
+                                                <select class="form-select" name="users_name_prefix">
+                                                    <option value="นาย" {{ $user->users_name_prefix == 'นาย' ? 'selected' : '' }}>นาย</option>
+                                                    <option value="นาง" {{ $user->users_name_prefix == 'นาง' ? 'selected' : '' }}>นาง</option>
+                                                    <option value="นางสาว" {{ $user->users_name_prefix == 'นางสาว' ? 'selected' : '' }}>นางสาว</option>
+                                                    <option value="อาจารย์" {{ $user->users_name_prefix == 'อาจารย์' ? 'selected' : '' }}>อาจารย์</option>
+                                                    <option value="ดร." {{ $user->users_name_prefix == 'ดร.' ? 'selected' : '' }}>ดร.</option>
+                                                </select>
+                                            </div>
+                                            <div class="col-4 mb-3">
+                                                <label class="form-label">ชื่อ</label>
+                                                <input type="text" class="form-control" name="users_first_name" value="{{ $user->users_first_name }}">
+                                            </div>
+                                            <div class="col-4 mb-3">
+                                                <label class="form-label">นามสกุล</label>
+                                                <input type="text" class="form-control" name="users_last_name" value="{{ $user->users_last_name }}">
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="row">
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">เบอร์โทรศัพท์</label>
+                                                <input type="tel" class="form-control" name="users_phone_number" value="{{ $user->users_phone_number }}">
+                                            </div>
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">วันเกิด</label>
+                                                <input type="date" class="form-control" name="users_birthdate" value="{{ \Carbon\Carbon::parse($user->users_birthdate)->format('Y-m-d') }}">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- แท็บข้อมูลการทำงาน -->
+                                    <div class="tab-pane fade" id="work" role="tabpanel" aria-labelledby="work-tab">
+                                        @if($user->teacher)
+                                            <div class="row">
+                                                <div class="col-md-6 mb-3">
+                                                    <label class="form-label">ตำแหน่ง</label>
+                                                    <input type="text" class="form-control" name="teachers_position" value="{{ $user->teacher->teachers_position }}">
+                                                </div>
+                                                <div class="col-md-6 mb-3">
+                                                    <label class="form-label">รหัสประจำตัวครู</label>
+                                                    <input type="text" class="form-control" value="{{ $user->teacher->teachers_employee_code }}" disabled>
+                                                    <div class="form-text">รหัสประจำตัวไม่สามารถแก้ไขได้</div>
+                                                </div>
+                                            </div>
+                                            
+                                            <div class="row">
+                                                <div class="col-md-6 mb-3">
+                                                    <label class="form-label">กลุ่มสาระ/ฝ่าย</label>
+                                                    <input type="text" class="form-control" name="teachers_department" value="{{ $user->teacher->teachers_department }}">
+                                                </div>
+                                                <div class="col-md-6 mb-3">
+                                                    <label class="form-label">วิชาที่สอน</label>
+                                                    <input type="text" class="form-control" name="teachers_major" value="{{ $user->teacher->teachers_major }}">
+                                                </div>
+                                            </div>
+                                        @else
+                                            <div class="alert alert-info">ไม่พบข้อมูลการทำงาน</div>
+                                        @endif
+                                    </div>
+                                    
+                                    <!-- แท็บเปลี่ยนรหัสผ่าน -->
+                                    <div class="tab-pane fade" id="password" role="tabpanel" aria-labelledby="password-tab">
+                                        <div class="mb-3">
+                                            <label class="form-label">รหัสผ่านเดิม</label>
+                                            <input type="password" class="form-control" name="current_password" placeholder="ใส่รหัสผ่านเดิม">
+                                        </div>
+                                        
+                                        <div class="mb-3">
+                                            <label class="form-label">รหัสผ่านใหม่</label>
+                                            <input type="password" class="form-control" name="new_password" placeholder="ใส่รหัสผ่านใหม่">
+                                        </div>
+                                        
+                                        <div class="mb-3">
+                                            <label class="form-label">ยืนยันรหัสผ่านใหม่</label>
+                                            <input type="password" class="form-control" name="new_password_confirmation" placeholder="ยืนยันรหัสผ่านใหม่">
+                                        </div>
+                                        <div class="form-text">เว้นว่างถ้าไม่ต้องการเปลี่ยนรหัสผ่าน</div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                        <h4 class="mt-3 mb-1">{{ $user->name_prefix }}{{ $user->first_name }} {{ $user->last_name }}</h4>
-                        <p class="text-muted">
-                            @if($user->teacher && $user->teacher->position)
-                                {{ $user->teacher->position }}
-                            @else
-                                ครู
-                            @endif
-                        </p>
                     </div>
                     
-                    <div class="mb-3">
-                        <label class="form-label">อีเมล</label>
-                        <input type="email" class="form-control" value="{{ $user->email }}" disabled>
+                    <div class="modal-footer border-0 pt-0">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+                        <button type="submit" class="btn btn-primary-app">บันทึกการเปลี่ยนแปลง</button>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label">ชื่อ-นามสกุล</label>
-                        <input type="text" class="form-control" value="ครูใจดี มีเมตตา">
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">ตำแหน่ง</label>
-                        <input type="text" class="form-control" value="ครูประจำชั้น ม.5/1">
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">เบอร์โทรศัพท์</label>
-                        <input type="tel" class="form-control" value="088-888-8888">
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">รหัสผ่านใหม่</label>
-                        <input type="password" class="form-control" placeholder="ใส่รหัสผ่านใหม่">
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">ยืนยันรหัสผ่านใหม่</label>
-                        <input type="password" class="form-control" placeholder="ยืนยันรหัสผ่านใหม่">
-                    </div>
-                </div>
-                <div class="modal-footer border-0 pt-0">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
-                    <button type="button" class="btn btn-primary-app">บันทึกการเปลี่ยนแปลง</button>
-                </div>
+                </form>
             </div>
         </div>
     </div>
+</div>
+
+<script>
+// ตรวจจับการเลือกไฟล์รูปภาพและแสดงตัวอย่าง
+document.addEventListener('DOMContentLoaded', function() {
+    const profileInput = document.getElementById('profile_image');
+    const profilePreview = document.getElementById('profile-preview');
+    
+    if (profileInput && profilePreview) {
+        profileInput.addEventListener('change', function() {
+            if (this.files && this.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    profilePreview.src = e.target.result;
+                };
+                reader.readAsDataURL(this.files[0]);
+            }
+        });
+    }
+});
+</script>
 
     <!-- New Violation Modal -->
     <div class="modal fade" id="newViolationModal" tabindex="-1" aria-hidden="true">
@@ -620,33 +754,26 @@
                         <div class="row mb-3">
                             <div class="col-md-6 mb-3 mb-md-0">
                                 <label class="form-label">ประเภทการกระทำผิด</label>
-                                <select class="form-select">
-                                    <option selected disabled>เลือกประเภทการกระทำผิด</option>
-                                    <option>ผิดระเบียบการแต่งกาย</option>
-                                    <option>มาสาย</option>
-                                    <option>ขาดเรียน</option>
-                                    <option>ใช้โทรศัพท์ในเวลาเรียน</option>
-                                    <option>ไม่ส่งการบ้าน</option>
-                                    <option>ลืมอุปกรณ์</option>
-                                    <option>ทะเลาะวิวาท</option>
-                                    <option>ทำลายทรัพย์สิน</option>
-                                    <option>อื่น ๆ</option>
+                                <select class="form-select" id="violationType" name="violation_id" data-violation-select required>
+                                    <option selected disabled value="">เลือกประเภทการกระทำผิด</option>
+                                    <!-- ตัวเลือกจะถูกเพิ่มด้วย JavaScript -->
                                 </select>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">คะแนนที่หัก</label>
-                                <input type="number" class="form-control" min="0" max="100" value="5">
+                                <input type="number" class="form-control" id="pointsDeducted" min="0" max="100" value="5" readonly>
+                                <div class="form-text">คะแนนจะกำหนดตามประเภทที่เลือก</div>
                             </div>
                         </div>
                         
                         <div class="row mb-3">
                             <div class="col-md-6 mb-3 mb-md-0">
                                 <label class="form-label">วันที่เกิดเหตุการณ์</label>
-                                <input type="date" class="form-control">
+                                <input type="date" class="form-control" id="violationDate">
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">เวลาที่เกิดเหตุการณ์</label>
-                                <input type="time" class="form-control">
+                                <input type="time" class="form-control" id="violationTime">
                             </div>
                         </div>
                         
@@ -703,54 +830,7 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <tr>
-                                        <td>ผิดระเบียบการแต่งกาย</td>
-                                        <td><span class="badge bg-warning text-dark">ปานกลาง</span></td>
-                                        <td>5</td>
-                                        <td class="text-truncate" style="max-width: 200px;">นักเรียนแต่งกายไม่ถูกระเบียบตามข้อกำหนดของโรงเรียน</td>
-                                        <td>
-                                            <div class="btn-group">
-                                                <button type="button" class="btn btn-sm btn-outline-primary edit-violation-btn" data-id="1">
-                                                    <i class="fas fa-edit"></i>
-                                                </button>
-                                                <button type="button" class="btn btn-sm btn-outline-danger delete-violation-btn" data-id="1">
-                                                    <i class="fas fa-trash"></i>
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td>มาสาย</td>
-                                        <td><span class="badge bg-info text-white">เบา</span></td>
-                                        <td>3</td>
-                                        <td class="text-truncate" style="max-width: 200px;">นักเรียนมาโรงเรียนหลังเวลา 08:00 น.</td>
-                                        <td>
-                                            <div class="btn-group">
-                                                <button type="button" class="btn btn-sm btn-outline-primary edit-violation-btn" data-id="2">
-                                                    <i class="fas fa-edit"></i>
-                                                </button>
-                                                <button type="button" class="btn btn-sm btn-outline-danger delete-violation-btn" data-id="2">
-                                                    <i class="fas fa-trash"></i>
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td>ทะเลาะวิวาท</td>
-                                        <td><span class="badge bg-danger text-white">รุนแรง</span></td>
-                                        <td>20</td>
-                                        <td class="text-truncate" style="max-width: 200px;">นักเรียนก่อเหตุทะเลาะวิวาท ทำร้ายร่างกายผู้อื่น</td>
-                                        <td>
-                                            <div class="btn-group">
-                                                <button type="button" class="btn btn-sm btn-outline-primary edit-violation-btn" data-id="3">
-                                                    <i class="fas fa-edit"></i>
-                                                </button>
-                                                <button type="button" class="btn btn-sm btn-outline-danger delete-violation-btn" data-id="3">
-                                                    <i class="fas fa-trash"></i>
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
+
                                 </tbody>
                             </table>
                         </div>
@@ -1049,7 +1129,7 @@
                             </div>
                             <div>
                                 <label class="text-muted d-block">รูปภาพ</label>
-                                <img src="https://via.placeholder.com/300x200?text=Example+Photo" class="img-fluid rounded" alt="รูปภาพหลักฐาน">
+                                <img src="{{ asset('images/example-photo.jpg') }}" class="img-fluid rounded" alt="รูปภาพหลักฐาน">
                             </div>
                         </div>
                     </div>
@@ -1069,5 +1149,6 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- Dashboard JS -->
     <script src="/js/teacher-dashboard.js"></script>
+    <script src="/js/violation-manager.js"></script>
 </body>
 </html>
