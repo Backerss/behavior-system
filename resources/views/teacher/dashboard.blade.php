@@ -46,6 +46,10 @@
                     <i class="fas fa-list-ul"></i>
                     <span>จัดการประเภทพฤติกรรม</span>
                 </a>
+                <a href="#" data-bs-toggle="modal" data-bs-target="#classManagementModal" class="menu-item">
+                    <i class="fas fa-school"></i>
+                    <span>จัดการห้องเรียน</span>
+                </a>
                 <a href="#" data-bs-toggle="modal" data-bs-target="#importExportModal" class="menu-item">
                     <i class="fas fa-file-import"></i>
                     <span>นำเข้า/ส่งออก</span>
@@ -102,19 +106,22 @@
                     <!-- Stats Overview -->
                     <div class="row mb-4" id="overview">
                         <div class="col-12">
-                            <h5 class="section-title">ภาพรวมประจำเดือน พฤษภาคม 2568</h5>
+                            <h5 class="section-title">ภาพรวมประจำเดือน {{ now()->locale('th')->translatedFormat('F Y') }}</h5>
                         </div>
                         <div class="col-12 col-md-6 col-xl-3 mb-3">
                             <div class="card stat-card">
                                 <div class="card-body">
                                     <div class="d-flex align-items-center">
-                                        <div class="stat-icon bg-primary-app">
+                                        <div class="stat-icon bg-primary-app me-3">
                                             <i class="fas fa-exclamation-triangle"></i>
                                         </div>
-                                        <div class="ms-3">
-                                            <h6 class="stat-title">พฤติกรรมที่บันทึกทั้งหมด</h6>
-                                            <h4 class="stat-value">256</h4>
-                                            <span class="stat-change increase">+12% จากเดือนที่แล้ว</span>
+                                        <div>
+                                            <h6 class="stat-title">พฤติกรรมที่บันทึกเดือนนี้</h6>
+                                            <h4 class="stat-value">{{ $monthlyStats['violation_count'] ?? 0 }}</h4>
+                                            <p class="stat-change mb-0 {{ $monthlyStats['violation_trend'] > 0 ? 'increase' : ($monthlyStats['violation_trend'] < 0 ? 'decrease' : 'no-change') }}">
+                                                <i class="fas fa-{{ $monthlyStats['violation_trend'] > 0 ? 'arrow-up' : ($monthlyStats['violation_trend'] < 0 ? 'arrow-down' : 'equals') }} me-1"></i>
+                                                {{ abs($monthlyStats['violation_trend']) }}% จากเดือนก่อน
+                                            </p>
                                         </div>
                                     </div>
                                 </div>
@@ -124,13 +131,16 @@
                             <div class="card stat-card">
                                 <div class="card-body">
                                     <div class="d-flex align-items-center">
-                                        <div class="stat-icon bg-secondary-app">
-                                            <i class="fas fa-user-slash"></i>
+                                        <div class="stat-icon bg-warning me-3">
+                                            <i class="fas fa-users"></i>
                                         </div>
-                                        <div class="ms-3">
-                                            <h6 class="stat-title">นักเรียนที่ถูกบันทึกพฤติกรรม</h6>
-                                            <h4 class="stat-value">128</h4>
-                                            <span class="stat-change decrease">-5% จากเดือนที่แล้ว</span>
+                                        <div>
+                                            <h6 class="stat-title">นักเรียนที่ถูกบันทึก</h6>
+                                            <h4 class="stat-value">{{ $monthlyStats['students_count'] ?? 0 }}</h4>
+                                            <p class="stat-change mb-0 {{ $monthlyStats['students_trend'] > 0 ? 'increase' : ($monthlyStats['students_trend'] < 0 ? 'decrease' : 'no-change') }}">
+                                                <i class="fas fa-{{ $monthlyStats['students_trend'] > 0 ? 'arrow-up' : ($monthlyStats['students_trend'] < 0 ? 'arrow-down' : 'equals') }} me-1"></i>
+                                                {{ abs($monthlyStats['students_trend']) }}% จากเดือนก่อน
+                                            </p>
                                         </div>
                                     </div>
                                 </div>
@@ -140,29 +150,35 @@
                             <div class="card stat-card">
                                 <div class="card-body">
                                     <div class="d-flex align-items-center">
-                                        <div class="stat-icon bg-accent-app">
+                                        <div class="stat-icon bg-danger me-3">
+                                            <i class="fas fa-fire"></i>
+                                        </div>
+                                        <div>
+                                            <h6 class="stat-title">พฤติกรรมรุนแรง</h6>
+                                            <h4 class="stat-value">{{ $monthlyStats['severe_count'] ?? 0 }}</h4>
+                                            <p class="stat-change mb-0 {{ $monthlyStats['severe_trend'] > 0 ? 'increase' : ($monthlyStats['severe_trend'] < 0 ? 'decrease' : 'no-change') }}">
+                                                <i class="fas fa-{{ $monthlyStats['severe_trend'] > 0 ? 'arrow-up' : ($monthlyStats['severe_trend'] < 0 ? 'arrow-down' : 'equals') }} me-1"></i>
+                                                {{ abs($monthlyStats['severe_trend']) }}% จากเดือนก่อน
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-12 col-md-6 col-xl-3 mb-3">
+                            <div class="card stat-card">
+                                <div class="card-body">
+                                    <div class="d-flex align-items-center">
+                                        <div class="stat-icon bg-success me-3">
                                             <i class="fas fa-award"></i>
                                         </div>
-                                        <div class="ms-3">
-                                            <h6 class="stat-title">คะแนนความประพฤติเฉลี่ย</h6>
-                                            <h4 class="stat-value">85.2</h4>
-                                            <span class="stat-change increase">+2.3 จากเดือนที่แล้ว</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-12 col-md-6 col-xl-3 mb-3">
-                            <div class="card stat-card">
-                                <div class="card-body">
-                                    <div class="d-flex align-items-center">
-                                        <div class="stat-icon bg-warning">
-                                            <i class="fas fa-exclamation-circle"></i>
-                                        </div>
-                                        <div class="ms-3">
-                                            <h6 class="stat-title">ต้องติดตามพฤติกรรม</h6>
-                                            <h4 class="stat-value">42</h4>
-                                            <span class="stat-change no-change">คงที่จากเดือนที่แล้ว</span>
+                                        <div>
+                                            <h6 class="stat-title">คะแนนเฉลี่ย</h6>
+                                            <h4 class="stat-value">{{ number_format($monthlyStats['avg_score'] ?? 0, 1) }}</h4>
+                                            <p class="stat-change mb-0 {{ $monthlyStats['score_trend'] > 0 ? 'increase' : ($monthlyStats['score_trend'] < 0 ? 'decrease' : 'no-change') }}">
+                                                <i class="fas fa-{{ $monthlyStats['score_trend'] > 0 ? 'arrow-up' : ($monthlyStats['score_trend'] < 0 ? 'arrow-down' : 'equals') }} me-1"></i>
+                                                {{ abs($monthlyStats['score_trend']) }} คะแนนจากเดือนก่อน
+                                            </p>
                                         </div>
                                     </div>
                                 </div>
@@ -199,112 +215,78 @@
                         <div class="col-12">
                             <div class="card">
                                 <div class="card-header bg-white d-flex justify-content-between align-items-center">
-                                    <h5 class="card-title mb-0">พฤติกรรมที่บันทึกล่าสุด</h5>
-                                    <div class="d-flex">
-                                        <div class="input-group me-2">
-                                            <input type="text" class="form-control form-control-sm" placeholder="ค้นหา...">
-                                            <button class="btn btn-sm btn-primary-app"><i class="fas fa-search"></i></button>
-                                        </div>
-                                        <button class="btn btn-sm btn-outline-secondary">
-                                            <i class="fas fa-filter"></i>
-                                        </button>
-                                    </div>
+                                    <h6 class="card-title mb-0">พฤติกรรมที่บันทึกล่าสุด</h6>
+                                    <a href="#" class="btn btn-sm btn-outline-primary">ดูทั้งหมด</a>
                                 </div>
                                 <div class="card-body p-0">
                                     <div class="table-responsive">
-                                        <table class="table table-hover align-middle mb-0">
+                                        <table class="table table-hover">
                                             <thead class="table-light">
                                                 <tr>
-                                                    <th>นักเรียน</th>
-                                                    <th>ชั้นเรียน</th>
-                                                    <th>ประเภท</th>
-                                                    <th>คะแนนที่หัก</th>
-                                                    <th>วันที่บันทึก</th>
-                                                    <th>บันทึกโดย</th>
-                                                    <th></th>
+                                                    <th style="width: 20%">นักเรียน</th>
+                                                    <th style="width: 15%">ห้องเรียน</th>
+                                                    <th style="width: 20%">ประเภท</th>
+                                                    <th style="width: 15%">คะแนนที่หัก</th>
+                                                    <th style="width: 15%">วันที่</th>
+                                                    <th style="width: 15%">จัดการ</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
+                                                @forelse($recentViolations as $report)
                                                 <tr>
                                                     <td>
                                                         <div class="d-flex align-items-center">
-                                                            <img src="https://ui-avatars.com/api/?name=สมชาย&background=95A4D8&color=fff" class="rounded-circle me-2" width="32" height="32">
-                                                            <span>สมชาย รักเรียน</span>
+                                                            @php
+                                                                $profileImage = $report->student->user->users_profile_image 
+                                                                    ? asset('storage/'.$report->student->user->users_profile_image) 
+                                                                    : 'https://ui-avatars.com/api/?name='.urlencode($report->student->user->users_first_name).'&background=95A4D8&color=fff';
+                                                            @endphp
+                                                            <img src="{{ $profileImage }}" class="rounded-circle me-2" width="32" height="32" alt="{{ $report->student->user->users_first_name }}">
+                                                            <div>
+                                                                <span class="d-block">{{ $report->student->user->users_name_prefix }}{{ $report->student->user->users_first_name }} {{ $report->student->user->users_last_name }}</span>
+                                                                <small class="text-muted">{{ $report->student->students_student_code }}</small>
+                                                            </div>
                                                         </div>
                                                     </td>
-                                                    <td>ม.5/1</td>
-                                                    <td><span class="badge bg-danger">ผิดระเบียบการแต่งกาย</span></td>
-                                                    <td>5</td>
-                                                    <td>12/05/2568</td>
-                                                    <td>ครูใจดี</td>
                                                     <td>
-                                                        <button class="btn btn-sm btn-link" data-bs-toggle="modal" data-bs-target="#violationDetailModal"><i class="fas fa-eye"></i></button>
+                                                        @if($report->student->classroom)
+                                                            {{ $report->student->classroom->classes_level }}/{{ $report->student->classroom->classes_room_number }}
+                                                        @else
+                                                            <span class="text-muted">ไม่ระบุ</span>
+                                                        @endif
+                                                    </td>
+                                                    <td>
+                                                        @php
+                                                            $badgeClass = 'bg-warning';
+                                                            if($report->violation->violations_category === 'severe') {
+                                                                $badgeClass = 'bg-danger';
+                                                            } elseif($report->violation->violations_category === 'medium') {
+                                                                $badgeClass = 'bg-primary';
+                                                            }
+                                                        @endphp
+                                                        <span class="badge {{ $badgeClass }}">{{ $report->violation->violations_name }}</span>
+                                                    </td>
+                                                    <td>{{ $report->violation->violations_points_deducted }} คะแนน</td>
+                                                    <td>{{ \Carbon\Carbon::parse($report->reports_report_date)->format('d/m/Y H:i') }}</td>
+                                                    <td>
+                                                        <button class="btn btn-sm btn-primary-app view-violation-btn" data-id="{{ $report->reports_id }}" data-bs-toggle="modal" data-bs-target="#violationDetailModal">
+                                                            <i class="fas fa-eye"></i>
+                                                        </button>
+                                                        <button class="btn btn-sm btn-outline-primary edit-violation-btn" data-id="{{ $report->reports_id }}">
+                                                            <i class="fas fa-edit"></i>
+                                                        </button>
                                                     </td>
                                                 </tr>
+                                                @empty
                                                 <tr>
-                                                    <td>
-                                                        <div class="d-flex align-items-center">
-                                                            <img src="https://ui-avatars.com/api/?name=มานี&background=95A4D8&color=fff" class="rounded-circle me-2" width="32" height="32">
-                                                            <span>มานี มีทรัพย์</span>
+                                                    <td colspan="6" class="text-center py-4">
+                                                        <div class="text-muted">
+                                                            <i class="fas fa-info-circle fa-2x mb-3"></i>
+                                                            <p>ยังไม่มีการบันทึกพฤติกรรมในเดือนนี้</p>
                                                         </div>
                                                     </td>
-                                                    <td>ม.5/2</td>
-                                                    <td><span class="badge bg-warning text-dark">มาสาย</span></td>
-                                                    <td>3</td>
-                                                    <td>12/05/2568</td>
-                                                    <td>ครูใจดี</td>
-                                                    <td>
-                                                        <button class="btn btn-sm btn-link" data-bs-toggle="modal" data-bs-target="#violationDetailModal"><i class="fas fa-eye"></i></button>
-                                                    </td>
                                                 </tr>
-                                                <tr>
-                                                    <td>
-                                                        <div class="d-flex align-items-center">
-                                                            <img src="https://ui-avatars.com/api/?name=สมศรี&background=95A4D8&color=fff" class="rounded-circle me-2" width="32" height="32">
-                                                            <span>สมศรี มีมานะ</span>
-                                                        </div>
-                                                    </td>
-                                                    <td>ม.5/3</td>
-                                                    <td><span class="badge bg-info">ลืมอุปกรณ์</span></td>
-                                                    <td>2</td>
-                                                    <td>11/05/2568</td>
-                                                    <td>ครูใจดี</td>
-                                                    <td>
-                                                        <button class="btn btn-sm btn-link" data-bs-toggle="modal" data-bs-target="#violationDetailModal"><i class="fas fa-eye"></i></button>
-                                                    </td>
-                                                </tr>
-                                                <tr>
-                                                    <td>
-                                                        <div class="d-flex align-items-center">
-                                                            <img src="https://ui-avatars.com/api/?name=วิชัย&background=95A4D8&color=fff" class="rounded-circle me-2" width="32" height="32">
-                                                            <span>วิชัย ไม่ย่อท้อ</span>
-                                                        </div>
-                                                    </td>
-                                                    <td>ม.5/1</td>
-                                                    <td><span class="badge bg-danger">ใช้โทรศัพท์ในเวลาเรียน</span></td>
-                                                    <td>10</td>
-                                                    <td>10/05/2568</td>
-                                                    <td>ครูใจดี</td>
-                                                    <td>
-                                                        <button class="btn btn-sm btn-link" data-bs-toggle="modal" data-bs-target="#violationDetailModal"><i class="fas fa-eye"></i></button>
-                                                    </td>
-                                                </tr>
-                                                <tr>
-                                                    <td>
-                                                        <div class="d-flex align-items-center">
-                                                            <img src="https://ui-avatars.com/api/?name=อรุณ&background=95A4D8&color=fff" class="rounded-circle me-2" width="32" height="32">
-                                                            <span>อรุณ สดใส</span>
-                                                        </div>
-                                                    </td>
-                                                    <td>ม.5/2</td>
-                                                    <td><span class="badge bg-warning text-dark">ไม่ส่งการบ้าน</span></td>
-                                                    <td>5</td>
-                                                    <td>09/05/2568</td>
-                                                    <td>ครูใจดี</td>
-                                                    <td>
-                                                        <button class="btn btn-sm btn-link" data-bs-toggle="modal" data-bs-target="#violationDetailModal"><i class="fas fa-eye"></i></button>
-                                                    </td>
-                                                </tr>
+                                                @endforelse
                                             </tbody>
                                         </table>
                                     </div>
@@ -312,11 +294,7 @@
                                 <div class="card-footer bg-white">
                                     <nav>
                                         <ul class="pagination pagination-sm justify-content-end mb-0">
-                                            <li class="page-item disabled"><a class="page-link" href="#">Previous</a></li>
-                                            <li class="page-item active"><a class="page-link" href="#">1</a></li>
-                                            <li class="page-item"><a class="page-link" href="#">2</a></li>
-                                            <li class="page-item"><a class="page-link" href="#">3</a></li>
-                                            <li class="page-item"><a class="page-link" href="#">Next</a></li>
+                                            {{ $recentViolations->links() }}
                                         </ul>
                                     </nav>
                                 </div>
@@ -645,7 +623,7 @@
                                             <div class="row">
                                                 <div class="col-md-6 mb-3">
                                                     <label class="form-label">ตำแหน่ง</label>
-                                                    <input type="text" class="form-control" name="teachers_position" value="{{ $user->teacher->teachers_position }}">
+                                                    <input type="text" class="form-control" name="teachers_position" value="{{ $user->teacher->teachers_position }}" autocomplete="organization-title">
                                                 </div>
                                                 <div class="col-md-6 mb-3">
                                                     <label class="form-label">รหัสประจำตัวครู</label>
@@ -657,11 +635,11 @@
                                             <div class="row">
                                                 <div class="col-md-6 mb-3">
                                                     <label class="form-label">กลุ่มสาระ/ฝ่าย</label>
-                                                    <input type="text" class="form-control" name="teachers_department" value="{{ $user->teacher->teachers_department }}">
+                                                    <input type="text" class="form-control" name="teachers_department" value="{{ $user->teacher->teachers_department }}" autocomplete="organization">
                                                 </div>
                                                 <div class="col-md-6 mb-3">
                                                     <label class="form-label">วิชาที่สอน</label>
-                                                    <input type="text" class="form-control" name="teachers_major" value="{{ $user->teacher->teachers_major }}">
+                                                    <input type="text" class="form-control" name="teachers_major" value="คอมพิวเตอร์" autocomplete="off">
                                                 </div>
                                             </div>
                                         @else
@@ -673,17 +651,20 @@
                                     <div class="tab-pane fade" id="password" role="tabpanel" aria-labelledby="password-tab">
                                         <div class="mb-3">
                                             <label class="form-label">รหัสผ่านเดิม</label>
-                                            <input type="password" class="form-control" name="current_password" placeholder="ใส่รหัสผ่านเดิม">
+                                            <input type="password" class="form-control" name="current_password" 
+                                                   autocomplete="current-password" placeholder="ใส่รหัสผ่านเดิม">
                                         </div>
                                         
                                         <div class="mb-3">
                                             <label class="form-label">รหัสผ่านใหม่</label>
-                                            <input type="password" class="form-control" name="new_password" placeholder="ใส่รหัสผ่านใหม่">
+                                            <input type="password" class="form-control" name="new_password" 
+                                                   autocomplete="new-password" placeholder="ใส่รหัสผ่านใหม่">
                                         </div>
                                         
                                         <div class="mb-3">
                                             <label class="form-label">ยืนยันรหัสผ่านใหม่</label>
-                                            <input type="password" class="form-control" name="new_password_confirmation" placeholder="ยืนยันรหัสผ่านใหม่">
+                                            <input type="password" class="form-control" name="new_password_confirmation"
+                                                   autocomplete="new-password" placeholder="ยืนยันรหัสผ่านใหม่">
                                         </div>
                                         <div class="form-text">เว้นว่างถ้าไม่ต้องการเปลี่ยนรหัสผ่าน</div>
                                     </div>
@@ -1129,7 +1110,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             </div>
                             <div>
                                 <label class="text-muted d-block">รูปภาพ</label>
-                                <img src="{{ asset('images/example-photo.jpg') }}" class="img-fluid rounded" alt="รูปภาพหลักฐาน">
+                                <img src="https://placehold.co/400x300?text=รูปภาพตัวอย่าง" class="img-fluid rounded" alt="รูปภาพหลักฐาน">
                             </div>
                         </div>
                     </div>
@@ -1143,6 +1124,302 @@ document.addEventListener('DOMContentLoaded', function() {
         </div>
     </div>
 
+    <!-- Class Management Modal -->
+    <div class="modal fade" id="classManagementModal" tabindex="-1" aria-labelledby="classManagementModalLabel" role="dialog">
+        <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title" id="classManagementModalLabel">จัดการห้องเรียน</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- การค้นหาและการเพิ่มใหม่ -->
+                    <div class="d-flex justify-content-between mb-3">
+                        <div class="input-group" style="max-width: 300px;">
+                            <input type="text" class="form-control" id="classroomSearch" placeholder="ค้นหาห้องเรียน..." autocomplete="off">
+                            <button class="btn btn-primary-app" type="button" id="btnSearchClass"><i class="fas fa-search"></i></button>
+                        </div>
+                        <button class="btn btn-primary-app" id="btnShowAddClass">
+                            <i class="fas fa-plus me-2"></i>เพิ่มห้องเรียนใหม่
+                        </button>
+                    </div>
+                    
+                    <!-- ตัวกรองข้อมูล -->
+                    <div class="card mb-3">
+                        <div class="card-body">
+                            <div class="row g-2">
+                                <div class="col-md-4">
+                                    <label class="form-label">ปีการศึกษา</label>
+                                    <select class="form-select form-select-sm" id="filterAcademicYear" autocomplete="off">
+                                        <option value="">ทั้งหมด</option>
+                                        <!-- จะถูกเติมโดย JavaScript -->
+                                    </select>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">ระดับชั้น</label>
+                                    <select class="form-select form-select-sm" id="filterLevel" autocomplete="off">
+                                        <option value="">ทั้งหมด</option>
+                                        <!-- จะถูกเติมโดย JavaScript -->
+                                    </select>
+                                </div>
+                                <div class="col-md-4 d-flex align-items-end">
+                                    <button class="btn btn-sm btn-outline-secondary w-100" id="btnApplyFilter">
+                                        <i class="fas fa-filter me-1"></i> กรองข้อมูล
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- ส่วนแสดงรายการห้องเรียน -->
+                    <div id="classroomList" class="mb-4">
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th style="width: 25%">ชั้นเรียน</th>
+                                        <th style="width: 20%">ปีการศึกษา</th>
+                                        <th style="width: 40%">ครูประจำชั้น</th>
+                                        <th style="width: 15%">จัดการ</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- จะถูกเติมโดย JavaScript -->
+                                </tbody>
+                            </table>
+                        </div>
+                        <!-- Pagination -->
+                        <nav>
+                            <ul class="pagination pagination-sm justify-content-end mt-3 mb-0">
+                                <!-- จะถูกเติมโดย JavaScript -->
+                            </ul>
+                        </nav>
+                    </div>
+                    
+                    <!-- ฟอร์มเพิ่ม/แก้ไขห้องเรียน (ซ่อนไว้ก่อน) -->
+                    <div class="card d-none" id="classroomForm">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h5 class="card-title mb-0" id="formClassTitle">เพิ่มห้องเรียนใหม่</h5>
+                                <button type="button" class="btn-close" id="btnCloseClassForm"></button>
+                            </div>
+                            
+                            <form id="formClassroom">
+                                <input type="hidden" id="classId" name="classes_id">
+                                
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="classes_level" class="form-label">ระดับชั้น <span class="text-danger">*</span></label>
+                                        <select class="form-select" id="classes_level" name="classes_level" required autocomplete="off">
+                                            <option value="" selected disabled>เลือกระดับชั้น</option>
+                                            <option value="ม.1">ม.1</option>
+                                            <option value="ม.2">ม.2</option>
+                                            <option value="ม.3">ม.3</option>
+                                            <option value="ม.4">ม.4</option>
+                                            <option value="ม.5">ม.5</option>
+                                            <option value="ม.6">ม.6</option>
+                                        </select>
+                                        <div class="invalid-feedback">กรุณาเลือกระดับชั้น</div>
+                                    </div>
+                                    
+                                    <div class="col-md-6 mb-3">
+                                        <label for="classes_room_number" class="form-label">ห้อง <span class="text-danger">*</span></label>
+                                        <input type="text" class="form-control" id="classes_room_number" name="classes_room_number" 
+                                               placeholder="ระบุเลขห้อง เช่น 1, 2, 3, ..." required maxlength="5" autocomplete="off">
+                                        <div class="invalid-feedback">กรุณาระบุเลขห้อง</div>
+                                    </div>
+                                </div>
+                                
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="classes_academic_year" class="form-label">ปีการศึกษา <span class="text-danger">*</span></label>
+                                        <select class="form-select" id="classes_academic_year" name="classes_academic_year" required autocomplete="off">
+                                            <option value="" selected disabled>เลือกปีการศึกษา</option>
+                                            <option value="2566">2566</option>
+                                            <option value="2567">2567</option>
+                                            <option value="2568">2568</option>
+                                        </select>
+                                        <div class="invalid-feedback">กรุณาเลือกปีการศึกษา</div>
+                                    </div>
+                                    
+                                    <div class="col-md-6 mb-3">
+                                        <label for="teacher_id" class="form-label">ครูประจำชั้น <span class="text-danger">*</span></label>
+                                        <select class="form-select" id="teacher_id" name="teacher_id" required autocomplete="off">
+                                            <option value="" selected disabled>เลือกครูประจำชั้น</option>
+                                            <!-- จะถูกเติมโดย JavaScript -->
+                                        </select>
+                                        <div class="invalid-feedback">กรุณาเลือกครูประจำชั้น</div>
+                                    </div>
+                                </div>
+                                
+                                <div class="d-flex justify-content-end">
+                                    <button type="button" class="btn btn-secondary me-2" id="btnCancelClass">ยกเลิก</button>
+                                    <button type="submit" class="btn btn-primary-app" id="btnSaveClass">บันทึก</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ปิด</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Class Detail Modal -->
+    <div class="modal fade" id="classDetailModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title">รายละเอียดห้องเรียน <span class="class-title"></span></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- Loading Indicator -->
+                    <div id="classDetailLoading" class="text-center py-5 d-none">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">กำลังโหลด...</span>
+                        </div>
+                        <p class="mt-2 text-muted">กำลังโหลดข้อมูล...</p>
+                    </div>
+
+                    <div id="classDetailContent">
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <div class="card h-100 shadow-sm border-0">
+                                    <div class="card-body">
+                                        <h6 class="card-title d-flex align-items-center">
+                                            <i class="fas fa-info-circle me-2 text-primary"></i>ข้อมูลห้องเรียน
+                                        </h6>
+                                        <hr>
+                                        <div class="row mb-2">
+                                            <div class="col-sm-5 text-muted">ชั้นเรียน:</div>
+                                            <div class="col-sm-7 fw-medium" id="class-level-room"></div>
+                                        </div>
+                                        <div class="row mb-2">
+                                            <div class="col-sm-5 text-muted">ปีการศึกษา:</div>
+                                            <div class="col-sm-7 fw-medium" id="class-academic-year"></div>
+                                        </div>
+                                        <div class="row mb-2">
+                                            <div class="col-sm-5 text-muted">ครูประจำชั้น:</div>
+                                            <div class="col-sm-7 fw-medium" id="class-teacher-name"></div>
+                                        </div>
+                                        <div class="row mb-2">
+                                            <div class="col-sm-5 text-muted">จำนวนนักเรียน:</div>
+                                            <div class="col-sm-7 fw-medium" id="class-students-count"></div>
+                                        </div>
+                                        <div class="row mb-2">
+                                            <div class="col-sm-5 text-muted">คะแนนเฉลี่ย:</div>
+                                            <div class="col-sm-7">
+                                                <div class="d-flex align-items-center">
+                                                    <span class="fw-medium me-2" id="class-avg-score">-</span>
+                                                    <div class="progress flex-grow-1" style="height: 6px;">
+                                                        <div class="progress-bar bg-success" role="progressbar" id="class-avg-score-bar" style="width: 0%"></div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card h-100 shadow-sm border-0">
+                                    <div class="card-body">
+                                        <h6 class="card-title d-flex align-items-center">
+                                            <i class="fas fa-chart-pie me-2 text-primary"></i>สถิติการกระทำผิด
+                                        </h6>
+                                        <hr>
+                                        <div id="chart-container" class="d-flex justify-content-center align-items-center" style="height: 200px;">
+                                            <canvas id="classViolationChart"></canvas>
+                                            <div id="no-violations-message" class="text-center text-muted d-none">
+                                                <i class="fas fa-info-circle fa-2x mb-2"></i>
+                                                <p>ไม่พบข้อมูลการกระทำผิดในห้องเรียนนี้</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="card shadow-sm border-0">
+                            <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
+                                <h6 class="mb-0 d-flex align-items-center">
+                                    <i class="fas fa-users me-2 text-primary"></i>รายชื่อนักเรียน
+                                    <span class="badge bg-primary-app rounded-pill ms-2" id="student-count-badge">0</span>
+                                </h6>
+                                <div class="d-flex">
+                                    <div class="input-group input-group-sm" style="width: 250px;">
+                                        <input type="text" class="form-control" id="studentSearch" placeholder="ค้นหานักเรียน...">
+                                        <button class="btn btn-sm btn-primary-app" id="btnSearchStudent">
+                                            <i class="fas fa-search"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card-body p-0">
+                                <div class="table-responsive">
+                                    <table class="table table-hover align-middle mb-0">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th style="width: 8%">เลขที่</th>
+                                                <th style="width: 15%">รหัสนักเรียน</th>
+                                                <th style="width: 32%">ชื่อ-สกุล</th>
+                                                <th style="width: 25%">คะแนนคงเหลือ</th>
+                                                <th style="width: 20%">จัดการ</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="students-list">
+                                            <!-- ข้อมูลจะถูกเติมโดย JavaScript -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            <div class="card-footer bg-white">
+                                <nav>
+                                    <ul class="pagination pagination-sm justify-content-end mb-0" id="student-pagination">
+                                        <!-- การแบ่งหน้าจะถูกสร้างโดย JavaScript -->
+                                    </ul>
+                                </nav>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-outline-primary me-auto" id="btnExportClassReport">
+                        <i class="fas fa-file-export me-1"></i> ส่งออกรายงาน
+                    </button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ปิด</button>
+                    <button type="button" class="btn btn-primary-app" id="btnEditClassDetail">
+                        <i class="fas fa-edit me-1"></i> แก้ไขข้อมูลห้องเรียน
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Class Confirmation Modal -->
+    <div class="modal fade" id="deleteClassModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+            <div class="modal-content">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title">ยืนยันการลบ</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body text-center">
+                    <i class="fas fa-exclamation-triangle text-warning fa-3x mb-3"></i>
+                    <h5>ยืนยันการลบห้องเรียนนี้?</h5>
+                    <p class="text-muted">การลบห้องเรียนอาจส่งผลกระทบต่อข้อมูลนักเรียน และข้อมูลพฤติกรรมที่บันทึกไว้</p>
+                    <input type="hidden" id="deleteClassId">
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+                    <button type="button" class="btn btn-danger" id="confirmDeleteClass">ยืนยันการลบ</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Bootstrap JS Bundle -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <!-- Chart.js -->
@@ -1150,5 +1427,8 @@ document.addEventListener('DOMContentLoaded', function() {
     <!-- Dashboard JS -->
     <script src="/js/teacher-dashboard.js"></script>
     <script src="/js/violation-manager.js"></script>
+    <!-- เพิ่มก่อนปิด tag body -->
+    <script src="/js/class-manager.js"></script>
+    <script src="/js/class-detail.js"></script>
 </body>
 </html>

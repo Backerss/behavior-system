@@ -865,19 +865,8 @@
                             <div class="row">
                                 <div class="col-md-6 mb-3">
                                     <div class="form-floating">
-                                        <select class="form-select" id="department" name="department" required>
-                                            <option value="" selected disabled>เลือกกลุ่มสาระ</option>
-                                            <option value="ภาษาไทย">ภาษาไทย</option>
-                                            <option value="คณิตศาสตร์">คณิตศาสตร์</option>
-                                            <option value="วิทยาศาสตร์">วิทยาศาสตร์</option>
-                                            <option value="สังคมศึกษา">สังคมศึกษา</option>
-                                            <option value="ภาษาต่างประเทศ">ภาษาต่างประเทศ</option>
-                                            <option value="สุขศึกษาและพลศึกษา">สุขศึกษาและพลศึกษา</option>
-                                            <option value="ศิลปะ">ศิลปะ</option>
-                                            <option value="การงานอาชีพ">การงานอาชีพ</option>
-                                        </select>
-                                        <label for="department">กลุ่มสาระการเรียนรู้</label>
-                                        <div class="invalid-feedback">กรุณาเลือกกลุ่มสาระ</div>
+                                        <input type="text" class="form-control" id="department" name="department" placeholder="แผนก">
+                                        <label for="department">แผนก</label>
                                     </div>
                                 </div>
                                 
@@ -903,7 +892,7 @@
                             
                             <div class="mb-3">
                                 <div class="form-floating">
-                                    <input type="text" class="form-control" id="student_code" name="student_code" placeholder="รหัสนักเรียน" data-required="true">
+                                    <input type="text" class="form-control" id="student_code" name="student_code" placeholder="รหัสนักเรียน" required>
                                     <label for="student_code">รหัสนักเรียน</label>
                                     <div class="invalid-feedback">กรุณากรอกรหัสนักเรียน</div>
                                 </div>
@@ -914,13 +903,7 @@
                                     <div class="form-floating">
                                         <select class="form-select" id="class_id" name="class_id" required>
                                             <option value="" selected disabled>เลือกระดับชั้น</option>
-                                            <option value="ม.1/1">ม.1/1</option>
-                                            <option value="ม.1/2">ม.1/2</option>
-                                            <option value="ม.1/3">ม.1/3</option>
-                                            <option value="ม.2/1">ม.2/1</option>
-                                            <option value="ม.2/2">ม.2/2</option>
-                                            <option value="ม.2/3">ม.2/3</option>
-                                            <!-- เพิ่มตัวเลือกระดับชั้น/ห้องอื่นๆ -->
+                                            <!-- ตัวเลือกจะถูกเติมโดย JavaScript -->
                                         </select>
                                         <label for="class_id">ระดับชั้น/ห้อง</label>
                                         <div class="invalid-feedback">กรุณาเลือกระดับชั้น/ห้อง</div>
@@ -929,14 +912,9 @@
                                 
                                 <div class="col-md-6 mb-3">
                                     <div class="form-floating">
-                                        <select class="form-select" id="academic_year" name="academic_year" required>
-                                            <option value="" selected disabled>เลือกปีการศึกษา</option>
-                                            <option value="2566">2566</option>
-                                            <option value="2567">2567</option>
-                                            <option value="2568">2568</option>
-                                        </select>
+                                        <input type="text" class="form-control" id="academic_year" name="academic_year" placeholder="ปีการศึกษา" value="2567" required>
                                         <label for="academic_year">ปีการศึกษา</label>
-                                        <div class="invalid-feedback">กรุณาเลือกปีการศึกษา</div>
+                                        <div class="invalid-feedback">กรุณากรอกปีการศึกษา</div>
                                     </div>
                                 </div>
                             </div>
@@ -945,16 +923,16 @@
                                 <label class="form-label d-block">เพศ</label>
                                 <div class="gender-group">
                                     <div class="gender-option">
-                                        <input class="form-check-input" type="radio" name="gender" id="male" value="male" required>
-                                        <label for="male">ชาย</label>
+                                        <input type="radio" id="male" name="gender" value="male" required>
+                                        <label for="male"><i class="fas fa-mars me-1"></i> ชาย</label>
                                     </div>
                                     <div class="gender-option">
-                                        <input class="form-check-input" type="radio" name="gender" id="female" value="female" required>
-                                        <label for="female">หญิง</label>
+                                        <input type="radio" id="female" name="gender" value="female" required>
+                                        <label for="female"><i class="fas fa-venus me-1"></i> หญิง</label>
                                     </div>
                                     <div class="gender-option">
-                                        <input class="form-check-input" type="radio" name="gender" id="other" value="other" required>
-                                        <label for="other">อื่นๆ</label>
+                                        <input type="radio" id="other" name="gender" value="other" required>
+                                        <label for="other"><i class="fas fa-genderless me-1"></i> อื่นๆ</label>
                                     </div>
                                 </div>
                                 <div class="invalid-feedback">กรุณาเลือกเพศ</div>
@@ -1037,9 +1015,8 @@
                                         <option value="นาย">นาย</option>
                                         <option value="นาง">นาง</option>
                                         <option value="นางสาว">นางสาว</option>
-                                        <option value="ด.ช.">ด.ช.</option>
-                                        <option value="ด.ญ.">ด.ญ.</option>
-                                        <option value="อื่นๆ">อื่นๆ</option>
+                                        <option value="เด็กชาย">เด็กชาย</option>
+                                        <option value="เด็กหญิง">เด็กหญิง</option>
                                     </select>
                                     <label for="name_prefix">คำนำหน้า</label>
                                     <div class="invalid-feedback">กรุณาเลือกคำนำหน้า</div>
@@ -1048,9 +1025,9 @@
                             
                             <div class="col-md-4 mb-3">
                                 <div class="form-floating">
-                                    <input type="text" class="form-control" id="first_name" name="first_name" placeholder="ชื่อจริง" required>
-                                    <label for="first_name">ชื่อจริง</label>
-                                    <div class="invalid-feedback">กรุณากรอกชื่อจริง</div>
+                                    <input type="text" class="form-control" id="first_name" name="first_name" placeholder="ชื่อ" required>
+                                    <label for="first_name">ชื่อ</label>
+                                    <div class="invalid-feedback">กรุณากรอกรหัสผ่านอย่างน้อย 8 ตัวอักษร</div>
                                 </div>
                             </div>
                             
@@ -1058,7 +1035,7 @@
                                 <div class="form-floating">
                                     <input type="text" class="form-control" id="last_name" name="last_name" placeholder="นามสกุล" required>
                                     <label for="last_name">นามสกุล</label>
-                                    <div class="invalid-feedback">กรุณากรอกนามสกุล</div>
+                                    <div class="invalid-feedback">กรุณากรอกรหัสผ่านอย่างน้อย 8 ตัวอักษร</div>
                                 </div>
                             </div>
                         </div>
@@ -1089,7 +1066,7 @@
                         
                         <div class="mb-3">
                             <div class="form-floating">
-                                <input type="password" class="form-control" id="password" name="password" placeholder="รหัสผ่าน" required minlength="8">
+                                <input type="password" class="form-control" id="password" name="password" placeholder="รหัสผ่าน" required minlength="8" autocomplete="new-password">
                                 <label for="password">รหัสผ่าน (อย่างน้อย 8 ตัวอักษร)</label>
                                 <div class="invalid-feedback">กรุณากรอกรหัสผ่านอย่างน้อย 8 ตัวอักษร</div>
                             </div>
@@ -1097,7 +1074,7 @@
                         
                         <div class="mb-4">
                             <div class="form-floating">
-                                <input type="password" class="form-control" id="password_confirmation" name="password_confirmation" placeholder="ยืนยันรหัสผ่าน" required minlength="8">
+                                <input type="password" class="form-control" id="password_confirmation" name="password_confirmation" placeholder="ยืนยันรหัสผ่าน" required minlength="8" autocomplete="new-password">
                                 <label for="password_confirmation">ยืนยันรหัสผ่าน</label>
                                 <div class="invalid-feedback">กรุณายืนยันรหัสผ่าน</div>
                             </div>
@@ -1106,14 +1083,14 @@
                         <div class="form-check mb-4">
                             <input class="form-check-input" type="checkbox" id="terms" name="terms" required>
                             <label class="form-check-label" for="terms">
-                                ฉันยอมรับ <a href="#" class="text-primary-app">ข้อกำหนดและเงื่อนไขการใช้งาน</a>
+                                ฉันยอมรับ <a href="#" class="text-primary">ข้อกำหนดและเงื่อนไขการใช้งาน</a>
                             </label>
                             <div class="invalid-feedback">คุณต้องยอมรับข้อกำหนดก่อนสมัครสมาชิก</div>
                         </div>
                         
                         <div class="d-grid gap-2">
                             <button type="submit" class="btn btn-accent-app btn-lg rounded-pill fw-medium">
-                                <i class="fas fa-user-plus me-2"></i> สร้างบัญชีผู้ใช้
+                                <i class="fas fa-user-plus me-2"></i> สมัครสมาชิก
                             </button>
                             <button type="button" class="btn btn-outline-secondary rounded-pill fw-medium prev-step">
                                 <i class="fas fa-arrow-left me-1"></i> ย้อนกลับ
@@ -1426,6 +1403,64 @@
                     imageElement && imageElement.classList.remove('animate-float');
                 });
             });
+            
+            // โหลดข้อมูลชั้นเรียนเมื่อหน้าโหลดเสร็จ
+            loadClasses();
+            
+            // ฟังก์ชันโหลดข้อมูลชั้นเรียน
+            function loadClasses() {
+                // เพิ่ม debug เพื่อตรวจสอบการเรียก API
+                console.log('Fetching classes from API...');
+                
+                fetch('/api/classes/registration', {
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        console.error(`API response status: ${response.status} ${response.statusText}`);
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(classes => {
+                    console.log('Classes loaded successfully:', classes);
+                    
+                    const classSelect = document.getElementById('class_id');
+                    
+                    if (!classSelect) {
+                        console.error('class_id select element not found');
+                        return;
+                    }
+                    
+                    // ล้างตัวเลือกเดิม
+                    classSelect.innerHTML = '<option value="" selected disabled>เลือกระดับชั้น</option>';
+                    
+                    // ตรวจสอบว่า classes เป็น array หรือไม่
+                    if (Array.isArray(classes)) {
+                        // เพิ่มตัวเลือกใหม่
+                        classes.forEach(classItem => {
+                            const option = new Option(classItem.label, classItem.id);
+                            classSelect.add(option);
+                        });
+                    } else {
+                        console.error('Classes is not an array:', classes);
+                        throw new Error('Invalid data format received');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading classes:', error);
+                    
+                    const classSelect = document.getElementById('class_id');
+                    if (classSelect) {
+                        // แสดงข้อความแจ้งเตือนหากโหลดไม่ได้
+                        classSelect.innerHTML = '<option value="" selected disabled>ไม่สามารถโหลดข้อมูลชั้นเรียนได้</option>';
+                    }
+                });
+            }
         });
     </script>
 </body>

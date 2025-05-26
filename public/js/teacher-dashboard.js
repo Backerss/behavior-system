@@ -83,7 +83,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const btnCloseViolationForm = document.getElementById('btnCloseViolationForm');
     const btnCancelViolationType = document.getElementById('btnCancelViolationType');
     const formViolationTitle = document.getElementById('formViolationTitle');
-    const formViolationType = document.getElementById('formViolationType');
+    const studentSearch = document.getElementById('studentSearch');
+    const btnSearchStudent = document.getElementById('btnSearchStudent');
+    const classFilter = document.getElementById('classFilter');
     
     // ปุ่มแสดงฟอร์มเพิ่มใหม่
     if (btnShowAddViolationType) {
@@ -282,6 +284,25 @@ document.addEventListener('DOMContentLoaded', function() {
             updateViolationSelects();
         });
     }
+
+    if (studentSearch && btnSearchStudent) {
+        btnSearchStudent.addEventListener('click', function() {
+            searchStudents();
+        });
+        
+        studentSearch.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                searchStudents();
+            }
+        });
+    }
+    
+    if (classFilter) {
+        classFilter.addEventListener('change', function() {
+            searchStudents();
+        });
+    }
 });
 
 // Chart initialization functions
@@ -331,6 +352,42 @@ function initViolationTrendChart() {
             }
         }
     });
+    
+    // ฟังก์ชันกรองข้อมูลตามประเภทพฤติกรรม
+    document.querySelectorAll('#trendFilterDropdown + .dropdown-menu .dropdown-item').forEach(item => {
+        item.addEventListener('click', function(e) {
+            e.preventDefault();
+            
+            const filter = this.getAttribute('data-filter');
+            const url = `/api/violations/trends?filter=${filter}`;
+            
+            fetch(url, {
+                headers: {
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // อัพเดทข้อมูลกราฟ
+                    chart.data.labels = data.labels;
+                    chart.data.datasets[0].data = data.values;
+                    chart.update();
+                    
+                    // อัพเดทชื่อปุ่ม dropdown
+                    document.getElementById('trendFilterDropdown').textContent = this.textContent;
+                    
+                    // อัพเดทสถานะ active
+                    document.querySelectorAll('#trendFilterDropdown + .dropdown-menu .dropdown-item').forEach(el => {
+                        el.classList.remove('active');
+                    });
+                    this.classList.add('active');
+                }
+            })
+            .catch(error => console.error('Error:', error));
+        });
+    });
 }
 
 function initViolationTypesChart() {
@@ -377,6 +434,22 @@ function initViolationTypesChart() {
             cutout: '70%'
         }
     });
+}
+
+// ฟังก์ชันค้นหานักเรียน
+function searchStudents() {
+    const searchTerm = document.getElementById('studentSearch').value;
+    const classId = document.getElementById('classFilter').value;
+    
+    let url = '/students?';
+    if (searchTerm) {
+        url += `search=${encodeURIComponent(searchTerm)}&`;
+    }
+    if (classId) {
+        url += `class=${encodeURIComponent(classId)}&`;
+    }
+    
+    window.location.href = url;
 }
 
 /**

@@ -14,7 +14,7 @@ class Teacher extends Model
     public $timestamps = false;
     
     protected $fillable = [
-        'user_id',
+        'users_id',  // ใช้ users_id แทน user_id
         'teachers_employee_code',
         'teachers_position',
         'teachers_department',
@@ -53,18 +53,15 @@ class Teacher extends Model
         return $this->teachers_is_homeroom_teacher;
     }
 
+    // ความสัมพันธ์กับผู้ใช้
     public function user()
     {
-        return $this->belongsTo(User::class, 'user_id', 'users_id');
+        return $this->belongsTo(User::class, 'users_id', 'users_id');
     }
     
-    public function assignedClass()
+    // ความสัมพันธ์กับห้องเรียน
+    public function classroom()
     {
-        return $this->belongsTo(ClassRoom::class, 'assigned_class_id', 'classes_id');
-    }
-    
-    public function behaviorReports()
-    {
-        return $this->hasMany(BehaviorReport::class, 'teacher_id', 'teachers_id');
+        return $this->belongsTo(Classroom::class, 'assigned_class_id', 'classes_id');
     }
 }

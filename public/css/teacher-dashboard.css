@@ -235,7 +235,9 @@
 }
 
 .badge.bg-primary-app {
-  background-color: var(--primary-app);
+  background-color: #4361ee;
+  color: white;
+  padding: 0.35em 0.65em;
 }
 
 .badge.bg-success {
@@ -493,13 +495,13 @@ html {
 
 /* Progress bars */
 .progress {
-  background-color: #f0f0f0;
-  border-radius: 10px;
+  background-color: #e9ecef;
+  border-radius: 0.5rem;
   overflow: hidden;
 }
 
 .progress-bar {
-  transition: width 0.6s ease;
+  transition: width 1s ease;
 }
 
 /* Status indicators */
@@ -545,4 +547,61 @@ a:focus-visible, button:focus-visible, input:focus-visible,
 select:focus-visible, textarea:focus-visible {
   outline: 2px solid var(--primary-app);
   outline-offset: 2px;
+}
+
+/* Class Detail Modal */
+.class-title {
+  font-weight: 600;
+  color: #4361ee;
+}
+
+.card.shadow-sm {
+  transition: all 0.3s ease;
+}
+
+.card.shadow-sm:hover {
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+}
+
+#student-count-badge {
+  font-size: 0.75rem;
+}
+
+.student-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.student-score-high .progress-bar {
+  background-color: #28a745;
+}
+
+.student-score-medium .progress-bar {
+  background-color: #ffc107;
+}
+
+.student-score-low .progress-bar {
+  background-color: #dc3545;
+}
+
+.student-name {
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 150px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 767.98px) {
+  .student-name {
+    max-width: 100px;
+  }
+  
+  .modal-dialog {
+    margin: 0.5rem;
+  }
 }

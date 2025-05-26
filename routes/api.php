@@ -3,6 +3,7 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ViolationController;
+use App\Http\Controllers\ClassroomController;
 
 /*
 |--------------------------------------------------------------------------
@@ -23,3 +24,6 @@ Route::prefix('violations')->group(function () {
     Route::put('/{id}', [ViolationController::class, 'update']);
     Route::delete('/{id}', [ViolationController::class, 'destroy']);
 });
+
+// เพิ่ม route นี้ - สำคัญมาก!
+Route::get('/classes/registration', [ClassroomController::class, 'getClassesForRegistration']);

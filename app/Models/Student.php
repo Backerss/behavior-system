@@ -11,68 +11,38 @@ class Student extends Model
     
     protected $table = 'tb_students';
     protected $primaryKey = 'students_id';
+    public $timestamps = false;
     
+    // กำหนดคอลัมน์ที่สามารถกำหนดค่าได้
     protected $fillable = [
-        'user_id', 
+        'user_id',  // เปลี่ยนจาก users_id เป็น user_id
         'students_student_code',
         'class_id',
         'students_academic_year',
         'students_current_score',
         'students_status',
-        'students_gender',
-        'students_created_at',
-        'updated_at'
+        'students_gender'
     ];
-
-    protected $casts = [
-        'students_created_at' => 'datetime',
-        'updated_at' => 'datetime',
-    ];
-
-    // Set accessor properties
-    public function getStudentCodeAttribute()
-    {
-        return $this->students_student_code;
-    }
-
-    public function getAcademicYearAttribute()
-    {
-        return $this->students_academic_year;
-    }
-
-    public function getCurrentScoreAttribute()
-    {
-        return $this->students_current_score;
-    }
-
-    public function getStatusAttribute()
-    {
-        return $this->students_status;
-    }
-
-    public function getGenderAttribute()
-    {
-        return $this->students_gender;
-    }
-
+    
+    // กำหนดความสัมพันธ์กับผู้ใช้
     public function user()
     {
-        return $this->belongsTo(User::class, 'user_id', 'users_id');
-    }
-
-    public function class()
-    {
-        return $this->belongsTo(ClassRoom::class, 'class_id', 'classes_id');
-    }
-
-    public function guardians()
-    {
-        return $this->belongsToMany(Guardian::class, 'tb_guardian_student', 'student_id', 'guardian_id')
-                    ->withPivot('guardian_student_created_at');
+        return $this->belongsTo(User::class, 'user_id', 'users_id');  // เปลี่ยนจาก users_id เป็น user_id
     }
     
+    // กำหนดความสัมพันธ์กับห้องเรียน
+    public function classroom()
+    {
+        return $this->belongsTo(Classroom::class, 'class_id', 'classes_id');
+    }
+    
+    // กำหนดความสัมพันธ์กับบันทึกพฤติกรรม
     public function behaviorReports()
     {
         return $this->hasMany(BehaviorReport::class, 'student_id', 'students_id');
     }
+    
+    // คอนสแตนท์สำหรับชื่อคอลัมน์ timestamp
+    const CREATED_AT = 'students_created_at';
+    const UPDATED_AT = 'updated_at';
 }
