@@ -1009,48 +1009,42 @@
                     <h5 class="modal-title">รายละเอียดการกระทำผิด</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <div class="modal-body">
-                    <div class="d-flex align-items-center mb-3">
-                        <img src="https://ui-avatars.com/api/?name=สมชาย&background=95A4D8&color=fff" class="rounded-circle me-3" width="50" height="50">
-                        <div>
-                            <h5 class="mb-1">สมชาย รักเรียน</h5>
-                            <p class="mb-0 text-muted">รหัสนักเรียน: 1001 | ชั้น ม.5/1</p>
+                <div class="modal-body" id="violationDetailContent">
+                    <!-- Loading State -->
+                    <div id="violationDetailLoading" class="text-center py-4">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">กำลังโหลด...</span>
+                        </div>
+                        <p class="mt-2 text-muted">กำลังโหลดข้อมูล...</p>
+                    </div>
+                    
+                    <!-- Content will be loaded here -->
+                    <div id="violationDetailData" style="display: none;">
+                        <div class="d-flex align-items-center mb-3" id="studentInfo">
+                            <!-- Student info will be loaded here -->
+                        </div>
+                        
+                        <div class="card mb-3">
+                            <div class="card-body" id="violationInfo">
+                                <!-- Violation details will be loaded here -->
+                            </div>
                         </div>
                     </div>
                     
-                    <div class="card mb-3">
-                        <div class="card-body">
-                            <div class="mb-3">
-                                <label class="text-muted d-block">ประเภทการกระทำผิด</label>
-                                <span class="badge bg-danger">ผิดระเบียบการแต่งกาย</span>
-                            </div>
-                            <div class="mb-3">
-                                <label class="text-muted d-block">วันและเวลา</label>
-                                <p class="mb-0">12 พฤษภาคม 2568, 08:30 น.</p>
-                            </div>
-                            <div class="mb-3">
-                                <label class="text-muted d-block">คะแนนที่หัก</label>
-                                <p class="mb-0">5 คะแนน</p>
-                            </div>
-                            <div class="mb-3">
-                                <label class="text-muted d-block">บันทึกโดย</label>
-                                <p class="mb-0">ครูใจดี มีเมตตา</p>
-                            </div>
-                            <div class="mb-3">
-                                <label class="text-muted d-block">รายละเอียด</label>
-                                <p class="mb-0">นักเรียนมาโรงเรียนโดยไม่สวมเนคไทและเข็มขัด ครั้งที่ 2 ในรอบสัปดาห์นี้</p>
-                            </div>
-                            <div>
-                                <label class="text-muted d-block">รูปภาพ</label>
-                                <img src="https://placehold.co/400x300?text=รูปภาพตัวอย่าง" class="img-fluid rounded" alt="รูปภาพหลักฐาน">
-                            </div>
-                        </div>
+                    <!-- Error State -->
+                    <div id="violationDetailError" class="text-center py-4 text-danger" style="display: none;">
+                        <i class="fas fa-exclamation-circle fa-2x mb-3"></i>
+                        <p>เกิดข้อผิดพลาดในการโหลดข้อมูล</p>
                     </div>
                 </div>
                 <div class="modal-footer border-0 pt-0">
-                    <button type="button" class="btn btn-outline-danger me-auto">ลบบันทึก</button>
+                    <button type="button" class="btn btn-outline-danger me-auto" id="deleteReportBtn" style="display: none;">
+                        ลบบันทึก
+                    </button>
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ปิด</button>
-                    <button type="button" class="btn btn-primary-app">แก้ไข</button>
+                    <button type="button" class="btn btn-primary-app" id="editReportBtn" style="display: none;">
+                        แก้ไข
+                    </button>
                 </div>
             </div>
         </div>

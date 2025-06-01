@@ -260,6 +260,10 @@
   background-color: var(--secondary-app);
 }
 
+.badge.bg-orange {
+  background-color: #fd7e14 !important;
+}
+
 /* Welcome Section */
 .welcome-section h1 {
   font-size: 1.8rem;
@@ -593,6 +597,54 @@ select:focus-visible, textarea:focus-visible {
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 150px;
+}
+
+/* Violation Detail Modal Styling */
+#violationDetailModal .modal-body {
+    max-height: 70vh;
+    overflow-y: auto;
+}
+
+#violationDetailModal .student-avatar {
+    border: 2px solid #e9ecef;
+}
+
+#violationDetailModal .evidence-image {
+    max-height: 300px;
+    width: auto;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: transform 0.2s ease;
+}
+
+#violationDetailModal .evidence-image:hover {
+    transform: scale(1.02);
+}
+
+/* Loading spinner in modal */
+.modal .spinner-border {
+    width: 2rem;
+    height: 2rem;
+}
+
+/* Custom scrollbar for modal body */
+#violationDetailModal .modal-body::-webkit-scrollbar {
+    width: 6px;
+}
+
+#violationDetailModal .modal-body::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+}
+
+#violationDetailModal .modal-body::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 10px;
+}
+
+#violationDetailModal .modal-body::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
 }
 
 /* Responsive adjustments */

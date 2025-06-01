@@ -283,4 +283,106 @@ class BehaviorReportController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * ดึงรายละเอียดรายงานพฤติกรรมตาม ID
+     *
+     * @param int $id
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function show($id)
+    {
+        try {
+            $report = DB::table('tb_behavior_reports as br')
+                ->join('tb_students as s', 'br.student_id', '=', 's.students_id')
+                ->join('tb_users as su', 's.user_id', '=', 'su.users_id')
+                ->join('tb_teachers as t', 'br.teacher_id', '=', 't.teachers_id')
+                ->join('tb_users as tu', 't.users_id', '=', 'tu.users_id')
+                ->join('tb_violations as v', 'br.violation_id', '=', 'v.violations_id')
+                ->leftJoin('tb_classes as c', 's.class_id', '=', 'c.classes_id')
+                ->select(
+                    'br.reports_id',
+                    'br.reports_description',
+                    'br.reports_evidence_path',
+                    'br.reports_report_date',
+                    'br.created_at',
+                    // Student info
+                    'su.users_name_prefix as student_prefix',
+                    'su.users_first_name as student_first_name',
+                    'su.users_last_name as student_last_name',
+                    's.students_student_code',
+                    's.students_current_score',
+                    // Teacher info
+                    'tu.users_name_prefix as teacher_prefix',
+                    'tu.users_first_name as teacher_first_name',
+                    'tu.users_last_name as teacher_last_name',
+                    // Violation info
+                    'v.violations_name',
+                    'v.violations_category',
+                    'v.violations_points_deducted',
+                    'v.violations_description as violation_description',
+                    // Class info
+                    'c.classes_level',
+                    'c.classes_room_number'
+                )
+                ->where('br.reports_id', $id)
+                ->first();
+
+            if (!$report) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'ไม่พบข้อมูลรายงานพฤติกรรม'
+                ], 404);
+            }
+
+            $result = [
+                'id' => $report->reports_id,
+                'student' => [
+                    'name' => ($report->student_prefix ?? '') . 
+                             ($report->student_first_name ?? '') . ' ' . 
+                             ($report->student_last_name ?? ''),
+                    'student_code' => $report->students_student_code ?? '',
+                    'current_score' => $report->students_current_score ?? 100,
+                    'class' => $report->classes_level && $report->classes_room_number 
+                              ? $report->classes_level . '/' . $report->classes_room_number 
+                              : 'ไม่ระบุ',
+                    'avatar_url' => 'https://ui-avatars.com/api/?name=' . urlencode(($report->student_first_name ?? '') . ' ' . ($report->student_last_name ?? '')) . '&background=95A4D8&color=fff'
+                ],
+                'violation' => [
+                    'name' => $report->violations_name ?? '',
+                    'category' => $report->violations_category ?? '',
+                    'points_deducted' => $report->violations_points_deducted ?? 0,
+                    'description' => $report->violation_description ?? ''
+                ],
+                'teacher' => [
+                    'name' => ($report->teacher_prefix ?? '') . 
+                             ($report->teacher_first_name ?? '') . ' ' . 
+                             ($report->teacher_last_name ?? '')
+                ],
+                'report' => [
+                    'description' => $report->reports_description ?? '',
+                    'evidence_path' => $report->reports_evidence_path ?? null,
+                    'evidence_url' => $report->reports_evidence_path 
+                                     ? asset('storage/' . $report->reports_evidence_path)
+                                     : null,
+                    'report_date' => Carbon::parse($report->reports_report_date)->format('j M Y, H:i น.'),
+                    'report_date_thai' => Carbon::parse($report->reports_report_date)->locale('th')->format('j F Y, H:i น.'),
+                    'created_at' => Carbon::parse($report->created_at)->format('d/m/Y H:i')
+                ]
+            ];
+
+            return response()->json([
+                'success' => true,
+                'data' => $result
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Error fetching behavior report detail: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'เกิดข้อผิดพลาดในการดึงข้อมูลรายละเอียดรายงาน',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
 }

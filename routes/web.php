@@ -93,4 +93,5 @@ Route::prefix('api/behavior-reports')->middleware('auth')->group(function () {
     Route::post('/', [App\Http\Controllers\BehaviorReportController::class, 'store']);
     Route::get('/students/search', [App\Http\Controllers\BehaviorReportController::class, 'searchStudents']);
     Route::get('/recent', [App\Http\Controllers\BehaviorReportController::class, 'getRecentReports']);
+    Route::get('/{id}', [App\Http\Controllers\BehaviorReportController::class, 'show']);
 });

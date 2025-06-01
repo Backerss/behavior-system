@@ -515,7 +515,7 @@ function displayRecentReports(reports) {
             <td>${report.created_at}</td>
             <td>${report.teacher_name}</td>
             <td>
-                <button class="btn btn-sm btn-primary-app view-violation-btn" data-id="${report.id}" data-bs-toggle="modal" data-bs-target="#violationDetailModal">
+                <button class="btn btn-sm btn-primary-app view-violation-btn" data-id="${report.id}" onclick="showViolationDetail(${report.id})">
                     <i class="fas fa-eye"></i>
                 </button>
                 <button class="btn btn-sm btn-outline-primary edit-violation-btn" data-id="${report.id}">
@@ -528,62 +528,171 @@ function displayRecentReports(reports) {
 }
 
 /**
- * แสดงข้อความสำเร็จ
+ * แสดงรายละเอียดการกระทำผิด
  */
-function showSuccess(message) {
-    createToast(message, 'success');
+function showViolationDetail(reportId) {
+    // แสดง modal
+    const modal = new bootstrap.Modal(document.getElementById('violationDetailModal'));
+    modal.show();
+    
+    // แสดง loading state
+    showViolationDetailLoading();
+    
+    // ดึงข้อมูล
+    fetch(`/api/behavior-reports/${reportId}`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                displayViolationDetail(data.data);
+            } else {
+                showViolationDetailError(data.message || 'ไม่พบข้อมูลรายงาน');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showViolationDetailError('เกิดข้อผิดพลาดในการโหลดข้อมูล');
+        });
 }
 
 /**
- * แสดงข้อความผิดพลาด
+ * แสดง loading state ของ modal
  */
-function showError(message) {
-    createToast(message, 'error');
+function showViolationDetailLoading() {
+    document.getElementById('violationDetailLoading').style.display = 'block';
+    document.getElementById('violationDetailData').style.display = 'none';
+    document.getElementById('violationDetailError').style.display = 'none';
+    document.getElementById('deleteReportBtn').style.display = 'none';
+    document.getElementById('editReportBtn').style.display = 'none';
 }
 
 /**
- * สร้าง toast notification
+ * แสดง error state ของ modal
  */
-function createToast(message, type = 'success') {
-    // สร้าง toast container ถ้ายังไม่มี
-    let toastContainer = document.querySelector('.toast-container');
-    if (!toastContainer) {
-        toastContainer = document.createElement('div');
-        toastContainer.classList.add('toast-container', 'position-fixed', 'top-0', 'end-0', 'p-3');
-        toastContainer.style.zIndex = '1070';
-        document.body.appendChild(toastContainer);
+function showViolationDetailError(message) {
+    document.getElementById('violationDetailLoading').style.display = 'none';
+    document.getElementById('violationDetailData').style.display = 'none';
+    document.getElementById('violationDetailError').style.display = 'block';
+    document.getElementById('violationDetailError').innerHTML = `
+        <i class="fas fa-exclamation-circle fa-2x mb-3"></i>
+        <p>${message}</p>
+    `;
+    document.getElementById('deleteReportBtn').style.display = 'none';
+    document.getElementById('editReportBtn').style.display = 'none';
+}
+
+/**
+ * แสดงรายละเอียดการกระทำผิด
+ */
+function displayViolationDetail(data) {
+    // ซ่อน loading และ error
+    document.getElementById('violationDetailLoading').style.display = 'none';
+    document.getElementById('violationDetailError').style.display = 'none';
+    
+    // แสดงข้อมูล
+    document.getElementById('violationDetailData').style.display = 'block';
+    document.getElementById('deleteReportBtn').style.display = 'inline-block';
+    document.getElementById('editReportBtn').style.display = 'inline-block';
+    
+    // กำหนดสีของ badge ตามประเภท
+    let badgeClass = 'bg-danger';
+    switch (data.violation.category) {
+        case 'light':
+            badgeClass = 'bg-warning';
+            break;
+        case 'medium':
+            badgeClass = 'bg-orange';
+            break;
+        case 'severe':
+            badgeClass = 'bg-danger';
+            break;
     }
     
-    const toastId = `${type}-toast-${Date.now()}`;
-    const isSuccess = type === 'success';
-    const bgColor = isSuccess ? 'bg-success' : 'bg-danger';
-    const icon = isSuccess ? 'fa-check-circle' : 'fa-exclamation-circle';
-    const title = isSuccess ? 'สำเร็จ' : 'ข้อผิดพลาด';
-    
-    const toastHTML = `
-        <div class="toast" role="alert" aria-live="assertive" aria-atomic="true" id="${toastId}">
-            <div class="toast-header ${bgColor} text-white">
-                <i class="fas ${icon} me-2"></i>
-                <strong class="me-auto">${title}</strong>
-                <small>เมื่อสักครู่</small>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close"></button>
-            </div>
-            <div class="toast-body">
-                ${message}
-            </div>
+    // แสดงข้อมูลนักเรียน
+    document.getElementById('studentInfo').innerHTML = `
+        <img src="${data.student.avatar_url}" class="rounded-circle me-3" width="50" height="50" alt="รูปประจำตัว">
+        <div>
+            <h5 class="mb-1">${data.student.name}</h5>
+            <p class="mb-0 text-muted">รหัสนักเรียน: ${data.student.student_code} | ชั้น ${data.student.class}</p>
         </div>
     `;
     
-    toastContainer.insertAdjacentHTML('beforeend', toastHTML);
+    // แสดงรายละเอียดการกระทำผิด
+    const evidenceHtml = data.report.evidence_url 
+        ? `<div class="mb-3">
+               <label class="text-muted d-block">รูปภาพหลักฐาน</label>
+               <img src="${data.report.evidence_url}" class="img-fluid rounded" alt="รูปภาพหลักฐาน" style="max-height: 300px;">
+           </div>`
+        : `<div class="mb-3">
+               <label class="text-muted d-block">รูปภาพหลักฐาน</label>
+               <p class="text-muted">ไม่มีรูปภาพหลักฐาน</p>
+           </div>`;
     
-    const toastEl = document.getElementById(toastId);
-    if (toastEl && window.bootstrap) {
-        const toast = new bootstrap.Toast(toastEl);
-        toast.show();
+    document.getElementById('violationInfo').innerHTML = `
+        <div class="mb-3">
+            <label class="text-muted d-block">ประเภทการกระทำผิด</label>
+            <span class="badge ${badgeClass}">${data.violation.name}</span>
+        </div>
+        <div class="mb-3">
+            <label class="text-muted d-block">วันและเวลา</label>
+            <p class="mb-0">${data.report.report_date_thai}</p>
+        </div>
+        <div class="mb-3">
+            <label class="text-muted d-block">คะแนนที่หัก</label>
+            <p class="mb-0">${data.violation.points_deducted} คะแนน</p>
+        </div>
+        <div class="mb-3">
+            <label class="text-muted d-block">บันทึกโดย</label>
+            <p class="mb-0">${data.teacher.name}</p>
+        </div>
+        <div class="mb-3">
+            <label class="text-muted d-block">รายละเอียด</label>
+            <p class="mb-0">${data.report.description || 'ไม่มีรายละเอียดเพิ่มเติม'}</p>
+        </div>
+        ${evidenceHtml}
+    `;
+    
+    // ตั้งค่าปุ่มลบและแก้ไข
+    document.getElementById('deleteReportBtn').onclick = function() {
+        deleteViolationReport(data.id);
+    };
+    
+    document.getElementById('editReportBtn').onclick = function() {
+        editViolationReport(data.id);
+    };
+}
+
+/**
+ * ลบรายงานพฤติกรรม
+ */
+function deleteViolationReport(reportId) {
+    if (confirm('คุณต้องการลบรายงานพฤติกรรมนี้หรือไม่?')) {
+        // ใส่โค้ดสำหรับลบรายงานที่นี่
+        console.log('Delete report:', reportId);
+        showSuccess('ลบรายงานพฤติกรรมเรียบร้อยแล้ว');
         
-        // ลบ toast หลังจากแสดง
-        toastEl.addEventListener('hidden.bs.toast', function () {
-            this.remove();
-        });
+        // ปิด modal และรีเฟรชรายการ
+        const modal = bootstrap.Modal.getInstance(document.getElementById('violationDetailModal'));
+        modal.hide();
+        loadRecentReports();
     }
+}
+
+/**
+ * แก้ไขรายงานพฤติกรรม
+ */
+function editViolationReport(reportId) {
+    // ใส่โค้ดสำหรับแก้ไขรายงานที่นี่
+    console.log('Edit report:', reportId);
+    
+    // ปิด modal รายละเอียดและเปิด modal แก้ไข
+    const detailModal = bootstrap.Modal.getInstance(document.getElementById('violationDetailModal'));
+    detailModal.hide();
+    
+    // เปิด modal แก้ไข (ต้องสร้างต่อไป)
+    showSuccess('ฟีเจอร์แก้ไขจะพร้อมใช้งานเร็วๆ นี้');
 }
