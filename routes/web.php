@@ -87,3 +87,10 @@ Route::prefix('api/classes')->group(function () {
 Route::put('/teacher/profile/update', [App\Http\Controllers\TeacherController::class, 'updateProfile'])
      ->name('teacher.profile.update')
      ->middleware('auth');
+
+// เพิ่ม API Routes สำหรับบันทึกพฤติกรรม
+Route::prefix('api/behavior-reports')->middleware('auth')->group(function () {
+    Route::post('/', [App\Http\Controllers\BehaviorReportController::class, 'store']);
+    Route::get('/students/search', [App\Http\Controllers\BehaviorReportController::class, 'searchStudents']);
+    Route::get('/recent', [App\Http\Controllers\BehaviorReportController::class, 'getRecentReports']);
+});

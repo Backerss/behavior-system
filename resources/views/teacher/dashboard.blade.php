@@ -214,89 +214,37 @@
                     <div class="row mb-4">
                         <div class="col-12">
                             <div class="card">
-                                <div class="card-header bg-white d-flex justify-content-between align-items-center">
-                                    <h6 class="card-title mb-0">พฤติกรรมที่บันทึกล่าสุด</h6>
-                                    <a href="#" class="btn btn-sm btn-outline-primary">ดูทั้งหมด</a>
+                                <div class="card-header d-flex justify-content-between align-items-center">
+                                    <h5 class="card-title mb-0">การบันทึกพฤติกรรมล่าสุด</h5>
+                                    <button class="btn btn-sm btn-outline-primary" onclick="loadRecentReports()">
+                                        <i class="fas fa-sync-alt"></i> รีเฟรช
+                                    </button>
                                 </div>
-                                <div class="card-body p-0">
+                                <div class="card-body">
                                     <div class="table-responsive">
                                         <table class="table table-hover">
-                                            <thead class="table-light">
+                                            <thead>
                                                 <tr>
-                                                    <th style="width: 20%">นักเรียน</th>
-                                                    <th style="width: 15%">ห้องเรียน</th>
-                                                    <th style="width: 20%">ประเภท</th>
-                                                    <th style="width: 15%">คะแนนที่หัก</th>
-                                                    <th style="width: 15%">วันที่</th>
-                                                    <th style="width: 15%">จัดการ</th>
+                                                    <th>นักเรียน</th>
+                                                    <th>ประเภทพฤติกรรม</th>
+                                                    <th>คะแนนที่หัก</th>
+                                                    <th>วันที่บันทึก</th>
+                                                    <th>บันทึกโดย</th>
+                                                    <th>การดำเนินการ</th>
                                                 </tr>
                                             </thead>
-                                            <tbody>
-                                                @forelse($recentViolations as $report)
-                                                <tr>
-                                                    <td>
-                                                        <div class="d-flex align-items-center">
-                                                            @php
-                                                                $profileImage = $report->student->user->users_profile_image 
-                                                                    ? asset('storage/'.$report->student->user->users_profile_image) 
-                                                                    : 'https://ui-avatars.com/api/?name='.urlencode($report->student->user->users_first_name).'&background=95A4D8&color=fff';
-                                                            @endphp
-                                                            <img src="{{ $profileImage }}" class="rounded-circle me-2" width="32" height="32" alt="{{ $report->student->user->users_first_name }}">
-                                                            <div>
-                                                                <span class="d-block">{{ $report->student->user->users_name_prefix }}{{ $report->student->user->users_first_name }} {{ $report->student->user->users_last_name }}</span>
-                                                                <small class="text-muted">{{ $report->student->students_student_code }}</small>
-                                                            </div>
-                                                        </div>
-                                                    </td>
-                                                    <td>
-                                                        @if($report->student->classroom)
-                                                            {{ $report->student->classroom->classes_level }}/{{ $report->student->classroom->classes_room_number }}
-                                                        @else
-                                                            <span class="text-muted">ไม่ระบุ</span>
-                                                        @endif
-                                                    </td>
-                                                    <td>
-                                                        @php
-                                                            $badgeClass = 'bg-warning';
-                                                            if($report->violation->violations_category === 'severe') {
-                                                                $badgeClass = 'bg-danger';
-                                                            } elseif($report->violation->violations_category === 'medium') {
-                                                                $badgeClass = 'bg-primary';
-                                                            }
-                                                        @endphp
-                                                        <span class="badge {{ $badgeClass }}">{{ $report->violation->violations_name }}</span>
-                                                    </td>
-                                                    <td>{{ $report->violation->violations_points_deducted }} คะแนน</td>
-                                                    <td>{{ \Carbon\Carbon::parse($report->reports_report_date)->format('d/m/Y H:i') }}</td>
-                                                    <td>
-                                                        <button class="btn btn-sm btn-primary-app view-violation-btn" data-id="{{ $report->reports_id }}" data-bs-toggle="modal" data-bs-target="#violationDetailModal">
-                                                            <i class="fas fa-eye"></i>
-                                                        </button>
-                                                        <button class="btn btn-sm btn-outline-primary edit-violation-btn" data-id="{{ $report->reports_id }}">
-                                                            <i class="fas fa-edit"></i>
-                                                        </button>
-                                                    </td>
-                                                </tr>
-                                                @empty
+                                            <tbody id="recentViolationsTable">
                                                 <tr>
                                                     <td colspan="6" class="text-center py-4">
                                                         <div class="text-muted">
                                                             <i class="fas fa-info-circle fa-2x mb-3"></i>
-                                                            <p>ยังไม่มีการบันทึกพฤติกรรมในเดือนนี้</p>
+                                                            <p>ไม่มีข้อมูลการบันทึกพฤติกรรม</p>
                                                         </div>
                                                     </td>
                                                 </tr>
-                                                @endforelse
                                             </tbody>
                                         </table>
                                     </div>
-                                </div>
-                                <div class="card-footer bg-white">
-                                    <nav>
-                                        <ul class="pagination pagination-sm justify-content-end mb-0">
-                                            {{ $recentViolations->links() }}
-                                        </ul>
-                                    </nav>
                                 </div>
                             </div>
                         </div>
@@ -681,27 +629,6 @@
             </div>
         </div>
     </div>
-</div>
-
-<script>
-// ตรวจจับการเลือกไฟล์รูปภาพและแสดงตัวอย่าง
-document.addEventListener('DOMContentLoaded', function() {
-    const profileInput = document.getElementById('profile_image');
-    const profilePreview = document.getElementById('profile-preview');
-    
-    if (profileInput && profilePreview) {
-        profileInput.addEventListener('change', function() {
-            if (this.files && this.files[0]) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    profilePreview.src = e.target.result;
-                };
-                reader.readAsDataURL(this.files[0]);
-            }
-        });
-    }
-});
-</script>
 
     <!-- New Violation Modal -->
     <div class="modal fade" id="newViolationModal" tabindex="-1" aria-hidden="true">
@@ -712,66 +639,71 @@ document.addEventListener('DOMContentLoaded', function() {
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <form>
-                        <div class="mb-3">
-                            <label class="form-label">ค้นหานักเรียน</label>
-                            <div class="input-group">
-                                <input type="text" class="form-control" placeholder="พิมพ์ชื่อหรือรหัสนักเรียน...">
-                                <button class="btn btn-primary-app" type="button"><i class="fas fa-search"></i></button>
+                    <form id="violationForm">
+                        <div class="row mb-3">
+                            <div class="col-md-8">
+                                <label class="form-label">ค้นหานักเรียน <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="behaviorStudentSearch" placeholder="พิมพ์ชื่อหรือรหัสนักเรียน..." autocomplete="off">
+                                <div id="studentResults" class="list-group mt-2" style="display: none;"></div>
+                                <input type="hidden" id="selectedStudentId" name="student_id" required>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">กรองตามห้อง</label>
+                                <select class="form-select" id="classFilter">
+                                    <option value="">ทุกห้อง</option>
+                                    <!-- ตัวเลือกจะถูกเพิ่มด้วย JavaScript -->
+                                </select>
                             </div>
                         </div>
                         
-                        <div class="selected-student mb-4 p-3 border rounded d-none">
-                            <div class="d-flex align-items-center">
-                                <img src="https://ui-avatars.com/api/?name=สมชาย&background=95A4D8&color=fff" class="rounded-circle me-3" width="50" height="50">
-                                <div>
-                                    <h5 class="mb-1">สมชาย รักเรียน</h5>
-                                    <p class="mb-0 text-muted">รหัสนักเรียน: 1001 | ชั้น ม.5/1</p>
-                                </div>
-                                <button type="button" class="btn-close ms-auto"></button>
-                            </div>
+                        <div id="selectedStudentInfo" class="alert alert-info" style="display: none;">
+                            <h6 class="mb-1">นักเรียนที่เลือก:</h6>
+                            <div id="studentInfoDisplay"></div>
                         </div>
                         
                         <div class="row mb-3">
-                            <div class="col-md-6 mb-3 mb-md-0">
-                                <label class="form-label">ประเภทการกระทำผิด</label>
+                            <div class="col-md-6">
+                                <label class="form-label">ประเภทพฤติกรรม <span class="text-danger">*</span></label>
                                 <select class="form-select" id="violationType" name="violation_id" data-violation-select required>
-                                    <option selected disabled value="">เลือกประเภทการกระทำผิด</option>
+                                    <option value="">เลือกประเภทพฤติกรรม</option>
                                     <!-- ตัวเลือกจะถูกเพิ่มด้วย JavaScript -->
                                 </select>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">คะแนนที่หัก</label>
-                                <input type="number" class="form-control" id="pointsDeducted" min="0" max="100" value="5" readonly>
+                                <label class="form-label">คะแนนที่หัก <span class="text-danger">*</span></label>
+                                <input type="number" class="form-control" id="pointsDeducted" min="0" max="100" value="0" readonly>
                                 <div class="form-text">คะแนนจะกำหนดตามประเภทที่เลือก</div>
                             </div>
                         </div>
                         
                         <div class="row mb-3">
                             <div class="col-md-6 mb-3 mb-md-0">
-                                <label class="form-label">วันที่เกิดเหตุการณ์</label>
-                                <input type="date" class="form-control" id="violationDate">
+                                <label class="form-label">วันที่เกิดเหตุการณ์ <span class="text-danger">*</span></label>
+                                <input type="date" class="form-control" id="violationDate" name="violation_date" required>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">เวลาที่เกิดเหตุการณ์</label>
-                                <input type="time" class="form-control" id="violationTime">
+                                <label class="form-label">เวลาที่เกิดเหตุการณ์ <span class="text-danger">*</span></label>
+                                <input type="time" class="form-control" id="violationTime" name="violation_time" required>
                             </div>
                         </div>
                         
                         <div class="mb-3">
                             <label class="form-label">รายละเอียดเพิ่มเติม</label>
-                            <textarea class="form-control" rows="3" placeholder="รายละเอียดของการกระทำผิด..."></textarea>
+                            <textarea class="form-control" id="violationDescription" name="description" rows="3" placeholder="อธิบายรายละเอียดของเหตุการณ์..."></textarea>
                         </div>
                         
                         <div class="mb-3">
-                            <label class="form-label">แนบรูปภาพ (ถ้ามี)</label>
-                            <input type="file" class="form-control" accept="image/*">
+                            <label class="form-label">แนบหลักฐาน (ถ้ามี)</label>
+                            <input type="file" class="form-control" id="evidenceFile" name="evidence" accept="image/*">
+                            <div class="form-text">รองรับไฟล์ภาพเท่านั้น (JPG, PNG, GIF)</div>
                         </div>
                     </form>
                 </div>
                 <div class="modal-footer border-0 pt-0">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
-                    <button type="button" class="btn btn-primary-app">บันทึกพฤติกรรม</button>
+                    <button type="button" class="btn btn-primary-app" id="saveViolationBtn">
+                        <i class="fas fa-save me-1"></i> บันทึกพฤติกรรม
+                    </button>
                 </div>
             </div>
         </div>
@@ -1427,8 +1359,9 @@ document.addEventListener('DOMContentLoaded', function() {
     <!-- Dashboard JS -->
     <script src="/js/teacher-dashboard.js"></script>
     <script src="/js/violation-manager.js"></script>
-    <!-- เพิ่มก่อนปิด tag body -->
     <script src="/js/class-manager.js"></script>
     <script src="/js/class-detail.js"></script>
+    <!-- เพิ่ม behavior report script -->
+    <script src="/js/behavior-report.js"></script>
 </body>
 </html>
