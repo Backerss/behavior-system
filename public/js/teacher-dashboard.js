@@ -342,22 +342,28 @@ function initViolationTypesChart() {
 
 // ฟังก์ชันค้นหานักเรียน
 function searchStudents() {
-    const studentSearchInput = document.getElementById('studentSearch');
-    const classFilterInput = document.getElementById('classFilter');
-    
-    const searchTerm = studentSearchInput ? studentSearchInput.value : '';
-    const classId = classFilterInput ? classFilterInput.value : '';
-    
-    let url = '/students?';
-    if (searchTerm) {
-        url += `search=${encodeURIComponent(searchTerm)}&`;
+    const searchInput = document.querySelector('#students .form-control');
+    if (searchInput) {
+        searchInput.addEventListener('input', function() {
+            const searchTerm = this.value;
+            const url = new URL(window.location.href);
+            
+            if (searchTerm) {
+                url.searchParams.set('search', searchTerm);
+            } else {
+                url.searchParams.delete('search');
+            }
+            
+            // โหลดหน้าใหม่พร้อมพารามิเตอร์ค้นหา
+            window.location.href = url.toString();
+        });
     }
-    if (classId) {
-        url += `class=${encodeURIComponent(classId)}&`;
-    }
-    
-    window.location.href = url;
 }
+
+// เรียกใช้เมื่อหน้าโหลดเสร็จ
+document.addEventListener('DOMContentLoaded', function() {
+    searchStudents();
+});
 
 // ฟังก์ชันแสดงผลการค้นหานักเรียน
 function showStudentSearchResults(searchTerm) {

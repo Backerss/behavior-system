@@ -280,20 +280,43 @@
                                                 </tr>
                                             </thead>
                                             <tbody>
+                                                @forelse($students as $student)
                                                 <tr>
-                                                    <td>1001</td>
+                                                    <td>{{ $student->students_student_code ?? '-' }}</td>
                                                     <td>
                                                         <div class="d-flex align-items-center">
-                                                            <img src="https://ui-avatars.com/api/?name=สมชาย&background=95A4D8&color=fff" class="rounded-circle me-2" width="32" height="32">
-                                                            <span>สมชาย รักเรียน</span>
+                                                            @php
+                                                                $studentName = ($student->user->users_name_prefix ?? '') . ($student->user->users_first_name ?? '') . ' ' . ($student->user->users_last_name ?? '');
+                                                                $avatarUrl = $student->user->users_profile_image 
+                                                                    ? asset('storage/' . $student->user->users_profile_image)
+                                                                    : 'https://ui-avatars.com/api/?name=' . urlencode($studentName) . '&background=95A4D8&color=fff';
+                                                            @endphp
+                                                            <img src="{{ $avatarUrl }}" class="rounded-circle me-2" width="32" height="32" alt="{{ $studentName }}">
+                                                            <span>{{ $studentName }}</span>
                                                         </div>
                                                     </td>
-                                                    <td>ม.5/1</td>
                                                     <td>
+                                                        @if($student->classroom)
+                                                            {{ $student->classroom->classes_level }}/{{ $student->classroom->classes_room_number }}
+                                                        @else
+                                                            -
+                                                        @endif
+                                                    </td>
+                                                    <td>
+                                                        @php
+                                                            $score = $student->students_current_score ?? 100;
+                                                            $progressClass = 'bg-success';
+                                                            if ($score <= 50) {
+                                                                $progressClass = 'bg-danger';
+                                                            } elseif ($score <= 75) {
+                                                                $progressClass = 'bg-warning';
+                                                            }
+                                                        @endphp
                                                         <div style="margin-bottom: 5px; margin-top: 10px;">
                                                             <div class="progress" style="height: 8px; width: 100px; position: relative; margin-top: 10px;">
-                                                                <div class="progress-bar bg-success" role="progressbar" style="width: 90%"></div>
-                                                                <div style="position: absolute; left: 90%; top: -10px; transform: translateX(-50%); 
+                                                                <div class="progress-bar {{ $progressClass }}" role="progressbar" style="width: {{ $score }}%"></div>
+                                                                @if($score >= 90)
+                                                                <div style="position: absolute; left: {{ $score }}%; top: -10px; transform: translateX(-50%); 
                                                                             background-color: white; width: 24px; height: 24px; 
                                                                             border-radius: 50%; box-shadow: 0 2px 5px rgba(0,0,0,0.3); 
                                                                             display: flex; align-items: center; justify-content: center; 
@@ -302,109 +325,45 @@
                                                                          style="height: 16px; width: 16px;" 
                                                                          alt="👍">
                                                                 </div>
+                                                                @endif
                                                             </div>
                                                             </div>
-                                                            <span class="small">90/100</span>
+                                                            <span class="small">{{ $score }}/100</span>
                                                         </div>
                                                     </td>
-                                                    <td>5 ครั้ง</td>
                                                     <td>
-                                                        <button class="btn btn-sm btn-primary-app" data-bs-toggle="modal" data-bs-target="#studentDetailModal"><i class="fas fa-user me-1"></i> ดูข้อมูล</button>
+                                                        @php
+                                                            // นับจำนวนการกระทำผิดของนักเรียน
+                                                            $violationCount = App\Models\BehaviorReport::where('student_id', $student->students_id)->count();
+                                                        @endphp
+                                                        {{ $violationCount }} ครั้ง
+                                                    </td>
+                                                    <td>
+                                                        <button class="btn btn-sm btn-primary-app" 
+                                                                data-bs-toggle="modal" 
+                                                                data-bs-target="#studentDetailModal"
+                                                                data-student-id="{{ $student->students_id }}">
+                                                            <i class="fas fa-user me-1"></i> ดูข้อมูล
+                                                        </button>
                                                     </td>
                                                 </tr>
+                                                @empty
                                                 <tr>
-                                                    <td>1002</td>
-                                                    <td>
-                                                        <div class="d-flex align-items-center">
-                                                            <img src="https://ui-avatars.com/api/?name=มานี&background=95A4D8&color=fff" class="rounded-circle me-2" width="32" height="32">
-                                                            <span>มานี มีทรัพย์</span>
+                                                    <td colspan="6" class="text-center py-4">
+                                                        <div class="text-muted">
+                                                            <i class="fas fa-info-circle fa-2x mb-3"></i>
+                                                            <p>ไม่พบข้อมูลนักเรียน</p>
                                                         </div>
-                                                    </td>
-                                                    <td>ม.5/2</td>
-                                                    <td>
-                                                        <div class="progress" style="height: 8px; width: 100px;">
-                                                            <div class="progress-bar bg-success" role="progressbar" style="width: 95%"></div>
-                                                        </div>
-                                                        <span class="small">95/100</span>
-                                                    </td>
-                                                    <td>2 ครั้ง</td>
-                                                    <td>
-                                                        <button class="btn btn-sm btn-primary-app" data-bs-toggle="modal" data-bs-target="#studentDetailModal"><i class="fas fa-user me-1"></i> ดูข้อมูล</button>
                                                     </td>
                                                 </tr>
-                                                <tr>
-                                                    <td>1003</td>
-                                                    <td>
-                                                        <div class="d-flex align-items-center">
-                                                            <img src="https://ui-avatars.com/api/?name=สมศรี&background=95A4D8&color=fff" class="rounded-circle me-2" width="32" height="32">
-                                                            <span>สมศรี มีมานะ</span>
-                                                        </div>
-                                                    </td>
-                                                    <td>ม.5/3</td>
-                                                    <td>
-                                                        <div class="progress" style="height: 8px; width: 100px;">
-                                                            <div class="progress-bar bg-warning" role="progressbar" style="width: 75%"></div>
-                                                        </div>
-                                                        <span class="small">75/100</span>
-                                                    </td>
-                                                    <td>8 ครั้ง</td>
-                                                    <td>
-                                                        <button class="btn btn-sm btn-primary-app" data-bs-toggle="modal" data-bs-target="#studentDetailModal"><i class="fas fa-user me-1"></i> ดูข้อมูล</button>
-                                                    </td>
-                                                </tr>
-                                                <tr>
-                                                    <td>1004</td>
-                                                    <td>
-                                                        <div class="d-flex align-items-center">
-                                                            <img src="https://ui-avatars.com/api/?name=วิชัย&background=95A4D8&color=fff" class="rounded-circle me-2" width="32" height="32">
-                                                            <span>วิชัย ไม่ย่อท้อ</span>
-                                                        </div>
-                                                    </td>
-                                                    <td>ม.5/1</td>
-                                                    <td>
-                                                        <div class="progress" style="height: 8px; width: 100px;">
-                                                            <div class="progress-bar bg-danger" role="progressbar" style="width: 60%"></div>
-                                                        </div>
-                                                        <span class="small">60/100</span>
-                                                    </td>
-                                                    <td>12 ครั้ง</td>
-                                                    <td>
-                                                        <button class="btn btn-sm btn-primary-app" data-bs-toggle="modal" data-bs-target="#studentDetailModal"><i class="fas fa-user me-1"></i> ดูข้อมูล</button>
-                                                    </td>
-                                                </tr>
-                                                <tr>
-                                                    <td>1005</td>
-                                                    <td>
-                                                        <div class="d-flex align-items-center">
-                                                            <img src="https://ui-avatars.com/api/?name=อรุณ&background=95A4D8&color=fff" class="rounded-circle me-2" width="32" height="32">
-                                                            <span>อรุณ สดใส</span>
-                                                        </div>
-                                                    </td>
-                                                    <td>ม.5/2</td>
-                                                    <td>
-                                                        <div class="progress" style="height: 8px; width: 100px;">
-                                                            <div class="progress-bar bg-success" role="progressbar" style="width: 85%"></div>
-                                                        </div>
-                                                        <span class="small">85/100</span>
-                                                    </td>
-                                                    <td>4 ครั้ง</td>
-                                                    <td>
-                                                        <button class="btn btn-sm btn-primary-app" data-bs-toggle="modal" data-bs-target="#studentDetailModal"><i class="fas fa-user me-1"></i> ดูข้อมูล</button>
-                                                    </td>
-                                                </tr>
+                                                @endforelse
                                             </tbody>
                                         </table>
                                     </div>
                                 </div>
                                 <div class="card-footer bg-white">
                                     <nav>
-                                        <ul class="pagination pagination-sm justify-content-end mb-0">
-                                            <li class="page-item disabled"><a class="page-link" href="#">Previous</a></li>
-                                            <li class="page-item active"><a class="page-link" href="#">1</a></li>
-                                            <li class="page-item"><a class="page-link" href="#">2</a></li>
-                                            <li class="page-item"><a class="page-link" href="#">3</a></li>
-                                            <li class="page-item"><a class="page-link" href="#">Next</a></li>
-                                        </ul>
+                                        {{ $students->links('pagination::bootstrap-4') }}
                                     </nav>
                                 </div>
                             </div>
