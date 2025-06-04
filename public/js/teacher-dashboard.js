@@ -389,398 +389,922 @@ function filterChartData(filterType) {
     // ใส่โค้ดสำหรับการกรองข้อมูลกราฟที่นี่
 }
 
-// ฟังก์ชันแก้ไขประเภทพฤติกรรม
-function editViolationType(violationId) {
-    console.log('แก้ไขประเภทพฤติกรรม ID:', violationId);
-    // ใส่โค้ดสำหรับการแก้ไขที่นี่
-}
-
-// ฟังก์ชันลบประเภทพฤติกรรม
-function deleteViolationType(violationId) {
-    console.log('ลบประเภทพฤติกรรม ID:', violationId);
-    // ใส่โค้ดสำหรับการลบที่นี่
-}
-
-// ฟังก์ชันบันทึกประเภทพฤติกรรม
-function saveViolationType() {
-    console.log('บันทึกประเภทพฤติกรรม');
-    // ใส่โค้ดสำหรับการบันทึกที่นี่
-}
-
-// ฟังก์ชันโหลดประเภทพฤติกรรม
-function loadViolationTypes() {
-    console.log('โหลดประเภทพฤติกรรม');
-    // ใส่โค้ดสำหรับการโหลดข้อมูลที่นี่
-}
-
-// ฟังก์ชันกรองประเภทพฤติกรรม
-function filterViolationTypes(searchTerm) {
-    console.log('กรองประเภทพฤติกรรม:', searchTerm);
-    // ใส่โค้ดสำหรับการกรองที่นี่
-}
-
-/**
- * JavaScript สำหรับจัดการประเภทพฤติกรรม
- * ใช้งานกับ Modal: violationTypesModal
- */
-
-// ตัวแปรสำหรับเก็บข้อมูลและสถานะต่าง ๆ
+// เพิ่มตัวแปรสำหรับจัดการ violation
 const violationManager = {
+    csrfToken: document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
     currentPage: 1,
-    totalPages: 1,
-    searchTerm: '',
-    violations: [],
-    isLoading: false,
-    csrfToken: document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+    searchTerm: ''
 };
 
-// ฟังก์ชันสำหรับดึงข้อมูลประเภทพฤติกรรมทั้งหมด
-function fetchViolations(page = 1, search = '') {
-    violationManager.isLoading = true;
-    showLoading('violationTypesList');
-
-    fetch(`/api/violations?page=${page}&search=${encodeURIComponent(search)}`)
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                violationManager.violations = data.data.data || [];
-                violationManager.currentPage = data.data.current_page || 1;
-                violationManager.totalPages = data.data.last_page || 1;
-                
-                renderViolationsList();
-                renderPagination();
-            } else {
-                showError('เกิดข้อผิดพลาดในการดึงข้อมูลประเภทพฤติกรรม');
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            showError('เกิดข้อผิดพลาดในการเชื่อมต่อกับเซิร์ฟเวอร์');
-        })
-        .finally(() => {
-            violationManager.isLoading = false;
-            hideLoading('violationTypesList');
-        });
+// เพิ่มฟังก์ชันสำหรับ loading states
+function showLoading(containerId) {
+    const container = document.getElementById(containerId);
+    if (container) {
+        const loadingHTML = `
+            <div class="text-center py-4" id="loading-${containerId}">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">กำลังโหลด...</span>
+                </div>
+                <p class="mt-2 text-muted">กำลังโหลดข้อมูล...</p>
+            </div>
+        `;
+        container.insertAdjacentHTML('beforeend', loadingHTML);
+    }
 }
 
-// ฟังก์ชันสำหรับแสดงรายการประเภทพฤติกรรม
-function renderViolationsList() {
-    const tableBody = document.querySelector('#violationTypesList table tbody');
+function hideLoading(containerId) {
+    const loadingElement = document.getElementById(`loading-${containerId}`);
+    if (loadingElement) {
+        loadingElement.remove();
+    }
+}
+
+// เพิ่มฟังก์ชันสำหรับแสดงข้อความ
+function showSuccess(message) {
+    // ใช้ SweetAlert2 หรือ Bootstrap Toast หรือ alert ธรรมดา
+    if (typeof Swal !== 'undefined') {
+        Swal.fire({
+            icon: 'success',
+            title: 'สำเร็จ!',
+            text: message,
+            confirmButtonText: 'ตกลง',
+            confirmButtonColor: '#1020AD'
+        });
+    } else {
+        // ใช้ Bootstrap Toast หรือ alert ธรรมดา
+        showToast(message, 'success');
+    }
+}
+
+function showError(message) {
+    if (typeof Swal !== 'undefined') {
+        Swal.fire({
+            icon: 'error',
+            title: 'เกิดข้อผิดพลาด!',
+            text: message,
+            confirmButtonText: 'ตกลง',
+            confirmButtonColor: '#dc3545'
+        });
+    } else {
+        showToast(message, 'error');
+    }
+}
+
+// ฟังก์ชัน Toast สำรอง (ถ้าไม่มี SweetAlert2)
+function showToast(message, type = 'info') {
+    // สร้าง toast element
+    const toastContainer = document.getElementById('toast-container') || createToastContainer();
+    const toastId = 'toast-' + Date.now();
+    const bgClass = type === 'success' ? 'bg-success' : type === 'error' ? 'bg-danger' : 'bg-info';
     
-    if (!tableBody) return;
+    const toastHTML = `
+        <div id="${toastId}" class="toast align-items-center text-white ${bgClass} border-0" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="d-flex">
+                <div class="toast-body">
+                    ${message}
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+        </div>
+    `;
     
-    if (violationManager.violations.length === 0) {
-        tableBody.innerHTML = `
+    toastContainer.insertAdjacentHTML('beforeend', toastHTML);
+    
+    const toastElement = document.getElementById(toastId);
+    const toast = new bootstrap.Toast(toastElement, {
+        autohide: true,
+        delay: 5000
+    });
+    toast.show();
+    
+    // ลบ toast หลังจากซ่อน
+    toastElement.addEventListener('hidden.bs.toast', function() {
+        this.remove();
+    });
+}
+
+function createToastContainer() {
+    const container = document.createElement('div');
+    container.id = 'toast-container';
+    container.className = 'toast-container position-fixed top-0 end-0 p-3';
+    container.style.zIndex = '9999';
+    document.body.appendChild(container);
+    return container;
+}
+
+// เพิ่มฟังก์ชันสำหรับ violation management
+function fetchViolations(page = 1, search = '') {
+    const loadingContainer = document.querySelector('#violationTypesList .table tbody');
+    if (loadingContainer) {
+        loadingContainer.innerHTML = `
             <tr>
                 <td colspan="5" class="text-center py-4">
-                    <div class="text-muted">
-                        <i class="fas fa-info-circle fa-2x mb-3"></i>
-                        <p>ไม่พบข้อมูลประเภทพฤติกรรม</p>
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">กำลังโหลด...</span>
                     </div>
+                    <p class="mt-2 text-muted">กำลังโหลดข้อมูล...</p>
+                </td>
+            </tr>
+        `;
+    }
+    
+    const params = new URLSearchParams();
+    if (search) params.append('search', search);
+    params.append('page', page);
+    
+    fetch(`/api/violations?${params.toString()}`, {
+        headers: {
+            'Accept': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRF-TOKEN': violationManager.csrfToken
+        }
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log('API Response:', data); // Debug log
+        
+        // ตรวจสอบโครงสร้างข้อมูลที่ได้รับ
+        if (data && data.data) {
+            // ถ้าข้อมูลมาในรูปแบบ Laravel pagination
+            if (data.data.data && Array.isArray(data.data.data)) {
+                renderViolationsList(data.data.data);
+                renderPagination(data.data);
+            } 
+            // ถ้าข้อมูลมาในรูปแบบ array ธรรมดา
+            else if (Array.isArray(data.data)) {
+                renderViolationsList(data.data);
+                // ไม่มี pagination สำหรับข้อมูลแบบ array ธรรมดา
+                const paginationContainer = document.querySelector('#violationTypesList .pagination');
+                if (paginationContainer) paginationContainer.innerHTML = '';
+            }
+            else {
+                // ถ้าโครงสร้างข้อมูลไม่ตรงกับที่คาดหวัง
+                console.error('Unexpected data structure:', data);
+                renderViolationsList([]);
+            }
+            
+            violationManager.currentPage = page;
+            violationManager.searchTerm = search;
+        } else {
+            showError(data?.message || 'เกิดข้อผิดพลาดในการดึงข้อมูล');
+            renderViolationsList([]);
+        }
+    })
+    .catch(error => {
+        console.error('Fetch Error:', error);
+        showError('เกิดข้อผิดพลาดในการเชื่อมต่อกับเซิร์ฟเวอร์');
+        if (loadingContainer) {
+            loadingContainer.innerHTML = `
+                <tr>
+                    <td colspan="5" class="text-center py-4 text-danger">
+                        <i class="fas fa-exclamation-circle fa-2x mb-3"></i>
+                        <p>เกิดข้อผิดพลาดในการโหลดข้อมูล</p>
+                        <button class="btn btn-sm btn-outline-primary" onclick="fetchViolations(${page}, '${search}')">
+                            <i class="fas fa-redo me-1"></i> ลองใหม่
+                        </button>
+                    </td>
+                </tr>
+            `;
+        }
+    });
+}
+
+// แก้ไขฟังก์ชัน renderPagination ให้ปลอดภัยยิ่งขึ้น
+function renderPagination(data) {
+    const paginationContainer = document.querySelector('#violationTypesList .pagination');
+    
+    // ตรวจสอบว่ามี container และข้อมูล pagination
+    if (!paginationContainer) {
+        console.warn('Pagination container not found');
+        return;
+    }
+    
+    // ตรวจสอบว่าข้อมูลมี pagination properties หรือไม่
+    if (!data || typeof data !== 'object' || !data.last_page || data.last_page <= 1) {
+        paginationContainer.innerHTML = '';
+        return;
+    }
+    
+    const currentPage = data.current_page || 1;
+    const lastPage = data.last_page || 1;
+    const paginationHTML = [];
+    
+    // Previous button
+    if (currentPage > 1) {
+        paginationHTML.push(`
+            <li class="page-item">
+                <a class="page-link" href="#" data-page="${currentPage - 1}">
+                    <i class="fas fa-chevron-left"></i>
+                </a>
+            </li>
+        `);
+    }
+    
+    // Page numbers
+    const startPage = Math.max(1, currentPage - 2);
+    const endPage = Math.min(lastPage, currentPage + 2);
+    
+    for (let i = startPage; i <= endPage; i++) {
+        paginationHTML.push(`
+            <li class="page-item ${i === currentPage ? 'active' : ''}">
+                <a class="page-link" href="#" data-page="${i}">${i}</a>
+            </li>
+        `);
+    }
+    
+    // Next button
+    if (currentPage < lastPage) {
+        paginationHTML.push(`
+            <li class="page-item">
+                <a class="page-link" href="#" data-page="${currentPage + 1}">
+                    <i class="fas fa-chevron-right"></i>
+                </a>
+            </li>
+        `);
+    }
+    
+    paginationContainer.innerHTML = paginationHTML.join('');
+    
+    // Add click events (ลบ event listener เก่าก่อน)
+    const newPaginationContainer = paginationContainer.cloneNode(true);
+    paginationContainer.parentNode.replaceChild(newPaginationContainer, paginationContainer);
+    
+    newPaginationContainer.addEventListener('click', function(e) {
+        e.preventDefault();
+        const pageLink = e.target.closest('[data-page]');
+        if (pageLink) {
+            const page = parseInt(pageLink.dataset.page);
+            if (page && page > 0 && page <= lastPage) {
+                fetchViolations(page, violationManager.searchTerm);
+            }
+        }
+    });
+}
+
+// แก้ไขฟังก์ชัน renderViolationsList ให้ปลอดภัยยิ่งขึ้น
+function renderViolationsList(violations) {
+    const tbody = document.querySelector('#violationTypesList .table tbody');
+    if (!tbody) {
+        console.error('Table tbody not found');
+        return;
+    }
+    
+    // ตรวจสอบว่า violations เป็น array หรือไม่
+    if (!Array.isArray(violations)) {
+        console.error('Violations data is not an array:', violations);
+        violations = [];
+    }
+    
+    if (violations.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="5" class="text-center py-4 text-muted">
+                    <i class="fas fa-info-circle fa-2x mb-3"></i>
+                    <p>ไม่พบข้อมูลประเภทพฤติกรรม</p>
+                    ${violationManager.searchTerm ? `<p class="small">คำค้นหา: "${violationManager.searchTerm}"</p>` : ''}
                 </td>
             </tr>
         `;
         return;
     }
     
-    tableBody.innerHTML = '';
-    
-    violationManager.violations.forEach(violation => {
-        // สร้าง badge สำหรับระดับความรุนแรง
-        let categoryBadge = '';
-        let categoryText = '';
+    tbody.innerHTML = violations.map(violation => {
+        // ตรวจสอบความถูกต้องของข้อมูล violation
+        const id = violation.violations_id || violation.id || '';
+        const name = violation.violations_name || violation.name || 'ไม่ระบุ';
+        const category = violation.violations_category || violation.category || '';
+        const points = violation.violations_points_deducted || violation.points_deducted || 0;
+        const description = violation.violations_description || violation.description || '';
         
-        switch (violation.violations_category) {
-            case 'light':
-                categoryBadge = '<span class="badge bg-success">เบา</span>';
-                categoryText = 'เบา';
-                break;
-            case 'medium':
-                categoryBadge = '<span class="badge bg-warning">ปานกลาง</span>';
-                categoryText = 'ปานกลาง';
-                break;
-            case 'severe':
-                categoryBadge = '<span class="badge bg-danger">หนัก</span>';
-                categoryText = 'หนัก';
-                break;
-            default:
-                categoryBadge = '<span class="badge bg-secondary">ไม่ระบุ</span>';
-                categoryText = 'ไม่ระบุ';
-        }
+        const categoryBadge = getCategoryBadge(category);
         
-        // สร้าง row
-        const row = document.createElement('tr');
-        row.innerHTML = `
-            <td>${violation.violations_name}</td>
-            <td>${categoryBadge}</td>
-            <td>${violation.violations_points_deducted}</td>
-            <td class="text-truncate" style="max-width: 200px;">${violation.violations_description || '-'}</td>
-            <td>
-                <div class="btn-group">
-                    <button type="button" class="btn btn-sm btn-outline-primary edit-violation-btn" data-id="${violation.violations_id}">
+        return `
+            <tr>
+                <td>${escapeHtml(name)}</td>
+                <td>${categoryBadge}</td>
+                <td>${points} คะแนน</td>
+                <td>${escapeHtml(description) || '-'}</td>
+                <td>
+                    <button class="btn btn-sm btn-outline-primary edit-violation-btn me-1" 
+                            data-id="${id}" title="แก้ไข">
                         <i class="fas fa-edit"></i>
                     </button>
-                    <button type="button" class="btn btn-sm btn-outline-danger delete-violation-btn" data-id="${violation.violations_id}">
+                    <button class="btn btn-sm btn-outline-danger delete-violation-btn" 
+                            data-id="${id}" title="ลบ">
                         <i class="fas fa-trash"></i>
                     </button>
-                </div>
-            </td>
+                </td>
+            </tr>
         `;
-        
-        tableBody.appendChild(row);
-    });
+    }).join('');
     
-    // เพิ่ม event listeners สำหรับปุ่มแก้ไขและลบ
+    // เพิ่ม event listeners ใหม่
     attachEditButtonListeners();
     attachDeleteButtonListeners();
 }
 
-// ฟังก์ชันสำหรับแสดง pagination
-function renderPagination() {
-    const pagination = document.querySelector('#violationTypesList nav ul');
-    
-    if (!pagination) return;
-    
-    pagination.innerHTML = '';
-    
-    // ปุ่ม Previous
-    const prevLi = document.createElement('li');
-    prevLi.classList.add('page-item');
-    if (violationManager.currentPage === 1) {
-        prevLi.classList.add('disabled');
-    }
-    prevLi.innerHTML = `<a class="page-link" href="#" data-page="${violationManager.currentPage - 1}">Previous</a>`;
-    pagination.appendChild(prevLi);
-    
-    // หน้าต่าง ๆ
-    for (let i = 1; i <= violationManager.totalPages; i++) {
-        const pageLi = document.createElement('li');
-        pageLi.classList.add('page-item');
-        if (i === violationManager.currentPage) {
-            pageLi.classList.add('active');
-        }
-        pageLi.innerHTML = `<a class="page-link" href="#" data-page="${i}">${i}</a>`;
-        pagination.appendChild(pageLi);
-    }
-    
-    // ปุ่ม Next
-    const nextLi = document.createElement('li');
-    nextLi.classList.add('page-item');
-    if (violationManager.currentPage === violationManager.totalPages) {
-        nextLi.classList.add('disabled');
-    }
-    nextLi.innerHTML = `<a class="page-link" href="#" data-page="${violationManager.currentPage + 1}">Next</a>`;
-    pagination.appendChild(nextLi);
-    
-    // เพิ่ม event listeners สำหรับ pagination
-    document.querySelectorAll('#violationTypesList nav ul li:not(.disabled) a').forEach(link => {
-        link.addEventListener('click', function(e) {
-            e.preventDefault();
-            const page = parseInt(this.getAttribute('data-page'));
-            if (page > 0 && page <= violationManager.totalPages) {
-                fetchViolations(page, violationManager.searchTerm);
-            }
-        });
-    });
+// เพิ่มฟังก์ชัน escapeHtml เพื่อป้องกัน XSS
+function escapeHtml(text) {
+    if (!text) return '';
+    const map = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#039;'
+    };
+    return text.toString().replace(/[&<>"']/g, function(m) { return map[m]; });
 }
 
-// ฟังก์ชันสำหรับแสดง loading
-function showLoading(containerId) {
-    const container = document.getElementById(containerId);
-    if (container) {
-        const loadingHTML = `
-            <div class="text-center py-5 loading-overlay">
-                <div class="spinner-border text-primary" role="status">
-                    <span class="visually-hidden">Loading...</span>
-                </div>
-                <p class="mt-2 text-muted">กำลังโหลดข้อมูล...</p>
-            </div>
-        `;
-        
-        const loadingEl = document.createElement('div');
-        loadingEl.innerHTML = loadingHTML;
-        loadingEl.classList.add('loading-container');
-        container.appendChild(loadingEl);
-    }
-}
-
-// ฟังก์ชันสำหรับซ่อน loading
-function hideLoading(containerId) {
-    const container = document.getElementById(containerId);
-    if (container) {
-        const loadingEl = container.querySelector('.loading-container');
-        if (loadingEl) {
-            loadingEl.remove();
-        }
-    }
-}
-
-// ฟังก์ชันสำหรับแสดงข้อความผิดพลาด
-function showError(message) {
-    // สร้าง toast สำหรับแสดงข้อความผิดพลาด
-    let toastContainer = document.querySelector('.toast-container');
-    
-    if (!toastContainer) {
-        toastContainer = document.createElement('div');
-        toastContainer.classList.add('toast-container', 'position-fixed', 'top-0', 'end-0', 'p-3');
-        toastContainer.style.zIndex = '1070';
-        document.body.appendChild(toastContainer);
-    }
-    
-    const toastId = `error-toast-${Date.now()}`;
-    const toastHTML = `
-        <div class="toast" role="alert" aria-live="assertive" aria-atomic="true" id="${toastId}">
-            <div class="toast-header bg-danger text-white">
-                <i class="fas fa-exclamation-circle me-2"></i>
-                <strong class="me-auto">ข้อผิดพลาด</strong>
-                <small>เมื่อสักครู่</small>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close"></button>
-            </div>
-            <div class="toast-body">
-                ${message}
-            </div>
-        </div>
-    `;
-    
-    toastContainer.insertAdjacentHTML('beforeend', toastHTML);
-    
-    const toastEl = document.getElementById(toastId);
-    if (toastEl && window.bootstrap) {
-        const toast = new bootstrap.Toast(toastEl);
-        toast.show();
-        
-        // ลบ toast หลังจากแสดง
-        toastEl.addEventListener('hidden.bs.toast', function () {
-            this.remove();
-        });
-    }
-}
-
-// ฟังก์ชันสำหรับแสดงข้อความสำเร็จ
-function showSuccess(message) {
-    // สร้าง toast สำหรับแสดงข้อความสำเร็จ
-    let toastContainer = document.querySelector('.toast-container');
-    
-    if (!toastContainer) {
-        toastContainer = document.createElement('div');
-        toastContainer.classList.add('toast-container', 'position-fixed', 'top-0', 'end-0', 'p-3');
-        toastContainer.style.zIndex = '1070';
-        document.body.appendChild(toastContainer);
-    }
-    
-    const toastId = `success-toast-${Date.now()}`;
-    const toastHTML = `
-        <div class="toast" role="alert" aria-live="assertive" aria-atomic="true" id="${toastId}">
-            <div class="toast-header bg-success text-white">
-                <i class="fas fa-check-circle me-2"></i>
-                <strong class="me-auto">สำเร็จ</strong>
-                <small>เมื่อสักครู่</small>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close"></button>
-            </div>
-            <div class="toast-body">
-                ${message}
-            </div>
-        </div>
-    `;
-    
-    toastContainer.insertAdjacentHTML('beforeend', toastHTML);
-    
-    const toastEl = document.getElementById(toastId);
-    if (toastEl && window.bootstrap) {
-        const toast = new bootstrap.Toast(toastEl);
-        toast.show();
-        
-        // ลบ toast หลังจากแสดง
-        toastEl.addEventListener('hidden.bs.toast', function () {
-            this.remove();
-        });
-    }
-}
-
-// เพิ่มฟังก์ชันที่หายไป
-function attachEditButtonListeners() {
-    document.querySelectorAll('.edit-violation-btn').forEach(button => {
-        button.addEventListener('click', function() {
-            const violationId = this.getAttribute('data-id');
-            editViolationType(violationId);
-        });
-    });
-}
-
-function attachDeleteButtonListeners() {
-    document.querySelectorAll('.delete-violation-btn').forEach(button => {
-        button.addEventListener('click', function() {
-            const violationId = this.getAttribute('data-id');
-            const deleteViolationId = document.getElementById('deleteViolationId');
-            if (deleteViolationId) {
-                deleteViolationId.value = violationId;
-            }
-            const deleteViolationModal = document.getElementById('deleteViolationModal');
-            if (deleteViolationModal && bootstrap.Modal) {
-                const modal = new bootstrap.Modal(deleteViolationModal);
-                modal.show();
-            }
-        });
-    });
-}
-
-// อัปเดตการเลือกประเภทพฤติกรรมในฟอร์มบันทึกพฤติกรรม
+// แก้ไขฟังก์ชัน updateViolationSelects ให้จัดการข้อมูลได้ดีขึ้น
 function updateViolationSelects() {
     fetch('/api/violations/all', {
         headers: {
             'Accept': 'application/json',
-            'X-Requested-With': 'XMLHttpRequest'
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRF-TOKEN': violationManager.csrfToken
         }
     })
     .then(response => {
-        const contentType = response.headers.get('content-type');
-        if (!contentType || !contentType.includes('application/json')) {
-            throw new Error('Response is not JSON');
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log('Violation select data:', data); // Debug log
+        
+        const violationSelect = document.getElementById('violationType');
+        if (!violationSelect) {
+            console.warn('Violation select element not found');
+            return;
+        }
+        
+        // เคลียร์ options เก่า (ยกเว้น option แรก)
+        while (violationSelect.children.length > 1) {
+            violationSelect.removeChild(violationSelect.lastChild);
+        }
+        
+        // ตรวจสอบโครงสร้างข้อมูล
+        let violations = [];
+        if (data && data.data) {
+            if (Array.isArray(data.data)) {
+                violations = data.data;
+            } else if (data.data.data && Array.isArray(data.data.data)) {
+                violations = data.data.data;
+            }
+        }
+        
+        // เพิ่ม options ใหม่
+        violations.forEach(violation => {
+            const option = document.createElement('option');
+            option.value = violation.violations_id || violation.id;
+            option.textContent = violation.violations_name || violation.name;
+            option.dataset.points = violation.violations_points_deducted || violation.points_deducted || 0;
+            violationSelect.appendChild(option);
+        });
+    })
+    .catch(error => {
+        console.error('Error updating violation selects:', error);
+    });
+}
+
+// แก้ไขฟังก์ชัน editViolationType ให้จัดการ error ได้ดีขึ้น
+function editViolationType(violationId) {
+    console.log('แก้ไขประเภทพฤติกรรม ID:', violationId);
+    
+    if (!violationId) {
+        showError('ไม่พบรหัสประเภทพฤติกรรม');
+        return;
+    }
+    
+    // แสดง loading state
+    const loadingContainer = document.querySelector('#violationTypesList .table tbody');
+    if (loadingContainer) {
+        loadingContainer.innerHTML = `
+            <tr>
+                <td colspan="5" class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">กำลังโหลดข้อมูลสำหรับแก้ไข...</span>
+                    </div>
+                    <p class="mt-2 text-muted">กำลังโหลดข้อมูลสำหรับแก้ไข...</p>
+                </td>
+            </tr>
+        `;
+    }
+    
+    // ดึงข้อมูลประเภทพฤติกรรมที่ต้องการแก้ไข
+    fetch(`/api/violations/${violationId}`, {
+        method: 'GET',
+        headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': violationManager.csrfToken
+        }
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log('Edit violation data:', data); // Debug log
+        
+        if (data && (data.success !== false)) {
+            // แสดงฟอร์มแก้ไข
+            const violationData = data.data || data;
+            showEditForm(violationData);
+        } else {
+            showError(data?.message || 'ไม่สามารถดึงข้อมูลประเภทพฤติกรรมได้');
+            // กลับไปแสดงรายการ
+            fetchViolations(violationManager.currentPage, violationManager.searchTerm);
+        }
+    })
+    .catch(error => {
+        console.error('Error fetching violation data:', error);
+        showError('เกิดข้อผิดพลาดในการดึงข้อมูลประเภทพฤติกรรม');
+        // กลับไปแสดงรายการ
+        fetchViolations(violationManager.currentPage, violationManager.searchTerm);
+    });
+}
+
+// ฟังก์ชันสำหรับการแสดง badge ตามประเภทความรุนแรง
+function getCategoryBadge(category) {
+    const badges = {
+        'light': '<span class="badge bg-success">เบา</span>',
+        'medium': '<span class="badge bg-warning text-dark">ปานกลาง</span>',
+        'severe': '<span class="badge bg-danger">หนัก</span>'
+    };
+    return badges[category] || '<span class="badge bg-secondary">ไม่ระบุ</span>';
+}
+
+function renderPagination(data) {
+    const paginationContainer = document.querySelector('#violationTypesList .pagination');
+    
+    // ตรวจสอบว่ามี container และข้อมูล pagination
+    if (!paginationContainer) {
+        console.warn('Pagination container not found');
+        return;
+    }
+    
+    // ตรวจสอบว่าข้อมูลมี pagination properties หรือไม่
+    if (!data || typeof data !== 'object' || !data.last_page || data.last_page <= 1) {
+        paginationContainer.innerHTML = '';
+        return;
+    }
+    
+    const currentPage = data.current_page || 1;
+    const lastPage = data.last_page || 1;
+    const paginationHTML = [];
+    
+    // Previous button
+    if (currentPage > 1) {
+        paginationHTML.push(`
+            <li class="page-item">
+                <a class="page-link" href="#" data-page="${currentPage - 1}">
+                    <i class="fas fa-chevron-left"></i>
+                </a>
+            </li>
+        `);
+    }
+    
+    // Page numbers
+    const startPage = Math.max(1, currentPage - 2);
+    const endPage = Math.min(lastPage, currentPage + 2);
+    
+    for (let i = startPage; i <= endPage; i++) {
+        paginationHTML.push(`
+            <li class="page-item ${i === currentPage ? 'active' : ''}">
+                <a class="page-link" href="#" data-page="${i}">${i}</a>
+            </li>
+        `);
+    }
+    
+    // Next button
+    if (currentPage < lastPage) {
+        paginationHTML.push(`
+            <li class="page-item">
+                <a class="page-link" href="#" data-page="${currentPage + 1}">
+                    <i class="fas fa-chevron-right"></i>
+                </a>
+            </li>
+        `);
+    }
+    
+    paginationContainer.innerHTML = paginationHTML.join('');
+    
+    // Add click events (ลบ event listener เก่าก่อน)
+    const newPaginationContainer = paginationContainer.cloneNode(true);
+    paginationContainer.parentNode.replaceChild(newPaginationContainer, paginationContainer);
+    
+    newPaginationContainer.addEventListener('click', function(e) {
+        e.preventDefault();
+        const pageLink = e.target.closest('[data-page]');
+        if (pageLink) {
+            const page = parseInt(pageLink.dataset.page);
+            if (page && page > 0 && page <= lastPage) {
+                fetchViolations(page, violationManager.searchTerm);
+            }
+        }
+    });
+}
+
+function loadViolationTypes() {
+    fetchViolations(1, '');
+}
+
+function filterViolationTypes(searchTerm) {
+    fetchViolations(1, searchTerm);
+}
+
+function saveViolationType() {
+    // Implementation for saving violation type
+    showSuccess('บันทึกประเภทพฤติกรรมเรียบร้อยแล้ว');
+}
+
+function deleteViolationType(violationId) {
+    fetch(`/api/violations/${violationId}`, {
+        method: 'DELETE',
+        headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': violationManager.csrfToken
+        }
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
         }
         return response.json();
     })
     .then(data => {
         if (data.success) {
-            updateSelectOptions(data.data);
+            showSuccess('ลบประเภทพฤติกรรมเรียบร้อยแล้ว');
+            // ปิด modal และรีเฟรชรายการ
+            const modal = bootstrap.Modal.getInstance(document.getElementById('deleteViolationModal'));
+            if (modal) modal.hide();
+            fetchViolations(violationManager.currentPage, violationManager.searchTerm);
         } else {
-            console.error('Failed to fetch violations:', data.message);
-            showError('เกิดข้อผิดพลาดในการดึงข้อมูลประเภทพฤติกรรม');
+            showError(data.message || 'เกิดข้อผิดพลาดในการลบข้อมูล');
         }
     })
     .catch(error => {
-        console.error('Error fetching violations for select:', error);
-        showError('เกิดข้อผิดพลาดในการดึงข้อมูลประเภทพฤติกรรม กรุณาลองใหม่อีกครั้ง');
+        console.error('Error deleting violation:', error);
+        showError('เกิดข้อผิดพลาดในการเชื่อมต่อกับเซิร์ฟเวอร์');
     });
 }
 
-// เพิ่มฟังก์ชันที่ใช้งานจริงในการอัพเดตตัวเลือก
-function updateSelectOptions(violations) {
-    const selects = document.querySelectorAll('select[data-violation-select]');
-    
-    selects.forEach(select => {
-        // เก็บค่าที่เลือกไว้ (ถ้ามี)
-        const selectedValue = select.value;
+// เพิ่มฟังก์ชันสำหรับการ attach event listeners ของปุ่มแก้ไขและลบ
+function attachEditButtonListeners() {
+    const editButtons = document.querySelectorAll('.edit-violation-btn');
+    editButtons.forEach(button => {
+        // ลบ event listener เดิม (ถ้ามี)
+        button.replaceWith(button.cloneNode(true));
         
-        // ล้างตัวเลือกเดิม (ยกเว้นตัวเลือกแรก)
-        while (select.options.length > 1) {
-            select.remove(1);
+        // เพิ่ม event listener ใหม่
+        const newButton = document.querySelector(`[data-id="${button.dataset.id}"].edit-violation-btn`);
+        if (newButton) {
+            newButton.addEventListener('click', function(e) {
+                e.preventDefault();
+                const violationId = this.getAttribute('data-id');
+                editViolationType(violationId);
+            });
+        }
+    });
+}
+
+function attachDeleteButtonListeners() {
+    const deleteButtons = document.querySelectorAll('.delete-violation-btn');
+    deleteButtons.forEach(button => {
+        // ลบ event listener เดิม (ถ้ามี)
+        button.replaceWith(button.cloneNode(true));
+        
+        // เพิ่ม event listener ใหม่
+        const newButton = document.querySelector(`[data-id="${button.dataset.id}"].delete-violation-btn`);
+        if (newButton) {
+            newButton.addEventListener('click', function(e) {
+                e.preventDefault();
+                const violationId = this.getAttribute('data-id');
+                const deleteViolationId = document.getElementById('deleteViolationId');
+                if (deleteViolationId) {
+                    deleteViolationId.value = violationId;
+                }
+                const deleteViolationModal = document.getElementById('deleteViolationModal');
+                if (deleteViolationModal && bootstrap.Modal) {
+                    const modal = new bootstrap.Modal(deleteViolationModal);
+                    modal.show();
+                }
+            });
+        }
+    });
+}
+
+// เพิ่มฟังก์ชัน updateViolationSelects ที่อาจจะขาดหาย
+function updateViolationSelects() {
+    // โหลดประเภทพฤติกรรมใหม่สำหรับ select dropdown ในฟอร์มบันทึกพฤติกรรม
+    fetch('/api/violations/all', {
+        headers: {
+            'Accept': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRF-TOKEN': violationManager.csrfToken
+        }
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log('Violation select data:', data); // Debug log
+        
+        const violationSelect = document.getElementById('violationType');
+        if (!violationSelect) {
+            console.warn('Violation select element not found');
+            return;
         }
         
-        // เพิ่มตัวเลือกใหม่
+        // เคลียร์ options เก่า (ยกเว้น option แรก)
+        while (violationSelect.children.length > 1) {
+            violationSelect.removeChild(violationSelect.lastChild);
+        }
+        
+        // ตรวจสอบโครงสร้างข้อมูล
+        let violations = [];
+        if (data && data.data) {
+            if (Array.isArray(data.data)) {
+                violations = data.data;
+            } else if (data.data.data && Array.isArray(data.data.data)) {
+                violations = data.data.data;
+            }
+        }
+        
+        // เพิ่ม options ใหม่
         violations.forEach(violation => {
             const option = document.createElement('option');
-            option.value = violation.violations_id;
-            option.textContent = violation.violations_name;
-            option.setAttribute('data-points', violation.violations_points_deducted);
-            select.appendChild(option);
+            option.value = violation.violations_id || violation.id;
+            option.textContent = violation.violations_name || violation.name;
+            option.dataset.points = violation.violations_points_deducted || violation.points_deducted || 0;
+            violationSelect.appendChild(option);
         });
-        
-        // เลือกค่าเดิม (ถ้ามี)
-        if (selectedValue) {
-            select.value = selectedValue;
+    })
+    .catch(error => {
+        console.error('Error updating violation selects:', error);
+    });
+}
+
+// ปรับปรุงฟังก์ชัน renderViolationsList ให้ใช้ฟังก์ชันใหม่
+function renderViolationsList(violations) {
+    const tbody = document.querySelector('#violationTypesList .table tbody');
+    if (!tbody) return;
+    
+    if (!violations || violations.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="5" class="text-center py-4 text-muted">
+                    <i class="fas fa-info-circle fa-2x mb-3"></i>
+                    <p>ไม่พบข้อมูลประเภทพฤติกรรม</p>
+                    ${violationManager.searchTerm ? `<p class="small">คำค้นหา: "${violationManager.searchTerm}"</p>` : ''}
+                </td>
+            </tr>
+        `;
+        return;
+    }
+    
+    tbody.innerHTML = violations.map(violation => {
+        const categoryBadge = getCategoryBadge(violation.violations_category);
+        return `
+            <tr>
+                <td>${violation.violations_name}</td>
+                <td>${categoryBadge}</td>
+                <td>${violation.violations_points_deducted} คะแนน</td>
+                <td>${violation.violations_description || '-'}</td>
+                <td>
+                    <button class="btn btn-sm btn-outline-primary edit-violation-btn me-1" 
+                            data-id="${violation.violations_id}" title="แก้ไข">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger delete-violation-btn" 
+                            data-id="${violation.violations_id}" title="ลบ">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </td>
+            </tr>
+        `;
+    }).join('');
+    
+    // เพิ่ม event listeners ใหม่
+    attachEditButtonListeners();
+    attachDeleteButtonListeners();
+}
+
+// ปรับปรุงฟังก์ชัน editViolationType ให้สมบูรณ์ยิ่งขึ้น
+function editViolationType(violationId) {
+    console.log('แก้ไขประเภทพฤติกรรม ID:', violationId);
+    
+    // ดึงข้อมูลประเภทพฤติกรรมที่ต้องการแก้ไข
+    fetch(`/api/violations/${violationId}`, {
+        method: 'GET',
+        headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': violationManager.csrfToken
         }
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.success) {
+            // แสดงฟอร์มแก้ไข
+            showEditForm(data.data);
+        } else {
+            showError(data.message || 'ไม่สามารถดึงข้อมูลประเภทพฤติกรรมได้');
+        }
+    })
+    .catch(error => {
+        console.error('Error fetching violation data:', error);
+        showError('เกิดข้อผิดพลาดในการดึงข้อมูลประเภทพฤติกรรม');
+    });
+}
+
+// ปรับปรุงฟังก์ชัน showEditForm ให้สร้างฟอร์มได้อย่างสมบูรณ์
+function showEditForm(violation) {
+    const violationTypesList = document.getElementById('violationTypesList');
+    const violationTypeForm = document.getElementById('violationTypeForm');
+    const formViolationTitle = document.getElementById('formViolationTitle');
+    
+    // ซ่อนรายการและแสดงฟอร์ม
+    if (violationTypesList) violationTypesList.classList.add('d-none');
+    if (violationTypeForm) violationTypeForm.classList.remove('d-none');
+    if (formViolationTitle) formViolationTitle.textContent = 'แก้ไขประเภทพฤติกรรม';
+    
+    // สร้างฟอร์มแก้ไข
+    const formContainer = violationTypeForm.querySelector('.card-body');
+    if (formContainer) {
+        formContainer.innerHTML = `
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h6 class="mb-0" id="formViolationTitle">แก้ไขประเภทพฤติกรรม</h6>
+                <button type="button" class="btn-close" id="btnCloseViolationForm"></button>
+            </div>
+            
+            <form id="formViolationType">
+                <input type="hidden" id="editViolationId" value="${violation.violations_id}">
+                
+                <div class="mb-3">
+                    <label for="violationName" class="form-label">ชื่อประเภทพฤติกรรม <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="violationName" name="violations_name" 
+                           value="${violation.violations_name}" required maxlength="150"
+                           placeholder="เช่น มาสาย, ไม่ส่งการบ้าน">
+                    <div class="invalid-feedback"></div>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="violationCategory" class="form-label">ระดับความรุนแรง <span class="text-danger">*</span></label>
+                    <select class="form-select" id="violationCategory" name="violations_category" required>
+                        <option value="">เลือกระดับความรุนแรง</option>
+                        <option value="light" ${violation.violations_category === 'light' ? 'selected' : ''}>เบา</option>
+                        <option value="medium" ${violation.violations_category === 'medium' ? 'selected' : ''}>ปานกลาง</option>
+                        <option value="severe" ${violation.violations_category === 'severe' ? 'selected' : ''}>หนัก</option>
+                    </select>
+                    <div class="invalid-feedback"></div>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="pointsDeducted" class="form-label">คะแนนที่หัก <span class="text-danger">*</span></label>
+                    <input type="number" class="form-control" id="pointsDeducted" name="violations_points_deducted"
+                           value="${violation.violations_points_deducted}" required min="1" max="100"
+                           placeholder="จำนวนคะแนนที่จะหัก">
+                    <div class="form-text">คะแนนที่หักต้องอยู่ระหว่าง 1-100 คะแนน</div>
+                    <div class="invalid-feedback"></div>
+                </div>
+                
+                <div class="mb-4">
+                    <label for="violationDescription" class="form-label">รายละเอียด</label>
+                    <textarea class="form-control" id="violationDescription" name="violations_description" 
+                              rows="3" placeholder="อธิบายรายละเอียดของประเภทพฤติกรรมนี้">${violation.violations_description || ''}</textarea>
+                    <div class="invalid-feedback"></div>
+                </div>
+                
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary-app">
+                        <i class="fas fa-save me-1"></i> บันทึกการเปลี่ยนแปลง
+                    </button>
+                    <button type="button" class="btn btn-secondary" id="btnCancelViolationType">
+                        <i class="fas fa-times me-1"></i> ยกเลิก
+                    </button>
+                </div>
+            </form>
+        `;
         
-        // ทริกเกอร์ event change
-        select.dispatchEvent(new Event('change'));
+        // เพิ่ม event listeners สำหรับฟอร์ม
+        setupEditFormListeners();
+    }
+}
+
+// ฟังก์ชันตั้งค่า event listeners สำหรับฟอร์มแก้ไข
+function setupEditFormListeners() {
+    // ปุ่มปิดฟอร์ม
+    const btnCloseForm = document.getElementById('btnCloseViolationForm');
+    if (btnCloseForm) {
+        btnCloseForm.addEventListener('click', function() {
+            hideEditForm();
+        });
+    }
+    
+    // ปุ่มยกเลิก
+    const btnCancel = document.getElementById('btnCancelViolationType');
+    if (btnCancel) {
+        btnCancel.addEventListener('click', function() {
+            hideEditForm();
+        });
+    }
+    
+    // ฟอร์มส่งข้อมูล
+    const form = document.getElementById('formViolationType');
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            updateViolationType();
+        });
+    }
+}
+
+// ฟังก์ชันซ่อนฟอร์มแก้ไข
+function hideEditForm() {
+    const violationTypesList = document.getElementById('violationTypesList');
+    const violationTypeForm = document.getElementById('violationTypeForm');
+    
+    if (violationTypeForm) violationTypeForm.classList.add('d-none');
+    if (violationTypesList) violationTypesList.classList.remove('d-none');
+}
+
+// ฟังก์ชันอัปเดตประเภทพฤติกรรม
+function updateViolationType() {
+    const form = document.getElementById('formViolationType');
+    const violationId = document.getElementById('editViolationId').value;
+    
+    if (!form || !violationId) return;
+    
+    // แสดง loading state
+    const submitBtn = form.querySelector('button[type="submit"]');
+    const originalText = submitBtn.innerHTML;
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> กำลังบันทึก...';
+    
+    // เตรียมข้อมูล
+    const formData = new FormData(form);
+    const data = {
+        violations_name: formData.get('violations_name'),
+        violations_category: formData.get('violations_category'),
+        violations_points_deducted: parseInt(formData.get('violations_points_deducted')),
+        violations_description: formData.get('violations_description')
+    };
+    
+    // ส่งข้อมูล
+    fetch(`/api/violations/${violationId}`, {
+        method: 'PUT',
+        headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': violationManager.csrfToken
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.success) {
+            showSuccess('อัปเดตประเภทพฤติกรรมเรียบร้อยแล้ว');
+            // ปิดฟอร์มแก้ไขและรีเฟรชรายการ
+            hideEditForm();
+            fetchViolations(violationManager.currentPage, violationManager.searchTerm);
+        } else {
+            showError(data.message || 'เกิดข้อผิดพลาดในการอัปเดตข้อมูล');
+        }
+    })
+    .catch(error => {
+        console.error('Error updating violation type:', error);
+        showError('เกิดข้อผิดพลาดในการเชื่อมต่อกับเซิร์ฟเวอร์');
+    })
+    .finally(() => {
+        // รีเซ็ตปุ่มส่งข้อมูล
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalText;
+        }
     });
 }
