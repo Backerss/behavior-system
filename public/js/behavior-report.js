@@ -32,7 +32,6 @@ function setupEventListeners() {
     const classFilter = document.getElementById('classFilter');
     const violationType = document.getElementById('violationType');
     const saveBtn = document.getElementById('saveViolationBtn');
-    const violationForm = document.getElementById('violationForm');
     
     // ค้นหานักเรียน
     if (studentSearch) {
@@ -126,7 +125,6 @@ function searchStudents(searchTerm) {
             }
         })
         .catch(error => {
-            console.error('Error:', error);
             resultsContainer.innerHTML = '<div class="list-group-item text-danger">เกิดข้อผิดพลาดในการเชื่อมต่อ</div>';
         });
 }
@@ -219,13 +217,25 @@ function loadViolationTypes() {
             return response.json();
         })
         .then(data => {
-            if (data.success) {
-                behaviorReport.violations = data.data;
-                updateViolationSelect(data.data);
+            // ตรวจสอบโครงสร้างข้อมูลที่ได้รับ
+            let violationsArray = [];
+            
+            if (data.success && Array.isArray(data.data)) {
+                violationsArray = data.data;
+            } else if (Array.isArray(data)) {
+                violationsArray = data;
+            } else if (data.violations && Array.isArray(data.violations)) {
+                violationsArray = data.violations;
+            } else {
+                throw new Error('ข้อมูลประเภทพฤติกรรมไม่ถูกต้อง');
             }
+            
+            behaviorReport.violations = violationsArray;
+            updateViolationSelect(violationsArray);
         })
         .catch(error => {
-            console.error('Error loading violations:', error);
+            console.error('Error loading violations:', error.message);
+            showError('ไม่สามารถโหลดประเภทพฤติกรรมได้');
         });
 }
 
@@ -240,6 +250,11 @@ function updateViolationSelect(violations) {
     // เคลียร์ตัวเลือกเดิม
     while (select.options.length > 1) {
         select.remove(1);
+    }
+    
+    if (!Array.isArray(violations)) {
+        console.error('violations ต้องเป็น array');
+        return;
     }
     
     violations.forEach(violation => {
@@ -353,7 +368,6 @@ function saveBehaviorReport() {
         }
     })
     .catch(error => {
-        console.error('Error:', error);
         showError('เกิดข้อผิดพลาดในการเชื่อมต่อกับเซิร์ฟเวอร์');
     })
     .finally(() => {
@@ -469,7 +483,6 @@ function loadRecentReports() {
             }
         })
         .catch(error => {
-            console.error('Error:', error);
             tableBody.innerHTML = `
                 <tr>
                     <td colspan="6" class="text-center py-4 text-danger">
@@ -554,7 +567,6 @@ function showViolationDetail(reportId) {
             }
         })
         .catch(error => {
-            console.error('Error:', error);
             showViolationDetailError('เกิดข้อผิดพลาดในการโหลดข้อมูล');
         });
 }
@@ -671,8 +683,6 @@ function displayViolationDetail(data) {
  */
 function deleteViolationReport(reportId) {
     if (confirm('คุณต้องการลบรายงานพฤติกรรมนี้หรือไม่?')) {
-        // ใส่โค้ดสำหรับลบรายงานที่นี่
-        console.log('Delete report:', reportId);
         showSuccess('ลบรายงานพฤติกรรมเรียบร้อยแล้ว');
         
         // ปิด modal และรีเฟรชรายการ
@@ -686,9 +696,6 @@ function deleteViolationReport(reportId) {
  * แก้ไขรายงานพฤติกรรม
  */
 function editViolationReport(reportId) {
-    // ใส่โค้ดสำหรับแก้ไขรายงานที่นี่
-    console.log('Edit report:', reportId);
-    
     // ปิด modal รายละเอียดและเปิด modal แก้ไข
     const detailModal = bootstrap.Modal.getInstance(document.getElementById('violationDetailModal'));
     detailModal.hide();
@@ -696,3 +703,346 @@ function editViolationReport(reportId) {
     // เปิด modal แก้ไข (ต้องสร้างต่อไป)
     showSuccess('ฟีเจอร์แก้ไขจะพร้อมใช้งานเร็วๆ นี้');
 }
+
+/**
+ * ฟังก์ชันสำหรับโหลดข้อมูลนักเรียนเพื่อแสดงใน Student Detail Modal
+ */
+function loadStudentDetails(studentId) {
+    if (!studentId) {
+        showStudentDetailError('ไม่พบรหัสนักเรียน');
+        return;
+    }
+
+    showStudentDetailLoading();
+    
+    fetch(`/api/students/${studentId}`, {
+        method: 'GET',
+        headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+        },
+        credentials: 'same-origin'
+    })
+    .then(response => {
+        if (!response.ok) {
+            if (response.status === 404) {
+                throw new Error('ไม่พบข้อมูลนักเรียนที่ระบุ');
+            } else if (response.status === 403) {
+                throw new Error('คุณไม่มีสิทธิ์เข้าถึงข้อมูลนี้');
+            } else if (response.status === 500) {
+                throw new Error('เกิดข้อผิดพลาดภายในเซิร์ฟเวอร์');
+            } else {
+                throw new Error(`เกิดข้อผิดพลาด (HTTP ${response.status})`);
+            }
+        }
+        
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+            throw new Error('เซิร์ฟเวอร์ส่งข้อมูลกลับมาในรูปแบบที่ไม่ถูกต้อง');
+        }
+        
+        return response.json();
+    })
+    .then(data => {
+        if (!data.success) {
+            throw new Error(data.message || 'ไม่สามารถดึงข้อมูลนักเรียนได้');
+        }
+        
+        if (!data.student) {
+            throw new Error('ข้อมูลนักเรียนไม่สมบูรณ์');
+        }
+        
+        populateStudentDetailModal(data.student);
+    })
+    .catch(error => {
+        showStudentDetailError(error.message);
+    });
+}
+
+/**
+ * แสดงสถานะ Loading
+ */
+function showStudentDetailLoading() {
+    const modal = document.getElementById('studentDetailModal');
+    const modalBody = modal.querySelector('.modal-body');
+    
+    modalBody.innerHTML = `
+        <div class="text-center py-5" id="student-detail-loading">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">กำลังโหลด...</span>
+            </div>
+            <p class="mt-2 text-muted">กำลังโหลดข้อมูลนักเรียน...</p>
+        </div>
+    `;
+}
+
+/**
+ * แสดงข้อผิดพลาด
+ */
+function showStudentDetailError(message) {
+    const modal = document.getElementById('studentDetailModal');
+    const modalBody = modal.querySelector('.modal-body');
+    
+    modalBody.innerHTML = `
+        <div class="text-center py-5 text-danger">
+            <i class="fas fa-exclamation-circle fa-3x mb-3"></i>
+            <h5>เกิดข้อผิดพลาด</h5>
+            <p>${message}</p>
+            <button class="btn btn-secondary mt-3" onclick="closeStudentDetailModal()">ปิด</button>
+        </div>
+    `;
+}
+
+/**
+ * เติมข้อมูลนักเรียนลงในโมดัล
+ */
+function populateStudentDetailModal(student) {
+    const modal = document.getElementById('studentDetailModal');
+    const modalBody = modal.querySelector('.modal-body');
+    
+    const fullName = `${student.user.users_name_prefix}${student.user.users_first_name} ${student.user.users_last_name}`;
+    
+    const avatarUrl = student.user.users_profile_image 
+        ? `/storage/${student.user.users_profile_image}` 
+        : `https://ui-avatars.com/api/?name=${encodeURIComponent(student.user.users_first_name)}&background=95A4D8&color=fff`;
+    
+    const classroomText = student.classroom 
+        ? `${student.classroom.classes_level}/${student.classroom.classes_room_number}`
+        : 'ไม่มีห้องเรียน';
+    
+    const guardianName = student.guardian && student.guardian.user
+        ? `${student.guardian.user.users_name_prefix}${student.guardian.user.users_first_name} ${student.guardian.user.users_last_name}`
+        : 'ไม่มีข้อมูล';
+    
+    const guardianPhone = student.guardian?.guardians_phone || '-';
+    
+    const birthDate = student.user.users_birthdate 
+        ? new Date(student.user.users_birthdate).toLocaleDateString('th-TH', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+          })
+        : '-';
+    
+    const score = student.students_current_score || 100;
+    let progressClass = 'bg-success';
+    let emojiSrc = 'https://cdn.jsdelivr.net/npm/emoji-datasource-apple@7.0.2/img/apple/64/1f60a.png'; // 😊
+    
+    if (score <= 50) {
+        progressClass = 'bg-danger';
+        emojiSrc = 'https://cdn.jsdelivr.net/npm/emoji-datasource-apple@7.0.2/img/apple/64/1f622.png'; // 😢
+    } else if (score <= 75) {
+        progressClass = 'bg-warning';
+        emojiSrc = 'https://cdn.jsdelivr.net/npm/emoji-datasource-apple@7.0.2/img/apple/64/1f610.png'; // 😐
+    }
+    
+    // สร้างตารางประวัติการกระทำผิด
+    let violationsTableRows = '';
+    if (student.behavior_reports && student.behavior_reports.length > 0) {
+        violationsTableRows = student.behavior_reports.map(report => {
+            let badgeClass = 'bg-info';
+            if (report.violation.violations_category === 'severe') {
+                badgeClass = 'bg-danger';
+            } else if (report.violation.violations_category === 'medium') {
+                badgeClass = 'bg-warning text-dark';
+            }
+            
+            const reportDate = new Date(report.reports_report_date).toLocaleDateString('th-TH', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric'
+            });
+            
+            return `
+                <tr>
+                    <td>${reportDate}</td>
+                    <td><span class="badge ${badgeClass}">${report.violation.violations_name}</span></td>
+                    <td>${report.violation.violations_points_deducted}</td>
+                    <td>${report.teacher.user.users_first_name}</td>
+                </tr>
+            `;
+        }).join('');
+    } else {
+        violationsTableRows = `
+            <tr>
+                <td colspan="4" class="text-center text-muted py-3">ไม่พบประวัติการกระทำผิด</td>
+            </tr>
+        `;
+    }
+    
+    modalBody.innerHTML = `
+        <div class="row">
+            <div class="col-md-4 mb-3 mb-md-0">
+                <div class="text-center">
+                    <img src="${avatarUrl}" class="rounded-circle" width="100" height="100">
+                    <h5 class="mt-3 mb-1">${fullName}</h5>
+                    <span class="badge bg-primary-app">${classroomText}</span>
+                    <hr>
+                    <div class="d-grid gap-2 mt-3">
+                        <button class="btn btn-primary-app" onclick="openBehaviorRecordModal(${student.students_id}, '${fullName}', '${classroomText}')">
+                            บันทึกพฤติกรรม
+                        </button>
+                        <button class="btn btn-outline-secondary">พิมพ์รายงาน</button>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-8">
+                <div class="row mb-3">
+                    <div class="col-6">
+                        <label class="form-label fw-bold">รหัสนักเรียน</label>
+                        <p>${student.students_student_code || '-'}</p>
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label fw-bold">ชั้นเรียน</label>
+                        <p>${classroomText}</p>
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-6">
+                        <label class="form-label fw-bold">เลขประจำตัวประชาชน</label>
+                        <p>${student.id_number || '-'}</p>
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label fw-bold">วันเกิด</label>
+                        <p>${birthDate}</p>
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-6">
+                        <label class="form-label fw-bold">ชื่อผู้ปกครอง</label>
+                        <p>${guardianName}</p>
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label fw-bold">เบอร์โทรผู้ปกครอง</label>
+                        <p>${guardianPhone}</p>
+                    </div>
+                </div>
+                
+                <h6 class="mt-4">สถิติคะแนนความประพฤติ</h6>
+                <div style="position: relative; margin-bottom: 25px; margin-top: 30px;">
+                    <div style="position: absolute; left: calc(${score}% - 18px); top: -10px; z-index: 1000; 
+                                background-color: white; width: 40px; height: 40px; 
+                                border-radius: 50%; box-shadow: 0 3px 10px rgba(0,0,0,0.4); 
+                                display: flex; align-items: center; justify-content: center; 
+                                border: 3px solid white;">
+                        <img src="${emojiSrc}" style="height: 30px; width: 30px;" alt="สถานะ">
+                    </div>
+                    <div class="progress" style="height: 20px;">
+                        <div class="progress-bar ${progressClass}" role="progressbar" style="width: ${score}%">${score}/100</div>
+                    </div>
+                </div>
+                
+                <h6 class="mt-4">ประวัติการกระทำผิดล่าสุด</h6>
+                <div class="table-responsive">
+                    <table class="table table-sm table-borderless">
+                        <thead class="table-light">
+                            <tr>
+                                <th>วันที่</th>
+                                <th>ประเภท</th>
+                                <th>คะแนนที่หัก</th>
+                                <th>บันทึกโดย</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${violationsTableRows}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+/**
+ * เปิดโมดัลบันทึกพฤติกรรม
+ */
+function openBehaviorRecordModal(studentId, studentName, classroom) {
+    const studentDetailModal = bootstrap.Modal.getInstance(document.getElementById('studentDetailModal'));
+    if (studentDetailModal) {
+        studentDetailModal.hide();
+    }
+    
+    setTimeout(() => {
+        const violationModal = new bootstrap.Modal(document.getElementById('newViolationModal'));
+        
+        document.getElementById('selectedStudentId').value = studentId;
+        document.getElementById('behaviorStudentSearch').value = studentName;
+        
+        const selectedStudentInfo = document.getElementById('selectedStudentInfo');
+        const studentInfoDisplay = document.getElementById('studentInfoDisplay');
+        studentInfoDisplay.innerHTML = `
+            <strong>${studentName}</strong> (รหัสนักเรียน: ${studentId}) 
+            ชั้น ${classroom}
+        `;
+        selectedStudentInfo.style.display = 'block';
+        
+        violationModal.show();
+    }, 500);
+}
+
+/**
+ * ปิดโมดัลข้อมูลนักเรียน
+ */
+function closeStudentDetailModal() {
+    const modal = bootstrap.Modal.getInstance(document.getElementById('studentDetailModal'));
+    if (modal) {
+        modal.hide();
+    }
+}
+
+/**
+ * แสดงข้อความสำเร็จ
+ */
+function showSuccess(message) {
+    // Implementation ขึ้นอยู่กับระบบ notification ที่ใช้
+    alert(message);
+}
+
+/**
+ * แสดงข้อความข้อผิดพลาด
+ */
+function showError(message) {
+    // Implementation ขึ้นอยู่กับระบบ notification ที่ใช้
+    alert(message);
+}
+
+// Event Listeners สำหรับ Student Detail Modal
+document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('click', function(e) {
+        if (e.target.closest('[data-bs-target="#studentDetailModal"]')) {
+            const button = e.target.closest('[data-bs-target="#studentDetailModal"]');
+            const studentId = button.getAttribute('data-student-id');
+            
+            if (studentId) {
+                setTimeout(() => {
+                    loadStudentDetails(studentId);
+                }, 100);
+            }
+        }
+    });
+    
+    const studentDetailModal = document.getElementById('studentDetailModal');
+    if (studentDetailModal) {
+        studentDetailModal.addEventListener('show.bs.modal', function(event) {
+            const button = event.relatedTarget;
+            
+            if (button && button.hasAttribute('data-student-id')) {
+                const studentId = button.getAttribute('data-student-id');
+                
+                setTimeout(() => {
+                    loadStudentDetails(studentId);
+                }, 150);
+            }
+        });
+        
+        studentDetailModal.addEventListener('shown.bs.modal', function() {
+            this.removeAttribute('aria-hidden');
+        });
+        
+        studentDetailModal.addEventListener('hidden.bs.modal', function() {
+            this.setAttribute('aria-hidden', 'true');
+        });
+    }
+});

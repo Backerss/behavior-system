@@ -198,24 +198,24 @@ class ViolationController extends Controller
     }
     
     /**
-     * ดึงข้อมูลประเภทพฤติกรรมทั้งหมดแบบไม่แบ่งหน้า (สำหรับ dropdown)
+     * ดึงข้อมูลประเภทพฤติกรรมทั้งหมดสำหรับ select dropdown
      */
     public function getAll()
     {
         try {
-            $violations = Violation::orderBy('violations_name', 'asc')->get();
+            $violations = Violation::orderBy('violations_name')->get();
             
             return response()->json([
                 'success' => true,
                 'data' => $violations
             ]);
-            
         } catch (\Exception $e) {
             Log::error('Error fetching all violations: ' . $e->getMessage());
+            
             return response()->json([
                 'success' => false,
-                'message' => 'เกิดข้อผิดพลาดในการดึงข้อมูลประเภทพฤติกรรม',
-                'error' => $e->getMessage()
+                'message' => 'เกิดข้อผิดพลาดในการดึงข้อมูล',
+                'data' => []
             ], 500);
         }
     }

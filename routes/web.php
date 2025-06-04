@@ -54,44 +54,46 @@ Route::middleware('auth')->group(function () {
     })->name('guardian.dashboard');
 });
 
-// เพิ่ม API Routes สำหรับจัดการประเภทพฤติกรรม
-Route::prefix('api/violations')->group(function () {
-    Route::get('/', [ViolationController::class, 'index']);
-    Route::get('/all', [ViolationController::class, 'getAll']);
-    Route::post('/', [ViolationController::class, 'store']);
-    Route::get('/{id}', [ViolationController::class, 'show']);
-    Route::put('/{id}', [ViolationController::class, 'update']);
-    Route::delete('/{id}', [ViolationController::class, 'destroy']);
+// API Routes
+Route::prefix('api')->middleware('auth')->group(function () {
+    // Student routes
+    Route::get('/students/{id}', [App\Http\Controllers\StudentApiController::class, 'show']);
+    
+    // Behavior Report routes
+    Route::prefix('behavior-reports')->group(function () {
+        Route::post('/', [App\Http\Controllers\BehaviorReportController::class, 'store']);
+        Route::get('/students/search', [App\Http\Controllers\BehaviorReportController::class, 'searchStudents']);
+        Route::get('/recent', [App\Http\Controllers\BehaviorReportController::class, 'getRecentReports']);
+        Route::get('/{id}', [App\Http\Controllers\BehaviorReportController::class, 'show']);
+    });
+    
+    // Violation routes
+    Route::prefix('violations')->group(function () {
+        Route::get('/', [ViolationController::class, 'index']);
+        Route::get('/all', [ViolationController::class, 'getAll']);
+        Route::post('/', [ViolationController::class, 'store']);
+        Route::get('/{id}', [ViolationController::class, 'show']);
+        Route::put('/{id}', [ViolationController::class, 'update']);
+        Route::delete('/{id}', [ViolationController::class, 'destroy']);
+    });
+    
+    // Class routes
+    Route::prefix('classes')->group(function () {
+        Route::get('/registration', [ClassroomController::class, 'getClassesForRegistration']);
+        Route::get('/', [ClassroomController::class, 'index']);
+        Route::post('/', [ClassroomController::class, 'store']);
+        Route::get('/{id}', [ClassroomController::class, 'show'])->where('id', '[0-9]+');
+        Route::put('/{id}', [ClassroomController::class, 'update'])->where('id', '[0-9]+');
+        Route::delete('/{id}', [ClassroomController::class, 'destroy'])->where('id', '[0-9]+');
+        Route::get('/{id}/students', [ClassroomController::class, 'getStudents'])->where('id', '[0-9]+');
+        Route::get('/teachers/all', [ClassroomController::class, 'getAllTeachers']);
+        Route::get('/filters/all', [ClassroomController::class, 'getFilters']);
+        Route::get('/{id}/violations/stats', [ClassroomController::class, 'getViolationStatistics'])->where('id', '[0-9]+');
+        Route::get('/{id}/export', [ClassroomController::class, 'exportClassReport'])->where('id', '[0-9]+');
+    });
 });
 
-// เพิ่ม API Routes สำหรับจัดการห้องเรียน
-Route::prefix('api/classes')->group(function () {
-    // สำคัญมาก - ย้าย route นี้ขึ้นมาก่อน เพื่อไม่ให้ขัดแย้งกับ route อื่น
-    Route::get('/registration', [ClassroomController::class, 'getClassesForRegistration']);
-    
-    Route::get('/', [ClassroomController::class, 'index']);
-    Route::post('/', [ClassroomController::class, 'store']);
-    Route::get('/{id}', [ClassroomController::class, 'show'])->where('id', '[0-9]+');
-    Route::put('/{id}', [ClassroomController::class, 'update'])->where('id', '[0-9]+');
-    Route::delete('/{id}', [ClassroomController::class, 'destroy'])->where('id', '[0-9]+');
-    Route::get('/{id}/students', [ClassroomController::class, 'getStudents'])->where('id', '[0-9]+');
-    
-    // เพิ่ม routes ใหม่
-    Route::get('/teachers/all', [ClassroomController::class, 'getAllTeachers']);
-    Route::get('/filters/all', [ClassroomController::class, 'getFilters']);
-    Route::get('/{id}/violations/stats', [ClassroomController::class, 'getViolationStatistics'])->where('id', '[0-9]+');
-    Route::get('/{id}/export', [ClassroomController::class, 'exportClassReport'])->where('id', '[0-9]+');
-});
-
-// เพิ่ม route สำหรับการอัพเดตโปรไฟล์ผู้ใช้
+// Profile update route
 Route::put('/teacher/profile/update', [App\Http\Controllers\TeacherController::class, 'updateProfile'])
      ->name('teacher.profile.update')
      ->middleware('auth');
-
-// เพิ่ม API Routes สำหรับบันทึกพฤติกรรม
-Route::prefix('api/behavior-reports')->middleware('auth')->group(function () {
-    Route::post('/', [App\Http\Controllers\BehaviorReportController::class, 'store']);
-    Route::get('/students/search', [App\Http\Controllers\BehaviorReportController::class, 'searchStudents']);
-    Route::get('/recent', [App\Http\Controllers\BehaviorReportController::class, 'getRecentReports']);
-    Route::get('/{id}', [App\Http\Controllers\BehaviorReportController::class, 'show']);
-});

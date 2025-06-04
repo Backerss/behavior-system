@@ -929,24 +929,7 @@
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        <tr>
-                                            <td>12/05/2568</td>
-                                            <td><span class="badge bg-danger">ผิดระเบียบการแต่งกาย</span></td>
-                                            <td>5</td>
-                                            <td>ครูใจดี</td>
-                                        </tr>
-                                        <tr>
-                                            <td>05/05/2568</td>
-                                            <td><span class="badge bg-warning text-dark">มาสาย</span></td>
-                                            <td>3</td>
-                                            <td>ครูใจดี</td>
-                                        </tr>
-                                        <tr>
-                                            <td>25/04/2568</td>
-                                            <td><span class="badge bg-info">ลืมอุปกรณ์</span></td>
-                                            <td>2</td>
-                                            <td>ครูมานะ</td>
-                                        </tr>
+                                        <!-- ข้อมูลจะถูกเติมด้วย JavaScript -->
                                     </tbody>
                                 </table>
                             </div>
