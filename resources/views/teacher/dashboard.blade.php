@@ -1045,9 +1045,9 @@
                             <table class="table table-hover align-middle">
                                 <thead class="table-light">
                                     <tr>
-                                        <th style="width: 25%">ชั้นเรียน</th>
+                                        <th style="width: 15%">ชั้นเรียน</th>
                                         <th style="width: 20%">ปีการศึกษา</th>
-                                        <th style="width: 40%">ครูประจำชั้น</th>
+                                        <th style="width: 25%">ครูประจำชั้น</th>
                                         <th style="width: 15%">จัดการ</th>
                                     </tr>
                                 </thead>

@@ -280,38 +280,41 @@ class ClassroomController extends Controller
     public function getStudents($id, Request $request)
     {
         try {
-            // แก้จาก Classroom เป็น ClassRoom
-            $classroom = ClassRoom::findOrFail($id);
+            $classroom = ClassRoom::findOrFail($id); // Ensure ClassRoom model is used
             $searchTerm = $request->get('search', '');
-            $perPage = $request->get('perPage', 10);
+            $perPage = $request->get('perPage', 10); // Default to 10 students per page
             
-            $query = Student::where('class_id', $id)
-                          ->join('tb_users', 'tb_students.user_id', '=', 'tb_users.users_id')
-                          ->select(
-                              'tb_students.*', 
-                              'tb_users.users_first_name', 
-                              'tb_users.users_last_name', 
-                              'tb_users.users_name_prefix', 
-                              'tb_users.users_profile_image'
-                          );
+            // Use eager loading for the 'user' relationship
+            $query = Student::with('user')->where('class_id', $id);
         
             if (!empty($searchTerm)) {
                 $query->where(function($q) use ($searchTerm) {
-                    $q->where('tb_students.students_student_code', 'LIKE', "%{$searchTerm}%")
-                      ->orWhere('tb_users.users_first_name', 'LIKE', "%{$searchTerm}%")
-                      ->orWhere('tb_users.users_last_name', 'LIKE', "%{$searchTerm}%");
+                    $q->where('students_student_code', 'LIKE', "%{$searchTerm}%")
+                      // Search within the related 'user' table
+                      ->orWhereHas('user', function($userQuery) use ($searchTerm) {
+                          $userQuery->where('users_first_name', 'LIKE', "%{$searchTerm}%")
+                                    ->orWhere('users_last_name', 'LIKE', "%{$searchTerm}%")
+                                    ->orWhere(DB::raw("CONCAT(IFNULL(users_name_prefix, ''), users_first_name, ' ', users_last_name)"), 'LIKE', "%{$searchTerm}%");
+                      });
                 });
             }
             
+            // Order by student's first name via the user relationship
+            $query->join('tb_users', 'tb_students.user_id', '=', 'tb_users.users_id')
+                  ->orderBy('tb_users.users_first_name')
+                  ->orderBy('tb_users.users_last_name')
+                  ->select('tb_students.*'); // Select only student columns after join for ordering
+
             $students = $query->paginate($perPage);
             
             return response()->json([
                 'success' => true,
-                'data' => $students,
+                'data' => $students, // This will now include the nested 'user' object for each student
                 'message' => 'ดึงข้อมูลนักเรียนสำเร็จ'
             ]);
             
         } catch (\Exception $e) {
+            \Log::error('Error fetching students for class ' . $id . ': ' . $e->getMessage());
             return response()->json([
                 'success' => false,
                 'message' => 'เกิดข้อผิดพลาดในการดึงข้อมูลนักเรียน',

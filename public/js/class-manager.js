@@ -77,15 +77,17 @@ document.addEventListener('DOMContentLoaded', function() {
                 classManager.currentPage = data.data.current_page;
                 classManager.totalPages = data.data.last_page;
                 
-                renderClassroomList();
+                renderClassroomList(classManager.classes); // Pass classManager.classes here
                 renderPagination();
             } else {
                 showError(data.message || 'ไม่สามารถดึงข้อมูลห้องเรียนได้');
+                renderClassroomList([]); // Pass empty array on error to clear table
             }
         })
         .catch(error => {
             console.error('Error:', error);
             showError('เกิดข้อผิดพลาดในการเชื่อมต่อกับเซิร์ฟเวอร์');
+            renderClassroomList([]); // Pass empty array on error to clear table
         })
         .finally(() => {
             classManager.isLoading = false;
@@ -94,79 +96,83 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // ฟังก์ชันแสดงรายการห้องเรียนในตาราง
-    function renderClassroomList() {
-        const tableBody = document.querySelector('#classroomList table tbody');
-        
-        if (!tableBody) return;
-        
-        if (classManager.classes.length === 0) {
-            tableBody.innerHTML = `
+    function renderClassroomList(classrooms) {
+        const tbody = document.querySelector('#classManagementModal #classroomList .table tbody');
+        if (!tbody) {
+            console.error('Classroom list table body not found in classManagementModal.');
+            return;
+        }
+
+        if (!classrooms || !Array.isArray(classrooms) || classrooms.length === 0) {
+            tbody.innerHTML = `
                 <tr>
-                    <td colspan="4" class="text-center py-4">
-                        <div class="text-muted">
-                            <i class="fas fa-info-circle fa-2x mb-3"></i>
-                            <p>ไม่พบข้อมูลห้องเรียน</p>
-                        </div>
+                    <td colspan="5" class="text-center py-4 text-muted">
+                        <i class="fas fa-info-circle fa-2x mb-3"></i>
+                        <p>ไม่พบข้อมูลห้องเรียน</p>
+                        ${classManager.searchTerm ? `<p class="small">คำค้นหา: "${escapeHtml(classManager.searchTerm)}"</p>` : ''}
+                        ${(classManager.filters.academicYear || classManager.filters.level) ? `<p class="small">ตัวกรอง: ${classManager.filters.academicYear || 'ทุกปีการศึกษา'}, ${classManager.filters.level || 'ทุกระดับชั้น'}</p>` : ''}
+
                     </td>
                 </tr>
             `;
             return;
         }
-        
-        tableBody.innerHTML = '';
-        
-        classManager.classes.forEach(classroom => {
-            // ตรวจสอบข้อมูลครูอย่างละเอียด
-            let teacherName = 'ไม่ระบุ';
-            let teacherAvatar = `https://ui-avatars.com/api/?name=Teacher&background=95A4D8&color=fff`;
-            
-            // เพิ่ม console.log เพื่อดูค่า
-            console.log("Classroom data:", classroom);
-            console.log("Teacher data:", classroom.teacher);
-            console.log("Teacher user data:", classroom.teacher.users_id);
+
+        const rowsHtml = classrooms.map(classroom => {
+            const classId = classroom.classes_id || '';
+            const className = `${classroom.classes_level || 'N/A'}/${classroom.classes_room_number || 'N/A'}`;
+            const academicYear = classroom.classes_academic_year || 'N/A';
+            // const studentCount = classroom.students_count || 0; // student_count is available if needed in the future
+
+            let teacherName = 'ยังไม่ได้กำหนด';
             if (classroom.teacher && classroom.teacher.user) {
-                const teacher = classroom.teacher.user;
-                // ตรวจสอบว่ามีข้อมูลครูครบหรือไม่
-                if (teacher.users_first_name) {
-                    teacherName = `${teacher.users_name_prefix || ''}${teacher.users_first_name} ${teacher.users_last_name || ''}`;
-                    teacherAvatar = teacher.users_profile_image ?
-                        `/storage/${teacher.users_profile_image}` :
-                        `https://ui-avatars.com/api/?name=${encodeURIComponent(teacherName)}&background=95A4D8&color=fff`;
+                teacherName = `${classroom.teacher.user.users_name_prefix || ''}${classroom.teacher.user.users_first_name || ''} ${classroom.teacher.user.users_last_name || ''}`.trim();
+                if (!teacherName) {
+                    teacherName = 'ข้อมูลครูไม่สมบูรณ์';
                 }
+            } else if (classroom.teacher) {
+                teacherName = 'ข้อมูลครูไม่สมบูรณ์ (ขาดข้อมูล user)';
             }
-            
-            const row = document.createElement('tr');
-            row.innerHTML = `
-                <td>${classroom.classes_level}/${classroom.classes_room_number}</td>
-                <td>${classroom.classes_academic_year}</td>
-                <td>
-                    <div class="d-flex align-items-center">
-                        <img src="${teacherAvatar}" class="rounded-circle me-2" width="32" height="32" alt="${teacherName}">
-                        <span>${teacherName}</span>
-                    </div>
-                </td>
-                <td>
-                    <div class="btn-group">
-                        <button type="button" class="btn btn-sm btn-outline-primary view-class-btn" data-id="${classroom.classes_id}">
+
+            return `
+                <tr>
+                    <td>${escapeHtml(className)}</td>
+                    <td>${escapeHtml(academicYear)}</td>
+                    <td>${escapeHtml(teacherName)}</td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-primary view-class-btn me-1" data-id="${classId}" title="ดูรายละเอียด">
                             <i class="fas fa-eye"></i>
                         </button>
-                        <button type="button" class="btn btn-sm btn-outline-primary edit-class-btn" data-id="${classroom.classes_id}">
+                        <button class="btn btn-sm btn-outline-primary edit-class-btn me-1" data-id="${classId}" title="แก้ไข">
                             <i class="fas fa-edit"></i>
                         </button>
-                        <button type="button" class="btn btn-sm btn-outline-danger delete-class-btn" data-id="${classroom.classes_id}">
+                        <button class="btn btn-sm btn-outline-danger delete-class-btn" data-id="${classId}" title="ลบ">
                             <i class="fas fa-trash"></i>
                         </button>
-                    </div>
-                </td>
+                    </td>
+                </tr>
             `;
-            
-            tableBody.appendChild(row);
+        }).join('');
+
+        tbody.innerHTML = rowsHtml;
+
+        if (typeof attachViewButtonListeners === 'function') attachViewButtonListeners();
+        if (typeof attachEditButtonListeners === 'function') attachEditButtonListeners();
+        if (typeof attachDeleteButtonListeners === 'function') attachDeleteButtonListeners();
+    }
+
+    // Add this helper function if it's not already globally available or imported
+    function escapeHtml(text) {
+        if (text === null || typeof text === 'undefined') return '';
+        return text.toString().replace(/[&<>"']/g, function (match) {
+            return {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            }[match];
         });
-        
-        // เพิ่ม event listeners สำหรับปุ่ม
-        attachViewButtonListeners();
-        attachEditButtonListeners();
-        attachDeleteButtonListeners();
     }
 
     // ฟังก์ชันแสดง pagination
@@ -434,118 +440,370 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // ฟังก์ชันเพิ่ม event listeners สำหรับปุ่มดูข้อมูล
     function attachViewButtonListeners() {
-        document.querySelectorAll('.view-class-btn').forEach(button => {
-            button.addEventListener('click', function() {
+        const viewButtons = document.querySelectorAll('#classManagementModal .view-class-btn');
+        viewButtons.forEach(button => {
+            const newButton = button.cloneNode(true); // Clone to remove existing listeners
+            button.parentNode.replaceChild(newButton, button); // Replace old button with new one
+
+            newButton.addEventListener('click', function() {
                 const classId = this.getAttribute('data-id');
+                const classDetailModalElement = document.getElementById('classDetailModal');
                 
-                // ดึงข้อมูลห้องเรียน
+                if (!classDetailModalElement) {
+                    console.error('Class Detail Modal (#classDetailModal) not found.');
+                    showError('ไม่สามารถเปิดรายละเอียดห้องเรียนได้: ไม่พบ Modal');
+                    return;
+                }
+                const classDetailModal = bootstrap.Modal.getOrCreateInstance(classDetailModalElement);
+                
+                const classDetailContent = document.getElementById('classDetailContent');
+                const classDetailLoading = document.getElementById('classDetailLoading');
+                const classTitleSpan = classDetailModalElement.querySelector('.class-title');
+
+                if (classDetailContent) classDetailContent.classList.add('d-none');
+                if (classDetailLoading) classDetailLoading.classList.remove('d-none');
+                if (classTitleSpan) classTitleSpan.textContent = '';
+                
+                classDetailModal.show();
+
                 fetchClassroomById(classId)
                     .then(classroom => {
-                        // แสดงข้อมูลใน modal
-                        const classTitle = `${classroom.classes_level}/${classroom.classes_room_number}`;
-                        document.querySelector('.class-title').textContent = classTitle;
-                        
-                        // โหลดข้อมูลนักเรียนในห้องเรียน (ถ้าจำเป็น)
-                        loadClassStudents(classId);
-                        
-                        // แสดง modal
-                        const classDetailModal = new bootstrap.Modal(document.getElementById('classDetailModal'));
-                        classDetailModal.show();
-                        
-                        // สร้างกราฟ
-                        initClassViolationChart();
+                        // ใช้ฟังก์ชันที่สร้างใน file นี้แทน
+                        populateClassDetailModal(classroom);
+                        if (classDetailContent) classDetailContent.classList.remove('d-none');
+                        if (classDetailLoading) classDetailLoading.classList.add('d-none');
                     })
                     .catch(error => {
-                        showError(error.message || 'เกิดข้อผิดพลาดในการดึงข้อมูล');
+                        console.error('Error fetching classroom for detail view:', error);
+                        showError('ไม่สามารถโหลดข้อมูลห้องเรียนได้: ' + error.message);
+                        if (classDetailLoading) {
+                            classDetailLoading.innerHTML = `<div class="text-center py-3"><p class="text-danger">เกิดข้อผิดพลาด: ${escapeHtml(error.message)}</p></div>`;
+                        }
+                        if (classDetailContent) classDetailContent.classList.add('d-none');
                     });
             });
         });
     }
 
-    // ฟังก์ชันโหลดข้อมูลนักเรียนในห้องเรียน
-    function loadClassStudents(classId) {
-        // ส่วนนี้สามารถปรับปรุงเพิ่มเติมได้ตามความต้องการ
+    // เพิ่มฟังก์ชัน populateClassDetailModal ใน class-manager.js
+    function populateClassDetailModal(classroom) {
+        const classDetailContent = document.getElementById('classDetailContent');
+        const classTitleSpan = document.querySelector('#classDetailModal .class-title');
+        
+        if (!classDetailContent) {
+            console.error('Class detail content container not found');
+            return;
+        }
+
+        // อัปเดต title
+        if (classTitleSpan) {
+            classTitleSpan.textContent = `${classroom.classes_level}/${classroom.classes_room_number}`;
+        }
+
+        // สร้างข้อมูลครู
+        let teacherInfo = 'ยังไม่ได้กำหนด';
+        if (classroom.teacher && classroom.teacher.user) {
+            teacherInfo = `${classroom.teacher.user.users_name_prefix || ''}${classroom.teacher.user.users_first_name || ''} ${classroom.teacher.user.users_last_name || ''}`.trim();
+        }
+
+        // สร้างเนื้อหา modal
+        classDetailContent.innerHTML = `
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <div class="card border-0 bg-light">
+                        <div class="card-body">
+                            <h6 class="card-title">ข้อมูลพื้นฐาน</h6>
+                            <div class="row">
+                                <div class="col-6">
+                                    <label class="text-muted small">ระดับชั้น</label>
+                                    <p class="mb-2 fw-bold">${escapeHtml(classroom.classes_level || 'N/A')}</p>
+                                </div>
+                                <div class="col-6">
+                                    <label class="text-muted small">ห้อง</label>
+                                    <p class="mb-2 fw-bold">${escapeHtml(classroom.classes_room_number || 'N/A')}</p>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-12">
+                                    <label class="text-muted small">ปีการศึกษา</label>
+                                    <p class="mb-2 fw-bold">${escapeHtml(classroom.classes_academic_year || 'N/A')}</p>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-12">
+                                    <label class="text-muted small">ครูประจำชั้น</label>
+                                    <p class="mb-0 fw-bold">${escapeHtml(teacherInfo)}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card border-0 bg-light">
+                        <div class="card-body">
+                            <h6 class="card-title">สถิติ</h6>
+                            <div class="row">
+                                <div class="col-6">
+                                    <label class="text-muted small">จำนวนนักเรียน</label>
+                                    <p class="mb-2 fw-bold text-primary">${classroom.students_count || 0} คน</p>
+                                </div>
+                                <div class="col-6">
+                                    <label class="text-muted small">การกระทำผิดในเดือนนี้</label>
+                                    <p class="mb-2 fw-bold text-danger">${classroom.violations_this_month || 0} ครั้ง</p>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-6">
+                                    <label class="text-muted small">คะแนนเฉลี่ย</label>
+                                    <p class="mb-2 fw-bold text-success">${classroom.average_score || 100} คะแนน</p>
+                                </div>
+                                <div class="col-6">
+                                    <label class="text-muted small">สถานะ</label>
+                                    <span class="badge bg-success">ปกติ</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-white border-bottom">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0">รายชื่อนักเรียน</h6>
+                        <div class="input-group" style="max-width: 200px;">
+                            <input type="text" class="form-control form-control-sm" placeholder="ค้นหานักเรียน..." id="studentSearchInClass">
+                            <button class="btn btn-outline-secondary btn-sm" type="button">
+                                <i class="fas fa-search"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th style="width: 5%">#</th>
+                                    <th style="width: 35%">ชื่อ - นามสกุล</th>
+                                    <th style="width: 15%">รหัสนักเรียน</th>
+                                    <th style="width: 15%">คะแนนปัจจุบัน</th>
+                                    <th style="width: 15%">การกระทำผิดล่าสุด</th>
+                                    <th style="width: 15%">การจัดการ</th>
+                                </tr>
+                            </thead>
+                            <tbody id="studentsTableBody">
+                                <!-- จะถูกเติมด้วย JavaScript -->
+                                <tr>
+                                    <td colspan="6" class="text-center py-4">
+                                        <div class="spinner-border spinner-border-sm text-primary" role="status">
+                                            <span class="visually-hidden">กำลังโหลด...</span>
+                                        </div>
+                                        <p class="mt-2 text-muted mb-0">กำลังโหลดรายชื่อนักเรียน...</p>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // โหลดรายชื่อนักเรียนในห้องเรียน
+        loadStudentsInClass(classroom.classes_id);
+    }
+
+    // ฟังก์ชันโหลดรายชื่อนักเรียนในห้องเรียน
+    function loadStudentsInClass(classId) {
+        const studentsTableBody = document.getElementById('studentsTableBody');
+        
+        if (!studentsTableBody) {
+            console.error('studentsTableBody element not found in populateClassDetailModal');
+            return;
+        }
+
+        // Display loading state within the student table body
+        studentsTableBody.innerHTML = `
+            <tr>
+                <td colspan="6" class="text-center py-4">
+                    <div class="spinner-border spinner-border-sm text-primary" role="status">
+                        <span class="visually-hidden">กำลังโหลด...</span>
+                    </div>
+                    <p class="mt-2 text-muted mb-0">กำลังโหลดรายชื่อนักเรียน...</p>
+                </td>
+            </tr>
+        `;
+
         fetch(`/api/classes/${classId}/students`, {
             headers: {
                 'Accept': 'application/json',
                 'X-Requested-With': 'XMLHttpRequest'
             }
         })
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                // Try to parse error response body if available
+                return response.json().then(errData => {
+                    throw new Error(errData.message || `HTTP error! Status: ${response.status}`);
+                }).catch(() => {
+                    // Fallback if error response is not JSON or empty
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                });
+            }
+            return response.json();
+        })
         .then(data => {
             if (data.success) {
-                // แสดงข้อมูลนักเรียน
-                console.log("Students data loaded", data.data);
-                // สามารถเพิ่มโค้ดแสดงผลข้อมูลนักเรียนได้ที่นี่
+                // Correctly access the student array from data.data.data
+                if (data.data && Array.isArray(data.data.data)) {
+                    renderStudentsTable(data.data.data);
+                } else {
+                    // API reported success, but data.data.data is not an array or data.data is missing
+                    console.error('Student API response format error: data.data.data is not an array or data.data is missing.', data);
+                    throw new Error('รูปแบบข้อมูลนักเรียนที่ได้รับจากเซิร์ฟเวอร์ไม่ถูกต้อง (ไม่พบรายการนักเรียน)');
+                }
+            } else {
+                // API reported failure (data.success is false)
+                throw new Error(data.message || 'ไม่สามารถโหลดรายชื่อนักเรียนได้');
             }
         })
         .catch(error => {
             console.error('Error loading students:', error);
+            if (studentsTableBody) {
+                studentsTableBody.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="text-center py-4 text-danger">
+                            <i class="fas fa-exclamation-circle fa-2x mb-2"></i>
+                            <p class="mb-0">เกิดข้อผิดพลาดในการโหลดรายชื่อนักเรียน</p>
+                            <small>${escapeHtml(error.message)}</small>
+                        </td>
+                    </tr>
+                `;
+            }
         });
     }
 
-    // ฟังก์ชันเพิ่ม event listeners สำหรับปุ่มแก้ไข
-    function attachEditButtonListeners() {
-        document.querySelectorAll('.edit-class-btn').forEach(button => {
+    // ฟังก์ชันแสดงรายชื่อนักเรียนในตาราง
+    function renderStudentsTable(students) {
+        const studentsTableBody = document.getElementById('studentsTableBody');
+        
+        if (!studentsTableBody) return;
+
+        if (students.length === 0) {
+            studentsTableBody.innerHTML = `
+                <tr>
+                    <td colspan="6" class="text-center py-4 text-muted">
+                        <i class="fas fa-users fa-2x mb-2"></i>
+                        <p class="mb-0">ไม่มีนักเรียนในห้องเรียนนี้</p>
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+
+        const rowsHtml = students.map((student, index) => {
+            const studentName = student.user ? 
+                `${student.user.users_name_prefix || ''}${student.user.users_first_name || ''} ${student.user.users_last_name || ''}`.trim() : 
+                'ไม่มีข้อมูล'; // If 'ไม่มีข้อมูล' is shown, student.user is missing from the API response
+            
+            const studentCode = student.students_student_code || 'N/A';
+            const currentScore = student.students_current_score || 100;
+            // last_violation_date might not be directly available on student objects from the class list API
+            // It's handled by StudentApiController for individual student view.
+            // The current fallback to '-' is appropriate if the data isn't provided.
+            const lastViolation = student.last_violation_date || '-'; 
+            
+            // กำหนดสีของคะแนน
+            let scoreClass = 'text-success';
+            if (currentScore <= 50) {
+                scoreClass = 'text-danger';
+            } else if (currentScore <= 75) {
+                scoreClass = 'text-warning';
+            }
+
+            return `
+                <tr>
+                    <td>${index + 1}</td>
+                    <td>
+                        <div class="d-flex align-items-center">
+                            <img src="https://ui-avatars.com/api/?name=${encodeURIComponent(studentName)}&background=95A4D8&color=fff" 
+                                 class="rounded-circle me-2" width="32" height="32" alt="Avatar">
+                            <span>${escapeHtml(studentName)}</span>
+                        </div>
+                    </td>
+                    <td><small class="text-muted">${escapeHtml(studentCode)}</small></td>
+                    <td><span class="fw-bold ${scoreClass}">${currentScore}</span></td>
+                    <td><small class="text-muted">${escapeHtml(lastViolation)}</small></td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-primary view-student-btn" 
+                                data-student-id="${student.students_id}" 
+                                title="ดูรายละเอียด">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-warning record-behavior-btn ms-1" 
+                                data-student-id="${student.students_id}" 
+                                data-student-name="${escapeHtml(studentName)}"
+                                title="บันทึกพฤติกรรม">
+                            <i class="fas fa-exclamation-triangle"></i>
+                        </button>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+
+        studentsTableBody.innerHTML = rowsHtml;
+
+        // เพิ่ม event listeners สำหรับปุ่มต่างๆ
+        attachStudentActionListeners();
+    }
+
+    // ฟังก์ชันเพิ่ม event listeners สำหรับปุ่มการจัดการนักเรียน
+    function attachStudentActionListeners() {
+        // ปุ่มดูรายละเอียดนักเรียน
+        document.querySelectorAll('.view-student-btn').forEach(button => {
             button.addEventListener('click', function() {
-                const classId = this.getAttribute('data-id');
+                const studentId = this.getAttribute('data-student-id');
+                // เปิด Student Detail Modal
+                const studentDetailModal = new bootstrap.Modal(document.getElementById('studentDetailModal'));
+                studentDetailModal.show();
                 
-                // แสดง loading ในฟอร์ม
-                document.getElementById('classroomList').classList.add('d-none');
-                document.getElementById('classroomForm').classList.remove('d-none');
-                document.getElementById('formClassTitle').textContent = 'กำลังโหลดข้อมูล...';
-                
-                // ดึงข้อมูลห้องเรียน
-                fetchClassroomById(classId)
-                    .then(classroom => {
-                        // ล้าง validation errors เดิม
-                        formClassroom.querySelectorAll('.is-invalid').forEach(element => {
-                            element.classList.remove('is-invalid');
-                        });
-                        
-                        // เติมข้อมูลลงในฟอร์ม
-                        document.getElementById('classId').value = classroom.classes_id;
-                        document.getElementById('classes_level').value = classroom.classes_level;
-                        document.getElementById('classes_room_number').value = classroom.classes_room_number;
-                        document.getElementById('classes_academic_year').value = classroom.classes_academic_year;
-                        
-                        // เลือกครูประจำชั้น (ถ้ามีข้อมูล)
-                        const teacherSelect = document.getElementById('teacher_id');
-                        if (classroom.teachers_id && teacherSelect) {
-                            teacherSelect.value = classroom.teachers_id;
-                        }
-                        
-                        // เปลี่ยนชื่อหัวฟอร์ม
-                        document.getElementById('formClassTitle').textContent = 'แก้ไขข้อมูลห้องเรียน';
-                    })
-                    .catch(error => {
-                        showError(error.message || 'เกิดข้อผิดพลาดในการดึงข้อมูล');
-                        
-                        // กลับไปหน้ารายการ
-                        document.getElementById('classroomForm').classList.add('d-none');
-                        document.getElementById('classroomList').classList.remove('d-none');
-                    });
+                // โหลดข้อมูลนักเรียน (ถ้ามีฟังก์ชันใน behavior-report.js)
+                if (typeof loadStudentDetails === 'function') {
+                    loadStudentDetails(studentId);
+                } else {
+                    console.warn('loadStudentDetails function not found');
+                }
             });
         });
-    }
 
-    // ฟังก์ชันเพิ่ม event listeners สำหรับปุ่มลบ
-    function attachDeleteButtonListeners() {
-        document.querySelectorAll('.delete-class-btn').forEach(button => {
+        // ปุ่มบันทึกพฤติกรรม
+        document.querySelectorAll('.record-behavior-btn').forEach(button => {
             button.addEventListener('click', function() {
-                const classId = this.getAttribute('data-id');
-                document.getElementById('deleteClassId').value = classId;
+                const studentId = this.getAttribute('data-student-id');
+                const studentName = this.getAttribute('data-student-name');
                 
-                // หาชื่อห้องเรียนจากข้อมูลที่มีอยู่
-                const classroom = classManager.classes.find(c => c.classes_id == classId);
-                if (classroom) {
-                    document.querySelector('#deleteClassModal .modal-body h5').textContent = 
-                        `ยืนยันการลบห้องเรียน "${classroom.classes_level}/${classroom.classes_room_number}"?`;
+                // ปิด Class Detail Modal
+                const classDetailModal = bootstrap.Modal.getInstance(document.getElementById('classDetailModal'));
+                if (classDetailModal) {
+                    classDetailModal.hide();
                 }
                 
-                // แสดง modal ยืนยันการลบ
-                const deleteModal = new bootstrap.Modal(document.getElementById('deleteClassModal'));
-                deleteModal.show();
+                // เปิด New Violation Modal และเติมข้อมูลนักเรียนที่เลือก
+                setTimeout(() => {
+                    const newViolationModal = new bootstrap.Modal(document.getElementById('newViolationModal'));
+                    newViolationModal.show();
+                    
+                    // เติมข้อมูลนักเรียนที่เลือก (ถ้ามีฟังก์ชันใน behavior-report.js)
+                    if (typeof selectStudent === 'function') {
+                        selectStudent({
+                            id: studentId,
+                            name: studentName,
+                            student_id: '',
+                            class: '',
+                            current_score: 100
+                        });
+                    }
+                }, 500);
             });
         });
     }
