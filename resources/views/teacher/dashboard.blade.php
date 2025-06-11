@@ -117,10 +117,10 @@
                                         </div>
                                         <div>
                                             <h6 class="stat-title">พฤติกรรมที่บันทึกเดือนนี้</h6>
-                                            <h4 class="stat-value">{{ $monthlyStats['violation_count'] ?? 0 }}</h4>
-                                            <p class="stat-change mb-0 {{ $monthlyStats['violation_trend'] > 0 ? 'increase' : ($monthlyStats['violation_trend'] < 0 ? 'decrease' : 'no-change') }}">
-                                                <i class="fas fa-{{ $monthlyStats['violation_trend'] > 0 ? 'arrow-up' : ($monthlyStats['violation_trend'] < 0 ? 'arrow-down' : 'equals') }} me-1"></i>
-                                                {{ abs($monthlyStats['violation_trend']) }}% จากเดือนก่อน
+                                            <h4 class="stat-value">0</h4>
+                                            <p class="stat-change mb-0 no-change">
+                                                <i class="fas fa-equals me-1"></i>
+                                                0% จากเดือนก่อน
                                             </p>
                                         </div>
                                     </div>
@@ -136,10 +136,10 @@
                                         </div>
                                         <div>
                                             <h6 class="stat-title">นักเรียนที่ถูกบันทึก</h6>
-                                            <h4 class="stat-value">{{ $monthlyStats['students_count'] ?? 0 }}</h4>
-                                            <p class="stat-change mb-0 {{ $monthlyStats['students_trend'] > 0 ? 'increase' : ($monthlyStats['students_trend'] < 0 ? 'decrease' : 'no-change') }}">
-                                                <i class="fas fa-{{ $monthlyStats['students_trend'] > 0 ? 'arrow-up' : ($monthlyStats['students_trend'] < 0 ? 'arrow-down' : 'equals') }} me-1"></i>
-                                                {{ abs($monthlyStats['students_trend']) }}% จากเดือนก่อน
+                                            <h4 class="stat-value">0</h4>
+                                            <p class="stat-change mb-0 no-change">
+                                                <i class="fas fa-equals me-1"></i>
+                                                0% จากเดือนก่อน
                                             </p>
                                         </div>
                                     </div>
@@ -155,10 +155,10 @@
                                         </div>
                                         <div>
                                             <h6 class="stat-title">พฤติกรรมรุนแรง</h6>
-                                            <h4 class="stat-value">{{ $monthlyStats['severe_count'] ?? 0 }}</h4>
-                                            <p class="stat-change mb-0 {{ $monthlyStats['severe_trend'] > 0 ? 'increase' : ($monthlyStats['severe_trend'] < 0 ? 'decrease' : 'no-change') }}">
-                                                <i class="fas fa-{{ $monthlyStats['severe_trend'] > 0 ? 'arrow-up' : ($monthlyStats['severe_trend'] < 0 ? 'arrow-down' : 'equals') }} me-1"></i>
-                                                {{ abs($monthlyStats['severe_trend']) }}% จากเดือนก่อน
+                                            <h4 class="stat-value">0</h4>
+                                            <p class="stat-change mb-0 no-change">
+                                                <i class="fas fa-equals me-1"></i>
+                                                0% จากเดือนก่อน
                                             </p>
                                         </div>
                                     </div>
@@ -174,10 +174,10 @@
                                         </div>
                                         <div>
                                             <h6 class="stat-title">คะแนนเฉลี่ย</h6>
-                                            <h4 class="stat-value">{{ number_format($monthlyStats['avg_score'] ?? 0, 1) }}</h4>
-                                            <p class="stat-change mb-0 {{ $monthlyStats['score_trend'] > 0 ? 'increase' : ($monthlyStats['score_trend'] < 0 ? 'decrease' : 'no-change') }}">
-                                                <i class="fas fa-{{ $monthlyStats['score_trend'] > 0 ? 'arrow-up' : ($monthlyStats['score_trend'] < 0 ? 'arrow-down' : 'equals') }} me-1"></i>
-                                                {{ abs($monthlyStats['score_trend']) }} คะแนนจากเดือนก่อน
+                                            <h4 class="stat-value">100.0</h4>
+                                            <p class="stat-change mb-0 no-change">
+                                                <i class="fas fa-equals me-1"></i>
+                                                0 คะแนนจากเดือนก่อน
                                             </p>
                                         </div>
                                     </div>

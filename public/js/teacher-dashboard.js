@@ -9,9 +9,28 @@ document.addEventListener('DOMContentLoaded', function() {
         currentDateElement.textContent = thaiDate;
     }
     
-    // Initialize charts
-    initViolationTrendChart();
-    initViolationTypesChart();
+    // ตรวจสอบว่า DOM พร้อมแล้ว
+    setTimeout(() => {
+        // เช็คว่าองค์ประกอบสำคัญโหลดแล้วหรือยัง
+        const overviewSection = document.getElementById('overview');
+        const statCards = document.querySelectorAll('#overview .stat-card');
+    
+        
+        if (statCards.length >= 4) {
+            // โหลดข้อมูลสถิติประจำเดือน
+            loadMonthlyStats();
+        } else {
+            console.warn('Stat cards not found, retrying in 1 second...');
+            setTimeout(() => {
+                loadMonthlyStats();
+            }, 1000);
+        }
+        
+        // Initialize charts
+        loadViolationTrendChart();
+        loadViolationTypesChart();
+        
+    }, 100); // รอ 100ms ให้ DOM โหลดเสร็จ
     
     // Mobile navigation active state
     const navLinks = document.querySelectorAll('.bottom-navbar .nav-link');
@@ -233,26 +252,233 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+    
+    // โหลดข้อมูลสถิติประจำเดือน
+    loadMonthlyStats();
 });
 
-// Chart initialization functions
-function initViolationTrendChart() {
+// ฟังก์ชันโหลดสถิติประจำเดือน
+function loadMonthlyStats() {
+    fetch('/api/dashboard/stats', {
+        method: 'GET',
+        headers: {
+            'Accept': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.success) {
+            updateStatsDisplay(result.data);
+        } else {
+            console.error('Error loading monthly stats:', result.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error fetching monthly stats:', error);
+    });
+}
+
+// ฟังก์ชันอัปเดตการแสดงข้อมูลสถิติ
+function updateStatsDisplay(stats) {
+    try {
+        // อัปเดตจำนวนพฤติกรรม
+        const violationValueEl = document.querySelector('#overview .stat-card:nth-child(2) .stat-value');
+        if (violationValueEl) {
+            violationValueEl.textContent = stats.violation_count || 0;
+        }
+        
+        // อัปเดตแนวโน้มจำนวนพฤติกรรม
+        const violationTrendEl = document.querySelector('#overview .stat-card:nth-child(2) .stat-change');
+        if (violationTrendEl) {
+            violationTrendEl.className = 'stat-change mb-0 ' + 
+                (stats.violation_trend > 0 ? 'increase' : (stats.violation_trend < 0 ? 'decrease' : 'no-change'));
+            violationTrendEl.innerHTML = `
+                <i class="fas fa-${stats.violation_trend > 0 ? 'arrow-up' : (stats.violation_trend < 0 ? 'arrow-down' : 'equals')} me-1"></i>
+                ${Math.abs(stats.violation_trend)}% จากเดือนก่อน
+            `;
+        }
+        
+        // อัปเดตจำนวนนักเรียนที่ถูกบันทึก
+        const studentsValueEl = document.querySelector('#overview .stat-card:nth-child(3) .stat-value');
+        if (studentsValueEl) {
+            studentsValueEl.textContent = stats.students_count || 0;
+        }
+        
+        // อัปเดตแนวโน้มจำนวนนักเรียน
+        const studentsTrendEl = document.querySelector('#overview .stat-card:nth-child(3) .stat-change');
+        if (studentsTrendEl) {
+            studentsTrendEl.className = 'stat-change mb-0 ' + 
+                (stats.students_trend > 0 ? 'increase' : (stats.students_trend < 0 ? 'decrease' : 'no-change'));
+            studentsTrendEl.innerHTML = `
+                <i class="fas fa-${stats.students_trend > 0 ? 'arrow-up' : (stats.students_trend < 0 ? 'arrow-down' : 'equals')} me-1"></i>
+                ${Math.abs(stats.students_trend)}% จากเดือนก่อน
+            `;
+        }
+        
+        // อัปเดตจำนวนพฤติกรรมรุนแรง
+        const severeValueEl = document.querySelector('#overview .stat-card:nth-child(4) .stat-value');
+        if (severeValueEl) {
+            severeValueEl.textContent = stats.severe_count || 0;
+        }
+        
+        // อัปเดตแนวโน้มพฤติกรรมรุนแรง
+        const severeTrendEl = document.querySelector('#overview .stat-card:nth-child(4) .stat-change');
+        if (severeTrendEl) {
+            severeTrendEl.className = 'stat-change mb-0 ' + 
+                (stats.severe_trend > 0 ? 'increase' : (stats.severe_trend < 0 ? 'decrease' : 'no-change'));
+            severeTrendEl.innerHTML = `
+                <i class="fas fa-${stats.severe_trend > 0 ? 'arrow-up' : (stats.severe_trend < 0 ? 'arrow-down' : 'equals')} me-1"></i>
+                ${Math.abs(stats.severe_trend)}% จากเดือนก่อน
+            `;
+        }
+        
+        // อัปเดตคะแนนเฉลี่ย
+        const scoreValueEl = document.querySelector('#overview .stat-card:nth-child(5) .stat-value');
+        if (scoreValueEl) {
+            scoreValueEl.textContent = stats.avg_score.toFixed(1);
+        }
+        
+        // อัปเดตแนวโน้มคะแนนเฉลี่ย
+        const scoreTrendEl = document.querySelector('#overview .stat-card:nth-child(5) .stat-change');
+        if (scoreTrendEl) {
+            scoreTrendEl.className = 'stat-change mb-0 ' + 
+                (stats.score_trend > 0 ? 'increase' : (stats.score_trend < 0 ? 'decrease' : 'no-change'));
+            scoreTrendEl.innerHTML = `
+                <i class="fas fa-${stats.score_trend > 0 ? 'arrow-up' : (stats.score_trend < 0 ? 'arrow-down' : 'equals')} me-1"></i>
+                ${Math.abs(stats.score_trend)} คะแนนจากเดือนก่อน
+            `;
+        }
+    
+        
+    } catch (error) {
+        console.error('Error updating stats display:', error);
+        console.log('Available elements:', {
+            violationValue: !!document.querySelector('#overview .stat-card:nth-child(2) .stat-value'),
+            studentsValue: !!document.querySelector('#overview .stat-card:nth-child(3) .stat-value'),
+            severeValue: !!document.querySelector('#overview .stat-card:nth-child(4) .stat-value'),
+            scoreValue: !!document.querySelector('#overview .stat-card:nth-child(5) .stat-value')
+        });
+    }
+}
+
+// ปรับปรุงฟังก์ชันโหลดกราฟแนวโน้ม
+function loadViolationTrendChart() {
     const ctx = document.getElementById('violationTrend');
     if (!ctx) return;
     
-    new Chart(ctx, {
-        type: 'line',
-        data: {
+    // แสดง Loading indicator
+    const loadingDiv = document.createElement('div');
+    loadingDiv.className = 'chart-loading';
+    loadingDiv.innerHTML = `
+        <div class="spinner-border spinner-border-sm text-primary" role="status">
+            <span class="visually-hidden">กำลังโหลด...</span>
+        </div>
+        <span class="ms-2">กำลังโหลดข้อมูล...</span>
+    `;
+    ctx.parentNode.insertBefore(loadingDiv, ctx);
+    
+    fetch('/api/dashboard/trends', {
+        method: 'GET',
+        headers: {
+            'Accept': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => response.json())
+    .then(result => {
+        // ลบ Loading indicator
+        if (loadingDiv) loadingDiv.remove();
+        
+        if (result.success) {
+            initViolationTrendChart(result.data);
+        } else {
+            console.error('Error loading trend data:', result.message);
+            initViolationTrendChart(null); // ใช้ข้อมูลเริ่มต้น
+        }
+    })
+    .catch(error => {
+        // ลบ Loading indicator
+        if (loadingDiv) loadingDiv.remove();
+        
+        console.error('Error fetching trend data:', error);
+        initViolationTrendChart(null); // ใช้ข้อมูลเริ่มต้น
+    });
+}
+
+// ปรับปรุงฟังก์ชันโหลดกราฟประเภทพฤติกรรม
+function loadViolationTypesChart() {
+    const ctx = document.getElementById('violationTypes');
+    if (!ctx) return;
+    
+    // แสดง Loading indicator
+    const loadingDiv = document.createElement('div');
+    loadingDiv.className = 'chart-loading';
+    loadingDiv.innerHTML = `
+        <div class="spinner-border spinner-border-sm text-primary" role="status">
+            <span class="visually-hidden">กำลังโหลด...</span>
+        </div>
+        <span class="ms-2">กำลังโหลดข้อมูล...</span>
+    `;
+    ctx.parentNode.insertBefore(loadingDiv, ctx);
+    
+    fetch('/api/dashboard/violations', {
+        method: 'GET',
+        headers: {
+            'Accept': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => response.json())
+    .then(result => {
+        // ลบ Loading indicator
+        if (loadingDiv) loadingDiv.remove();
+        
+        if (result.success) {
+            initViolationTypesChart(result.data);
+        } else {
+            console.error('Error loading violation types data:', result.message);
+            initViolationTypesChart(null); // ใช้ข้อมูลเริ่มต้น
+        }
+    })
+    .catch(error => {
+        // ลบ Loading indicator
+        if (loadingDiv) loadingDiv.remove();
+        
+        console.error('Error fetching violation types data:', error);
+        initViolationTypesChart(null); // ใช้ข้อมูลเริ่มต้น
+    });
+}
+
+// ปรับปรุงฟังก์ชันสร้างกราฟแนวโน้ม
+function initViolationTrendChart(chartData) {
+    const ctx = document.getElementById('violationTrend');
+    if (!ctx) return;
+    
+    // ลบกราฟเดิมถ้ามี
+    if (window.violationTrendChart instanceof Chart) {
+        window.violationTrendChart.destroy();
+    }
+    
+    // ถ้าไม่มีข้อมูล ใช้ข้อมูลเริ่มต้น
+    if (!chartData) {
+        chartData = {
             labels: ['1', '5', '10', '15', '20', '25', '30'],
             datasets: [{
                 label: 'พฤติกรรมที่ถูกบันทึก',
-                data: [12, 19, 8, 15, 20, 27, 30],
+                data: [0, 0, 0, 0, 0, 0, 0],
                 borderColor: 'rgb(16, 32, 173)',
                 backgroundColor: 'rgba(16, 32, 173, 0.1)',
                 tension: 0.4,
                 fill: true
             }]
-        },
+        };
+    }
+    
+    // สร้างกราฟใหม่
+    window.violationTrendChart = new Chart(ctx, {
+        type: 'line',
+        data: chartData,
         options: {
             responsive: true,
             maintainAspectRatio: false,
@@ -282,44 +508,38 @@ function initViolationTrendChart() {
             }
         }
     });
-    
-    // ฟังก์ชันกรองข้อมูลตามประเภทพฤติกรรม
-    const trendFilterItems = document.querySelectorAll('#trendFilterDropdown + .dropdown-menu .dropdown-item');
-    trendFilterItems.forEach(item => {
-        item.addEventListener('click', function(e) {
-            e.preventDefault();
-            const filterType = this.getAttribute('data-filter');
-            filterChartData(filterType);
-        });
-    });
 }
 
-function initViolationTypesChart() {
+// ปรับปรุงฟังก์ชันสร้างกราฟประเภทพฤติกรรม
+function initViolationTypesChart(chartData) {
     const ctx = document.getElementById('violationTypes');
     if (!ctx) return;
     
-    new Chart(ctx, {
-        type: 'doughnut',
-        data: {
+    // ลบกราฟเดิมถ้ามี
+    if (window.violationTypesChart instanceof Chart) {
+        window.violationTypesChart.destroy();
+    }
+    
+    // ถ้าไม่มีข้อมูล ใช้ข้อมูลเริ่มต้น
+    if (!chartData) {
+        chartData = {
             labels: [
-                'ผิดระเบียบการแต่งกาย',
-                'มาสาย',
-                'ใช้โทรศัพท์ในเวลาเรียน',
-                'ไม่ส่งการบ้าน',
-                'อื่นๆ'
+                'ไม่มีข้อมูล'
             ],
             datasets: [{
-                data: [30, 25, 15, 20, 10],
+                data: [1],
                 backgroundColor: [
-                    '#dc3545',
-                    '#ffc107',
-                    '#17a2b8',
-                    '#fd7e14',
                     '#6c757d'
                 ],
                 borderWidth: 0
             }]
-        },
+        };
+    }
+    
+    // สร้างกราฟใหม่
+    window.violationTypesChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: chartData,
         options: {
             responsive: true,
             maintainAspectRatio: false,
@@ -1200,5 +1420,103 @@ function updateViolationType() {
             submitBtn.disabled = false;
             submitBtn.innerHTML = originalText;
         }
+    });
+}
+
+// เพิ่มฟังก์ชัน saveViolationType ก่อนการปิด document.addEventListener('DOMContentLoaded', function() { ... });
+
+// ฟังก์ชันบันทึกประเภทพฤติกรรม
+function saveViolationType() {
+    const form = document.getElementById('formViolationType');
+    if (!form) return;
+    
+    // ล้าง validation errors ถ้ามี
+    form.querySelectorAll('.is-invalid').forEach(element => {
+        element.classList.remove('is-invalid');
+    });
+    
+    // แสดง loading state
+    const submitBtn = form.querySelector('button[type="submit"]');
+    const originalText = submitBtn.innerHTML;
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> กำลังบันทึก...';
+    
+    // ดึงข้อมูลจากฟอร์ม
+    const formData = new FormData(form);
+    const violationId = document.getElementById('editViolationId')?.value;
+    const isUpdate = violationId && violationId !== '';
+    
+    // แปลง FormData เป็น object
+    const data = {
+        violations_name: formData.get('violations_name'),
+        violations_category: formData.get('violations_category'),
+        violations_points_deducted: parseInt(formData.get('violations_points_deducted')),
+        violations_description: formData.get('violations_description') || ''
+    };
+    
+    // กำหนด HTTP method และ URL ตามการใช้งาน (สร้างใหม่/แก้ไข)
+    const method = isUpdate ? 'PUT' : 'POST';
+    const url = isUpdate ? `/api/violations/${violationId}` : '/api/violations';
+    
+    // ส่งข้อมูลไปยัง API
+    fetch(url, {
+        method: method,
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+            'Accept': 'application/json'
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => {
+        if (!response.ok) {
+            return response.json().then(errorData => {
+                throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+            });
+        }
+        return response.json();
+    })
+    .then(result => {
+        if (result.success) {
+            showSuccess(isUpdate ? 'อัปเดตประเภทพฤติกรรมเรียบร้อยแล้ว' : 'เพิ่มประเภทพฤติกรรมเรียบร้อยแล้ว');
+            
+            // ซ่อนฟอร์มและแสดงรายการ
+            const violationTypeForm = document.getElementById('violationTypeForm');
+            const violationTypesList = document.getElementById('violationTypesList');
+            
+            if (violationTypeForm) violationTypeForm.classList.add('d-none');
+            if (violationTypesList) violationTypesList.classList.remove('d-none');
+            
+            // โหลดรายการประเภทพฤติกรรมใหม่อีกครั้ง
+            if (typeof fetchViolations === 'function') {
+                fetchViolations();
+            }
+        } else {
+            showError(result.message || 'เกิดข้อผิดพลาดในการบันทึกข้อมูล');
+        }
+    })
+    .catch(error => {
+        console.error('Error saving violation type:', error);
+        
+        // แสดงข้อความผิดพลาดจาก validation
+        if (error.errors) {
+            Object.keys(error.errors).forEach(key => {
+                const element = form.querySelector(`[name="${key}"]`);
+                if (element) {
+                    element.classList.add('is-invalid');
+                    const feedback = element.nextElementSibling;
+                    if (feedback && feedback.classList.contains('invalid-feedback')) {
+                        feedback.textContent = error.errors[key][0];
+                    }
+                }
+            });
+        } else {
+            showError('เกิดข้อผิดพลาดในการบันทึกข้อมูล: ' + error.message);
+        }
+    })
+    .finally(() => {
+        // คืนสถานะปุ่ม
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalText;
     });
 }

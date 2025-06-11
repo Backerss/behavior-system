@@ -5,6 +5,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ViolationController;
 use App\Http\Controllers\ClassroomController;
 use App\Http\Controllers\StudentController;
+use App\Http\Controllers\DashboardController;
 
 // หน้าหลัก
 Route::get('/', function () {
@@ -90,6 +91,13 @@ Route::prefix('api')->middleware('auth')->group(function () {
         Route::get('/filters/all', [ClassroomController::class, 'getFilters']);
         Route::get('/{id}/violations/stats', [ClassroomController::class, 'getViolationStatistics'])->where('id', '[0-9]+');
         Route::get('/{id}/export', [ClassroomController::class, 'exportClassReport'])->where('id', '[0-9]+');
+    });
+    
+    // Dashboard statistics routes - เพิ่มส่วนนี้
+    Route::prefix('dashboard')->group(function () {
+        Route::get('/trends', [DashboardController::class, 'getMonthlyTrends']);
+        Route::get('/violations', [DashboardController::class, 'getViolationTypes']);
+        Route::get('/stats', [DashboardController::class, 'getMonthlyStats']);
     });
 });
 
