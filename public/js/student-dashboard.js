@@ -6,6 +6,7 @@
 // Global chart instances
 let behaviorChart = null;
 let behaviorChartMobile = null;
+let violationChart = null;
 
 // Wait until DOM is fully loaded
 document.addEventListener('DOMContentLoaded', function() {
@@ -20,6 +21,11 @@ document.addEventListener('DOMContentLoaded', function() {
         if (window.chartData) {
             initCharts(window.chartData);
         }
+        
+        if (window.violationData) {
+            initViolationChart(window.violationData);
+        }
+        
         initializeEventListeners();
         handleMobileContent();
         
@@ -99,6 +105,66 @@ function initCharts(chartData) {
 }
 
 /**
+ * Initialize Violation Distribution Chart
+ */
+function initViolationChart(violationData) {
+    const violationCtx = document.getElementById('violationChart');
+    if (violationCtx) {
+        // ทำลายกราฟเก่าก่อนสร้างใหม่
+        if (violationChart) {
+            violationChart.destroy();
+        }
+        
+        violationChart = new Chart(violationCtx.getContext('2d'), {
+            type: 'doughnut',
+            data: {
+                labels: violationData.labels,
+                datasets: [{
+                    data: violationData.data,
+                    backgroundColor: violationData.colors,
+                    borderWidth: 2,
+                    borderColor: '#fff'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            padding: 20,
+                            usePointStyle: true,
+                            font: {
+                                family: 'Prompt',
+                                size: 12
+                            }
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const label = context.label || '';
+                                const value = context.parsed;
+                                
+                                // ถ้าเป็นข้อมูลว่าง
+                                if (label === 'ไม่มีข้อมูล') {
+                                    return 'ยังไม่มีข้อมูลพฤติกรรม';
+                                }
+                                
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const percentage = ((value / total) * 100).toFixed(1);
+                                return `${label}: ${value} ครั้ง (${percentage}%)`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+}
+
+/**
  * Handle mobile-specific content
  */
 function handleMobileContent() {
@@ -152,9 +218,11 @@ function initializeEventListeners() {
         // Adjust charts if needed
         const desktopChart = Chart.getChart('behaviorChart');
         const mobileChart = Chart.getChart('behaviorChartMobile');
+        const violationChartInstance = Chart.getChart('violationChart');
         
         if (desktopChart) desktopChart.resize();
         if (mobileChart) mobileChart.resize();
+        if (violationChartInstance) violationChartInstance.resize();
     });
 }
 

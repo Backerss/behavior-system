@@ -58,14 +58,26 @@
   color: #fff;
 }
 
-/* Mobile app style utilities */
+/* Basic App Styles */
+body {
+    font-family: 'Prompt', sans-serif;
+    background-color: #f8f9fa;
+}
+
 .app-container {
-  width: 100%;
-  max-width: 100%; /* เปลี่ยนจาก 540px เป็น 100% */
-  margin: 0 auto;
-  min-height: 100vh;
-  position: relative;
-  padding-bottom: 70px; /* Space for bottom navbar */
+    width: 100%;
+    max-width: 100%; /* เปลี่ยนจาก 540px เป็น 100% */
+    margin: 0 auto;
+    min-height: 100vh;
+    position: relative;
+    padding-bottom: 70px; /* Space for bottom navbar */
+}
+
+.app-card {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    border: none;
 }
 
 /* Bottom navbar for mobile */

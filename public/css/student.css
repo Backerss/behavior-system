@@ -392,13 +392,14 @@
 
 /* Activity list */
 .activity-list {
-  position: relative;
+  position: relative
 }
 
 .activity-item {
   position: relative;
-  opacity: 0;
+  opacity: 1;
   transform: translateX(-10px);
+  transition: all 0.3s ease;
 }
 
 .activity-item.animated {
@@ -419,6 +420,12 @@
 
 .activity-item:hover .activity-content {
   transform: translateX(5px);
+}
+
+/* เพิ่ม fallback สำหรับ activity-list ที่ไม่มี animation */
+.activity-list .activity-item {
+  opacity: 1 !important;
+  transform: none !important;
 }
 
 /* Bottom navbar */

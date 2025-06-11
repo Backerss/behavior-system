@@ -97,8 +97,8 @@
                         <h2 class="h5 mb-1">สวัสดี {{ $user->users_name_prefix }}{{ $user->users_first_name }} {{ $user->users_last_name }}</h2>
                         <p class="text-muted mb-0">
                             @if($student)
-                                ชั้น {{ $student->classroom ? $student->classroom->classes_level.$student->classroom->classes_room_number : 'ไม่ระบุชั้นเรียน' }}
-                                รหัสนักเรียน {{ $student->students_student_code }}
+                                ชั้น {{ ($student->classes_level ?? '') . ($student->classes_room_number ?? '') ?: 'ไม่ระบุชั้นเรียน' }}
+                                รหัสนักเรียน {{ $student->students_student_code ?? 'ไม่ระบุ' }}
                             @else
                                 ข้อมูลนักเรียนไม่สมบูรณ์
                             @endif
@@ -324,12 +324,6 @@
                                     </div>
                                     <div class="col-4">
                                         <div class="text-center">
-                                            <div class="h3 fw-bold text-success">{{ $behavior_summary['positive_reports'] }}</div>
-                                            <div class="small text-muted">รายงานเชิงบวก</div>
-                                        </div>
-                                    </div>
-                                    <div class="col-4">
-                                        <div class="text-center">
                                             <div class="h3 fw-bold text-danger">{{ $behavior_summary['negative_reports'] }}</div>
                                             <div class="small text-muted">รายงานเชิงลบ</div>
                                         </div>
@@ -337,17 +331,6 @@
                                 </div>
                                 <hr>
                                 <div class="row mb-3">
-                                    <div class="col-6">
-                                        <div class="d-flex">
-                                            <div class="info-icon me-3 text-success">
-                                                <i class="fas fa-plus-circle"></i>
-                                            </div>
-                                            <div>
-                                                <div class="small text-muted">คะแนนที่ได้รับ</div>
-                                                <div class="fw-bold text-success">+{{ $behavior_summary['total_positive_points'] }}</div>
-                                            </div>
-                                        </div>
-                                    </div>
                                     <div class="col-6">
                                         <div class="d-flex">
                                             <div class="info-icon me-3 text-danger">
@@ -389,9 +372,20 @@
                             </h3>
                         </div>
                         <div class="card-body p-4">
-                            <div class="chart-container" style="height: 250px; position: relative;">
-                                <canvas id="violationChart"></canvas>
-                            </div>
+                            @if(isset($violation_distribution) && count($violation_distribution['data']) > 0 && $violation_distribution['labels'][0] !== 'ไม่มีข้อมูล')
+                                <div class="chart-container" style="height: 250px; position: relative;">
+                                    <canvas id="violationChart"></canvas>
+                                </div>
+                            @else
+                                <div class="text-center text-muted py-4">
+                                    <i class="fas fa-chart-pie mb-2 fa-3x"></i>
+                                    <h5>ยังไม่มีข้อมูลพฤติกรรม</h5>
+                                    <p class="mb-0">เมื่อมีการบันทึกพฤติกรรมแล้ว กราฟจะแสดงที่นี่</p>
+                                    <div class="chart-container mt-3" style="height: 250px; position: relative;">
+                                        <canvas id="violationChart"></canvas>
+                                    </div>
+                                </div>
+                            @endif
                         </div>
                     </div>
                 </div>
@@ -535,6 +529,28 @@
             labels: @json($chart_data['labels']),
             datasets: @json($chart_data['datasets'])
         };
+        
+        // เพิ่มข้อมูลสำหรับ Violation Distribution Chart
+        window.violationData = @json($violation_distribution ?? [
+            'labels' => ['ไม่มีข้อมูล'],
+            'data' => [1],
+            'colors' => ['#e9ecef']
+        ]);
+        
+        // Debug: ตรวจสอบข้อมูลที่ส่งมา
+        console.log('Chart Data:', window.chartData);
+        console.log('Violation Data:', window.violationData);
+        console.log('Recent Activities:', @json($recent_activities));
+        console.log('Student ID:', {{ $student->students_id ?? 'null' }});
+        console.log('Behavior Summary:', @json($behavior_summary));
+        console.log('Classroom Details:', @json($classroom_details));
+        
+        // แสดงข้อมูล Debug ในหน้าเว็บ (ถ้าเปิด debug mode)
+        @if(config('app.debug'))
+            console.log('=== DEBUG INFO ===');
+            console.log('Student Data:', @json($student));
+            console.log('Recent Activities Count:', {{ is_countable($recent_activities) ? count($recent_activities) : 0 }});
+        @endif
     </script>
 </body>
 </html>
