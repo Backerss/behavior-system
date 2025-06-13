@@ -765,39 +765,20 @@
                                 <div class="text-danger">{{ $message }}</div>
                             @enderror
                         </div>
-                        <div class="mb-3">
-                            <div class="form-floating">
-                                <input type="text" class="form-control @error('student_code') is-invalid @enderror" id="studentCode" name="student_code" placeholder="รหัสนักเรียน" required>
-                                <label for="studentCode">รหัสนักเรียน</label>
-                                <div class="invalid-feedback">
-                                    กรุณากรอกรหัสนักเรียนให้ถูกต้อง
-                                </div>
-                            </div>
-                            @error('student_code')
-                                <div class="text-danger">{{ $message }}</div>
-                            @enderror
+                        
+                        <div class="alert alert-info mb-3">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <small>
+                                <strong>หมายเหตุ:</strong> ผู้ปกครองสามารถเข้าสู่ระบบได้ด้วยเบอร์โทรศัพท์เพียงอย่างเดียว
+                                <br>ระบบจะตรวจสอบและเชื่อมโยงกับข้อมูลนักเรียนโดยอัตโนมัติ
+                            </small>
                         </div>
-                        <div class="mb-3 password-field">
-                            <div class="form-floating">
-                                <input type="password" class="form-control @error('password') is-invalid @enderror" id="parentPassword" name="password" placeholder="รหัสผ่าน" required>
-                                <label for="parentPassword">รหัสผ่าน</label>
-                                <button type="button" class="password-toggle" tabindex="-1">
-                                    <i class="fas fa-eye"></i>
-                                </button>
-                                <div class="invalid-feedback">
-                                    กรุณากรอกรหัสผ่าน
-                                </div>
-                            </div>
-                            @error('password')
-                                <div class="text-danger">{{ $message }}</div>
-                            @enderror
-                        </div>
+                        
                         <div class="d-flex justify-content-between align-items-center mb-3">
                             <div class="form-check">
                                 <input type="checkbox" class="form-check-input" id="parentRemember" name="remember">
                                 <label class="form-check-label" for="parentRemember">จดจำฉัน</label>
                             </div>
-                            <a href="#" class="btn-link text-muted">ลืมรหัสผ่าน?</a>
                         </div>
                         <button type="submit" class="btn btn-accent-app btn-lg w-100 d-flex align-items-center justify-content-center">
                             <span class="btn-text">เข้าสู่ระบบ</span>

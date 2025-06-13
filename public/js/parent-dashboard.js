@@ -257,9 +257,15 @@ function showIndividualStudentView(studentId) {
             individualView.style.transform = 'translateY(0)';
         }, 50);
         
-        // Update student data
-        updateStudentInfo(studentId);
-        updateStudentCharts(studentId);
+        // Show the specific student detail view
+        document.querySelectorAll('.student-detail-view').forEach(view => {
+            view.classList.add('d-none');
+        });
+        
+        const targetView = document.getElementById(`${studentId}-view`);
+        if (targetView) {
+            targetView.classList.remove('d-none');
+        }
     }, 300);
     
     // Reset view styles for next transition
@@ -308,319 +314,9 @@ function initializeAnimations() {
  * Initialize charts with optimization
  */
 function initializeCharts() {
-    // Initialize charts if elements exist
-    if (document.getElementById('studentBehaviorChart')) {
-        initStudentBehaviorChart();
-    }
-    
-    if (document.getElementById('attendanceChart')) {
-        initAttendanceChart();
-    }
-}
-
-/**
- * Initialize student behavior chart with optimizations
- */
-function initStudentBehaviorChart() {
-    const ctx = document.getElementById('studentBehaviorChart').getContext('2d');
-    if (!ctx) return;
-    
-    // Chart configuration with optimized options
-    const chart = new Chart(ctx, {
-        type: 'doughnut',
-        data: {
-            labels: ['คะแนนบวก', 'คะแนนลบ', 'คะแนนคงเหลือ'],
-            datasets: [{
-                data: [0, 0, 0], // Start with zero for animation
-                backgroundColor: [
-                    '#1A91FF', // Light blue
-                    '#FF5757', // Red
-                    '#FFD747'  // Yellow
-                ],
-                borderWidth: 0,
-                cutout: '65%',
-                hoverOffset: 10
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    position: 'bottom',
-                    labels: {
-                        padding: 20,
-                        font: {
-                            family: "'Prompt', sans-serif",
-                            size: 12
-                        },
-                        usePointStyle: true,
-                        pointStyle: 'circle'
-                    }
-                },
-                tooltip: {
-                    callbacks: {
-                        label: function(context) {
-                            const label = context.label || '';
-                            const value = context.raw || 0;
-                            return `${label}: ${value} คะแนน`;
-                        }
-                    },
-                    padding: 12,
-                    backgroundColor: 'rgba(0, 0, 0, 0.75)',
-                    titleFont: {
-                        family: "'Prompt', sans-serif",
-                        size: 14
-                    },
-                    bodyFont: {
-                        family: "'Prompt', sans-serif",
-                        size: 13
-                    },
-                    cornerRadius: 6,
-                    caretSize: 6
-                }
-            },
-            animation: {
-                duration: 1500,
-                easing: 'easeOutQuart'
-            }
-        }
-    });
-    
-    // Animate chart data from 0 to actual values with proper timing
-    setTimeout(function() {
-        chart.data.datasets[0].data = [75, 15, 10]; // Default values
-        chart.update('default');
-    }, 400);
-}
-
-/**
- * Initialize attendance chart with optimizations
- */
-function initAttendanceChart() {
-    const ctx = document.getElementById('attendanceChart').getContext('2d');
-    if (!ctx) return;
-    
-    // Chart configuration with optimized options
-    const chart = new Chart(ctx, {
-        type: 'pie',
-        data: {
-            labels: ['มาเรียน', 'มาสาย', 'ขาดเรียน'],
-            datasets: [{
-                data: [0, 0, 0], // Start with zero for animation
-                backgroundColor: [
-                    '#28a745', // Green
-                    '#ffc107', // Yellow
-                    '#dc3545'  // Red
-                ],
-                borderWidth: 0,
-                hoverOffset: 10
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    position: 'bottom',
-                    labels: {
-                        padding: 15,
-                        font: {
-                            family: "'Prompt', sans-serif",
-                            size: 12
-                        },
-                        usePointStyle: true,
-                        pointStyle: 'circle'
-                    }
-                },
-                tooltip: {
-                    callbacks: {
-                        label: function(context) {
-                            const label = context.label || '';
-                            const value = context.raw || 0;
-                            return `${label}: ${value}%`;
-                        }
-                    },
-                    padding: 12,
-                    backgroundColor: 'rgba(0, 0, 0, 0.75)',
-                    titleFont: {
-                        family: "'Prompt', sans-serif",
-                        size: 14
-                    },
-                    bodyFont: {
-                        family: "'Prompt', sans-serif",
-                        size: 13
-                    },
-                    cornerRadius: 6,
-                    caretSize: 6
-                }
-            },
-            animation: {
-                duration: 1500,
-                easing: 'easeOutQuart'
-            }
-        }
-    });
-    
-    // Animate chart data from 0 to actual values with proper timing
-    setTimeout(function() {
-        chart.data.datasets[0].data = [84, 10, 6]; // Default values
-        chart.update('default');
-    }, 600);
-}
-
-/**
- * Update student information with smooth animations
- */
-function updateStudentInfo(studentId) {
-    // Get student data (in production this would come from an API)
-    const studentData = getStudentData(studentId);
-    if (!studentData) return;
-    
-    // Update text elements with animation if supported
-    updateElementWithAnimation('.student-name', studentData.name);
-    updateElementWithAnimation('.student-class', studentData.class);
-    updateElementWithAnimation('.student-points', studentData.points);
-    updateElementWithAnimation('.student-points-badge', `${studentData.points} คะแนน`);
-    updateElementWithAnimation('.student-status', studentData.status);
-    updateElementWithAnimation('.student-rank', studentData.rank, true);
-    
-    // Update badge classes based on points
-    const badgeClass = getBadgeClassForPoints(studentData.points);
-    updateElementClass('.student-points-badge', `badge ${badgeClass} student-points-badge`);
-    updateElementClass('.student-status', `badge ${badgeClass} student-status`);
-}
-
-/**
- * Get student data (mock data - would be from API in production)
- */
-function getStudentData(studentId) {
-    const studentData = {
-        student1: {
-            name: 'ด.ช. กล้า ภูมิมาลา',
-            class: 'ชั้น ม.2/3 เลขที่ 5',
-            points: 95,
-            status: 'ดีมาก',
-            rank: '3<span class="fs-6">/30</span>'
-        },
-        student2: {
-            name: 'ด.ญ. ใจดี ภูมิมาลา',
-            class: 'ชั้น ม.3/1 เลขที่ 12',
-            points: 75,
-            status: 'ดี',
-            rank: '8<span class="fs-6">/25</span>'
-        },
-        student3: {
-            name: 'ด.ช. จริง ภูมิมาลา',
-            class: 'ชั้น ม.1/2 เลขที่ 18',
-            points: 85,
-            status: 'ดี',
-            rank: '4<span class="fs-6">/28</span>'
-        }
-    };
-    
-    return studentData[studentId];
-}
-
-/**
- * Get appropriate badge class based on points
- */
-function getBadgeClassForPoints(points) {
-    return points >= 90 ? 'bg-success' : 
-           points >= 80 ? 'bg-primary' :
-           points >= 70 ? 'bg-info' :
-           points >= 60 ? 'bg-warning text-dark' : 'bg-danger';
-}
-
-/**
- * Update element text with animation
- */
-function updateElementWithAnimation(selector, text, isHTML = false) {
-    const element = document.querySelector(selector);
-    if (!element) return;
-    
-    element.style.opacity = '0';
-    element.style.transform = 'translateY(-5px)';
-    
-    setTimeout(() => {
-        if (isHTML) {
-            element.innerHTML = text;
-        } else {
-            element.textContent = text;
-        }
-        
-        element.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
-        element.style.opacity = '1';
-        element.style.transform = 'translateY(0)';
-    }, 300);
-}
-
-/**
- * Update element class
- */
-function updateElementClass(selector, className) {
-    const element = document.querySelector(selector);
-    if (element) element.className = className;
-}
-
-/**
- * Update charts for the selected student with smooth transitions
- */
-function updateStudentCharts(studentId) {
-    const chartData = getChartData(studentId);
-    if (!chartData) return;
-    
-    // Update behavior chart with animation
-    const behaviorChart = Chart.getChart('studentBehaviorChart');
-    if (behaviorChart) {
-        behaviorChart.data.datasets[0].data = chartData.behavior;
-        behaviorChart.update('default');
-    }
-    
-    // Update attendance chart with animation
-    const attendanceChart = Chart.getChart('attendanceChart');
-    if (attendanceChart) {
-        attendanceChart.data.datasets[0].data = [
-            chartData.attendance.present,
-            chartData.attendance.late,
-            chartData.attendance.absent
-        ];
-        attendanceChart.update('default');
-    }
-}
-
-/**
- * Get chart data for a student (mock data)
- */
-function getChartData(studentId) {
-    const chartData = {
-        student1: {
-            behavior: [75, 15, 10],
-            attendance: {
-                present: 84,
-                late: 10,
-                absent: 6
-            }
-        },
-        student2: {
-            behavior: [60, 25, 15],
-            attendance: {
-                present: 75,
-                late: 15,
-                absent: 10
-            }
-        },
-        student3: {
-            behavior: [65, 10, 25],
-            attendance: {
-                present: 90,
-                late: 7,
-                absent: 3
-            }
-        }
-    };
-    
-    return chartData[studentId];
+    // Charts will be initialized dynamically when needed
+    // ลบการเรียก initStudentBehaviorChart และ initAttendanceChart ออก
+    console.log('Charts initialized - waiting for data');
 }
 
 /**
@@ -726,7 +422,7 @@ function setupAdvancedFeatures() {
 }
 
 /**
- * Highlight the best performing student
+ * Highlight the best performing student based on actual data from server
  */
 function highlightBestPerformingStudent() {
     const studentCards = document.querySelectorAll('.student-summary-card');
@@ -735,14 +431,14 @@ function highlightBestPerformingStudent() {
     let bestScore = 0;
     let bestStudent = null;
     
-    // Find highest scoring student
+    // Find highest scoring student from actual data
     studentCards.forEach(card => {
         const badge = card.querySelector('.badge');
         if (!badge) return;
         
         // Extract numeric score from badge text
         const scoreText = badge.textContent.trim();
-        const score = parseInt(scoreText);
+        const score = parseInt(scoreText.replace(/[^\d]/g, ''));
         
         if (!isNaN(score) && score > bestScore) {
             bestScore = score;
@@ -758,58 +454,101 @@ function highlightBestPerformingStudent() {
         const starBadge = document.createElement('div');
         starBadge.className = 'best-performer-badge';
         starBadge.innerHTML = '<i class="fas fa-crown text-warning"></i>';
+        starBadge.style.cssText = `
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: white;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        `;
         
         const container = bestStudent.querySelector('.d-flex');
-        if (container) container.appendChild(starBadge);
+        if (container) {
+            container.style.position = 'relative';
+            container.appendChild(starBadge);
+        }
     }
 }
 
 /**
- * Generate parenting tips with contextual advice
+ * Generate parenting tips based on actual student data
  */
 function generateParentingTips() {
+    // ลบข้อมูลตัวอย่าง ให้สร้างคำแนะนำจากข้อมูลจริง
+    const studentCards = document.querySelectorAll('.student-summary-card');
+    const tips = [];
+    
+    studentCards.forEach(card => {
+        const nameElement = card.querySelector('h4');
+        const scoreElement = card.querySelector('.badge');
+        const changeElement = card.querySelector('.text-success, .text-danger');
+        
+        if (nameElement && scoreElement) {
+            const name = nameElement.textContent.trim();
+            const score = parseInt(scoreElement.textContent.replace(/[^\d]/g, ''));
+            
+            // สร้างคำแนะนำตามคะแนนจริง
+            if (score >= 90) {
+                tips.push({
+                    icon: 'fas fa-star',
+                    color: 'success',
+                    message: `${name} มีผลการเรียนดีเยี่ยม ควรสนับสนุนให้เข้าร่วมกิจกรรมเพิ่มเติม`
+                });
+            } else if (score >= 80) {
+                tips.push({
+                    icon: 'fas fa-thumbs-up',
+                    color: 'info',
+                    message: `${name} มีความก้าวหน้าที่ดี ควรให้กำลังใจต่อไป`
+                });
+            } else if (score < 70) {
+                tips.push({
+                    icon: 'fas fa-bell',
+                    color: 'warning',
+                    message: `${name} ต้องการความช่วยเหลือเพิ่มเติม ควรติดตามอย่างใกล้ชิด`
+                });
+            }
+        }
+    });
+    
+    // ถ้าไม่มีข้อมูลให้แสดงเคล็ดลับทั่วไป
+    if (tips.length === 0) {
+        tips.push({
+            icon: 'fas fa-lightbulb',
+            color: 'info',
+            message: 'สื่อสารกับบุตรหลานอย่างสม่ำเสมอเพื่อติดตามความเป็นไปในโรงเรียน'
+        });
+    }
+    
     const tipsContainer = document.createElement('div');
     tipsContainer.className = 'app-card p-3 mt-4';
     tipsContainer.innerHTML = `
         <h3 class="h5 text-primary-app mb-3">คำแนะนำสำหรับผู้ปกครอง</h3>
         <div class="parenting-tips">
-            <div class="tip-item d-flex py-2 border-bottom">
-                <div class="me-3">
-                    <div class="bg-info rounded-circle tip-icon d-flex align-items-center justify-content-center">
-                        <i class="fas fa-lightbulb text-white"></i>
+            ${tips.slice(0, 3).map((tip, index) => `
+                <div class="tip-item d-flex py-2 ${index < tips.length - 1 ? 'border-bottom' : ''}">
+                    <div class="me-3">
+                        <div class="bg-${tip.color} rounded-circle tip-icon d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                            <i class="${tip.icon} text-white"></i>
+                        </div>
+                    </div>
+                    <div>
+                        <p class="mb-0 fw-medium">${tip.message}</p>
                     </div>
                 </div>
-                <div>
-                    <p class="mb-0 fw-medium">สนับสนุนให้ ด.ช. กล้า ทำกิจกรรมจิตอาสาต่อไป เพื่อพัฒนาความเป็นผู้นำ</p>
-                </div>
-            </div>
-            <div class="tip-item d-flex py-2 border-bottom">
-                <div class="me-3">
-                    <div class="bg-warning rounded-circle tip-icon d-flex align-items-center justify-content-center">
-                        <i class="fas fa-bell text-white"></i>
-                    </div>
-                </div>
-                <div>
-                    <p class="mb-0 fw-medium">ควรติดตาม ด.ญ. ใจดี เรื่องการส่งการบ้านให้มากขึ้น</p>
-                </div>
-            </div>
-            <div class="tip-item d-flex py-2">
-                <div class="me-3">
-                    <div class="bg-success rounded-circle tip-icon d-flex align-items-center justify-content-center">
-                        <i class="fas fa-clock text-white"></i>
-                    </div>
-                </div>
-                <div>
-                    <p class="mb-0 fw-medium">ช่วยให้เด็กๆ มาโรงเรียนตรงเวลามากขึ้นเพื่อลดการมาสาย</p>
-                </div>
-            </div>
+            `).join('')}
         </div>
     `;
     
     // Insert tips with proper positioning
-    const eventsCard = document.querySelector('.event-list')?.closest('.app-card');
-    if (eventsCard) {
-        eventsCard.parentNode.insertBefore(tipsContainer, eventsCard.nextSibling);
+    const notificationCard = document.querySelector('.notification-list')?.closest('.app-card');
+    if (notificationCard) {
+        notificationCard.parentNode.insertBefore(tipsContainer, notificationCard.nextSibling);
     } else {
         document.querySelector('#all-students-view')?.appendChild(tipsContainer);
     }
@@ -819,6 +558,8 @@ function generateParentingTips() {
     tipItems.forEach((item, index) => {
         setTimeout(() => {
             item.classList.add('animated');
+            item.style.opacity = '1';
+            item.style.transform = 'translateY(0)';
         }, 600 + (index * 150));
     });
 }
@@ -827,6 +568,12 @@ function generateParentingTips() {
  * Create and show communication modal with teacher
  */
 function showCommunicationModal() {
+    // ใช้ข้อมูลจริงของผู้ปกครองจาก element ที่มีอยู่
+    const parentNameElement = document.querySelector('.parent-info-card h2');
+    const parentName = parentNameElement ? 
+        parentNameElement.textContent.replace('สวัสดี ', '').trim() : 
+        'ผู้ปกครอง';
+    
     // Create modal with Bootstrap structure
     const modal = document.createElement('div');
     modal.className = 'modal fade';
@@ -847,24 +594,10 @@ function showCommunicationModal() {
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <div class="chat-container p-3" style="height: 300px; overflow-y: auto; border-radius: 0.5rem;">
-                        <div class="message teacher-message mb-3">
-                            <div class="message-header d-flex justify-content-between">
-                                <span class="fw-bold"><i class="fas fa-user-tie me-1"></i> อ.สมชาย รักดี</span>
-                                <small class="text-muted">10:30 น.</small>
-                            </div>
-                            <div class="message-body p-3 bg-white rounded">
-                                สวัสดีคุณผู้ปกครอง ด.ช. กล้า มีพัฒนาการที่ดีขึ้นในช่วงที่ผ่านมา แต่ยังมีปัญหาเรื่องการมาสายอยู่บ้าง
-                            </div>
-                        </div>
-                        <div class="message parent-message mb-3 text-end">
-                            <div class="message-header d-flex justify-content-between">
-                                <span class="fw-bold"><i class="fas fa-user me-1"></i> คุณ ขจรศักดิ์ ภูมิมาลา</span>
-                                <small class="text-muted">10:45 น.</small>
-                            </div>
-                            <div class="message-body p-3 bg-primary-app text-white rounded">
-                                ขอบคุณสำหรับข้อมูลครับ ผมจะพยายามพาเขามาส่งให้เร็วขึ้น
-                            </div>
+                    <div class="chat-container p-3" style="height: 300px; overflow-y: auto; border-radius: 0.5rem; background-color: #f8f9fa;">
+                        <div class="text-center text-muted py-4">
+                            <i class="fas fa-comments fa-2x mb-2"></i>
+                            <p class="mb-0">เริ่มต้นการสนทนากับครูประจำชั้น</p>
                         </div>
                     </div>
                     <div class="message-input mt-3">
@@ -889,7 +622,6 @@ function showCommunicationModal() {
     
     // Set up event handler for cleanup
     modal.addEventListener('hidden.bs.modal', function () {
-        // Check if modal is still a child of document.body before removing
         if (modal.parentNode === document.body) {
             document.body.removeChild(modal);
         }
@@ -905,7 +637,7 @@ function showCommunicationModal() {
             if (!message) return;
             
             // Add message to chat
-            addChatMessage(modal, message);
+            addChatMessage(modal, message, parentName);
             inputField.value = '';
         };
         
@@ -919,9 +651,15 @@ function showCommunicationModal() {
 /**
  * Add chat message to communication modal
  */
-function addChatMessage(modal, message) {
+function addChatMessage(modal, message, senderName) {
     const chatContainer = modal.querySelector('.chat-container');
     if (!chatContainer) return;
+    
+    // Clear welcome message if it exists
+    const welcomeMessage = chatContainer.querySelector('.text-center');
+    if (welcomeMessage) {
+        welcomeMessage.remove();
+    }
     
     // Create new message element
     const messageElement = document.createElement('div');
@@ -933,10 +671,10 @@ function addChatMessage(modal, message) {
     
     messageElement.innerHTML = `
         <div class="message-header d-flex justify-content-between">
-            <span class="fw-bold"><i class="fas fa-user me-1"></i> คุณ ขจรศักดิ์ ภูมิมาลา</span>
             <small class="text-muted">${timeStr}</small>
+            <span class="fw-bold"><i class="fas fa-user me-1"></i> ${senderName}</span>
         </div>
-        <div class="message-body p-3 bg-primary-app text-white rounded">
+        <div class="message-body p-3 bg-primary text-white rounded mt-1" style="max-width: 70%; margin-left: auto;">
             ${message}
         </div>
     `;
@@ -968,9 +706,9 @@ function addChatMessage(modal, message) {
 function addTeacherResponse(chatContainer) {
     // Teacher responses
     const responses = [
-        'ขอบคุณมากครับ หากมีปัญหาอะไรเพิ่มเติมจะแจ้งให้ทราบนะครับ',
-        'สัปดาห์หน้ามีกิจกรรมจิตอาสา อยากให้น้องเข้าร่วมด้วยครับ',
-        'ไม่เป็นไรครับ เราจะช่วยกันดูแลน้องให้ดีที่สุดครับ'
+        'ขอบคุณที่ติดต่อมาครับ หากมีปัญหาอะไรเพิ่มเติมจะแจ้งให้ทราบนะครับ',
+        'จะติดตามเรื่องนี้และแจ้งให้ผู้ปกครองทราบครับ',
+        'ไม่เป็นไรครับ เราจะช่วยกันดูแลนักเรียนให้ดีที่สุดครับ'
     ];
     
     // Select random response
@@ -986,10 +724,10 @@ function addTeacherResponse(chatContainer) {
     
     messageElement.innerHTML = `
         <div class="message-header d-flex justify-content-between">
-            <span class="fw-bold"><i class="fas fa-user-tie me-1"></i> อ.สมชาย รักดี</span>
+            <span class="fw-bold"><i class="fas fa-user-tie me-1"></i> ครูประจำชั้น</span>
             <small class="text-muted">${timeStr}</small>
         </div>
-        <div class="message-body p-3 bg-white rounded">
+        <div class="message-body p-3 bg-white border rounded mt-1" style="max-width: 70%;">
             ${response}
         </div>
     `;
@@ -1017,18 +755,23 @@ function addScrollToTopButton() {
     const button = document.createElement('button');
     button.className = 'scroll-top-btn';
     button.innerHTML = '<i class="fas fa-chevron-up"></i>';
-    button.style.position = 'fixed';
-    button.style.bottom = '80px';
-    button.style.right = '20px';
-    button.style.width = '40px';
-    button.style.height = '40px';
-    button.style.borderRadius = '50%';
-    button.style.backgroundColor = 'var(--primary-app)';
-    button.style.color = 'white';
-    button.style.border = 'none';
-    button.style.boxShadow = '0 3px 10px rgba(0, 0, 0, 0.2)';
-    button.style.zIndex = '1000';
-    button.style.cursor = 'pointer';
+    button.style.cssText = `
+        position: fixed;
+        bottom: 80px;
+        right: 20px;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background-color: var(--primary-app, #1020AD);
+        color: white;
+        border: none;
+        box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+        z-index: 1000;
+        cursor: pointer;
+        opacity: 0;
+        visibility: hidden;
+        transition: all 0.3s ease;
+    `;
     
     document.body.appendChild(button);
     
@@ -1042,7 +785,13 @@ function addScrollToTopButton() {
         lastScrollTime = now;
         
         const scrollPos = window.pageYOffset || document.documentElement.scrollTop;
-        button.classList.toggle('visible', scrollPos > 300);
+        if (scrollPos > 300) {
+            button.style.opacity = '1';
+            button.style.visibility = 'visible';
+        } else {
+            button.style.opacity = '0';
+            button.style.visibility = 'hidden';
+        }
     }, { passive: true });
     
     // Smooth scroll to top

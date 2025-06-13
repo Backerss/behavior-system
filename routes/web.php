@@ -6,6 +6,7 @@ use App\Http\Controllers\ViolationController;
 use App\Http\Controllers\ClassroomController;
 use App\Http\Controllers\StudentController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\ParentController;
 
 // หน้าหลัก
 Route::get('/', function () {
@@ -37,7 +38,7 @@ Route::middleware('auth')->group(function () {
             case 'teacher':
                 return redirect()->route('teacher.dashboard');
             case 'guardian':
-                return redirect()->route('guardian.dashboard');
+                return redirect()->route('parent.dashboard');
             default:
                 return redirect('/');
         }
@@ -49,10 +50,15 @@ Route::middleware('auth')->group(function () {
     // หน้าแดชบอร์ดของครู
     Route::get('/teacher/dashboard', [AuthController::class, 'dashboard'])->name('teacher.dashboard');
     
-    // หน้าแดชบอร์ดของผู้ปกครอง
-    Route::get('/guardian/dashboard', function () {
-        return view('guardian.dashboard');
-    })->name('guardian.dashboard');
+    // หน้าแดชบอร์ดของผู้ปกครอง - ใช้ ParentController
+    Route::get('/parent/dashboard', [ParentController::class, 'dashboard'])->name('parent.dashboard');
+    
+    // Parent API routes
+    Route::prefix('api/parent')->group(function () {
+        Route::get('/student/{id}/reports', [ParentController::class, 'getStudentBehaviorReports']);
+        Route::get('/student/{id}/stats', [ParentController::class, 'getStudentBehaviorStats']);
+        Route::get('/student/{id}/chart', [ParentController::class, 'getStudentScoreChart']);
+    });
 });
 
 // API Routes

@@ -26,29 +26,13 @@
     
     <div class="app-container">
         <!-- Desktop Navbar (displays on larger screens) -->
-        <nav class="desktop-navbar d-none d-lg-flex">
+        <nav class="desktop-navbar d-none d-lg-flex jus">
             <div class="desktop-navbar-container">
                 <div class="desktop-navbar-brand">
                     <i class="fas fa-graduation-cap"></i>
                     <span>ระบบจัดการคะแนนพฤติกรรม</span>
                 </div>
                 <div class="desktop-navbar-menu">
-                    <a href="javascript:void(0);" class="desktop-nav-link active">
-                        <i class="fas fa-home"></i>
-                        <span>หน้าหลัก</span>
-                    </a>
-                    <a href="javascript:void(0);" class="desktop-nav-link">
-                        <i class="fas fa-history"></i>
-                        <span>ประวัติ</span>
-                    </a>
-                    <a href="javascript:void(0);" class="desktop-nav-link">
-                        <i class="fas fa-bell"></i>
-                        <span>การแจ้งเตือน</span>
-                    </a>
-                    <a href="javascript:void(0);" class="desktop-nav-link">
-                        <i class="fas fa-user"></i>
-                        <span>โปรไฟล์</span>
-                    </a>
                     <!-- เพิ่มปุ่มออกจากระบบในเมนู -->
                     <a href="javascript:void(0);" onclick="document.getElementById('logout-form').submit();" class="desktop-nav-link">
                         <i class="fas fa-sign-out-alt"></i>
@@ -110,13 +94,13 @@
                         <span>ทั้งหมด</span>
                     </button>
                     
-                    @if($user->guardian && $user->guardian->students)
-                        @foreach($user->guardian->students as $index => $student)
+                    @if(isset($studentsData) && count($studentsData) > 0)
+                        @foreach($studentsData as $index => $student)
                             <button class="student-tab" data-student="student{{ $index+1 }}">
                                 <div class="student-avatar-small">
                                     <i class="fas fa-user-graduate"></i>
                                 </div>
-                                <span>{{ $student->user->name_prefix }}{{ $student->user->first_name }} {{ $student->user->last_name }}</span>
+                                <span>{{ $student['name_prefix'] }}{{ $student['first_name'] }} {{ $student['last_name'] }}</span>
                             </button>
                         @endforeach
                     @endif
@@ -128,107 +112,50 @@
                 <div class="section-header d-flex justify-content-between align-items-center mb-3">
                     <h3 class="h5 mb-0">สรุปคะแนนรวมทุกนักเรียน</h3>
                     <div class="dropdown">
-                        <button class="btn btn-sm btn-outline-primary dropdown-toggle" type="button" id="timeRangeDropdown" data-bs-toggle="dropdown">
-                            <i class="fas fa-calendar-alt"></i> ภาคเรียนนี้
-                        </button>
-                        <ul class="dropdown-menu" aria-labelledby="timeRangeDropdown">
-                            <li><a class="dropdown-item" href="#">วันนี้</a></li>
-                            <li><a class="dropdown-item" href="#">สัปดาห์นี้</a></li>
-                            <li><a class="dropdown-item" href="#">เดือนนี้</a></li>
-                            <li><a class="dropdown-item" href="#">ภาคเรียนนี้</a></li>
-                            <li><a class="dropdown-item" href="#">ปีการศึกษานี้</a></li>
-                        </ul>
+                       ภาคเรียนนี้
                     </div>
                 </div>
 
                 <!-- Student Cards Summary -->
                 <div class="desktop-grid-summary">
-                    <!-- Student 1 Summary Card -->
-                    <div class="app-card student-summary-card p-3">
-                        <div class="d-flex align-items-center mb-3">
-                            <div class="me-3">
-                                <div class="student-avatar-summary bg-primary-app text-white rounded-circle d-flex align-items-center justify-content-center">
-                                    <i class="fas fa-user-graduate"></i>
+                    @if(isset($studentsData) && count($studentsData) > 0)
+                        @foreach($studentsData as $index => $student)
+                            <div class="app-card student-summary-card p-3">
+                                <div class="d-flex align-items-center mb-3">
+                                    <div class="me-3">
+                                        <div class="student-avatar-summary bg-primary-app text-white rounded-circle d-flex align-items-center justify-content-center">
+                                            <i class="fas fa-user-graduate"></i>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <h4 class="h6 mb-1">{{ $student['name_prefix'] }}{{ $student['first_name'] }} {{ $student['last_name'] }}</h4>
+                                        <p class="text-muted small mb-0">ชั้น {{ $student['class_level'] }}/{{ $student['class_room'] }} เลขที่ {{ $student['student_code'] }}</p>
+                                    </div>
+                                    <div class="ms-auto">
+                                        <span class="badge bg-{{ $student['score_color'] }} {{ $student['score_color'] == 'warning' ? 'text-dark' : '' }}">{{ $student['current_score'] }} คะแนน</span>
+                                    </div>
+                                </div>
+                                <div class="progress" style="height: 8px;">
+                                    <div class="progress-bar bg-{{ $student['score_color'] }}" role="progressbar" style="width: {{ $student['current_score'] }}%;" aria-valuenow="{{ $student['current_score'] }}" aria-valuemin="0" aria-valuemax="100"></div>
+                                </div>
+                                <div class="d-flex justify-content-between mt-3">
+                                    <span class="text-{{ $student['change_color'] }} small fw-medium">
+                                        <i class="fas fa-arrow-{{ $student['change_direction'] }}"></i> 
+                                        {{ $student['weekly_change'] >= 0 ? '+' : '' }}{{ $student['weekly_change'] }} คะแนน สัปดาห์นี้
+                                    </span>
+                                    <a href="javascript:void(0);" class="view-details-link" data-student="student{{ $index+1 }}">
+                                        ดูรายละเอียด <i class="fas fa-chevron-right"></i>
+                                    </a>
                                 </div>
                             </div>
-                            <div>
-                                <h4 class="h6 mb-1">ด.ช. กล้า ภูมิมาลา</h4>
-                                <p class="text-muted small mb-0">ชั้น ม.2/3 เลขที่ 5</p>
-                            </div>
-                            <div class="ms-auto">
-                                <span class="badge bg-success">95 คะแนน</span>
-                            </div>
+                        @endforeach
+                    @else
+                        <div class="app-card p-4 text-center">
+                            <i class="fas fa-users fa-3x text-muted mb-3"></i>
+                            <h5 class="text-muted">ยังไม่มีข้อมูลนักเรียน</h5>
+                            <p class="text-muted">กรุณาติดต่อเจ้าหน้าที่เพื่อเชื่อมโยงข้อมูลนักเรียน</p>
                         </div>
-                        <div class="progress" style="height: 8px;">
-                            <div class="progress-bar bg-success" role="progressbar" style="width: 95%;" aria-valuenow="95" aria-valuemin="0" aria-valuemax="100"></div>
-                        </div>
-                        <div class="d-flex justify-content-between mt-3">
-                            <span class="text-success small fw-medium">
-                                <i class="fas fa-arrow-up"></i> +5 คะแนน สัปดาห์นี้
-                            </span>
-                            <a href="javascript:void(0);" class="view-details-link" data-student="student1">
-                                ดูรายละเอียด <i class="fas fa-chevron-right"></i>
-                            </a>
-                        </div>
-                    </div>
-
-                    <!-- Student 2 Summary Card -->
-                    <div class="app-card student-summary-card p-3">
-                        <div class="d-flex align-items-center mb-3">
-                            <div class="me-3">
-                                <div class="student-avatar-summary bg-primary-app text-white rounded-circle d-flex align-items-center justify-content-center">
-                                    <i class="fas fa-user-graduate"></i>
-                                </div>
-                            </div>
-                            <div>
-                                <h4 class="h6 mb-1">ด.ญ. ใจดี ภูมิมาลา</h4>
-                                <p class="text-muted small mb-0">ชั้น ม.3/1 เลขที่ 12</p>
-                            </div>
-                            <div class="ms-auto">
-                                <span class="badge bg-warning text-dark">75 คะแนน</span>
-                            </div>
-                        </div>
-                        <div class="progress" style="height: 8px;">
-                            <div class="progress-bar bg-warning" role="progressbar" style="width: 75%;" aria-valuenow="75" aria-valuemin="0" aria-valuemax="100"></div>
-                        </div>
-                        <div class="d-flex justify-content-between mt-3">
-                            <span class="text-danger small fw-medium">
-                                <i class="fas fa-arrow-down"></i> -3 คะแนน สัปดาห์นี้
-                            </span>
-                            <a href="javascript:void(0);" class="view-details-link" data-student="student2">
-                                ดูรายละเอียด <i class="fas fa-chevron-right"></i>
-                            </a>
-                        </div>
-                    </div>
-
-                    <!-- Student 3 Summary Card -->
-                    <div class="app-card student-summary-card p-3">
-                        <div class="d-flex align-items-center mb-3">
-                            <div class="me-3">
-                                <div class="student-avatar-summary bg-primary-app text-white rounded-circle d-flex align-items-center justify-content-center">
-                                    <i class="fas fa-user-graduate"></i>
-                                </div>
-                            </div>
-                            <div>
-                                <h4 class="h6 mb-1">ด.ช. จริง ภูมิมาลา</h4>
-                                <p class="text-muted small mb-0">ชั้น ม.1/2 เลขที่ 18</p>
-                            </div>
-                            <div class="ms-auto">
-                                <span class="badge bg-primary">85 คะแนน</span>
-                            </div>
-                        </div>
-                        <div class="progress" style="height: 8px;">
-                            <div class="progress-bar bg-primary" role="progressbar" style="width: 85%;" aria-valuenow="85" aria-valuemin="0" aria-valuemax="100"></div>
-                        </div>
-                        <div class="d-flex justify-content-between mt-3">
-                            <span class="text-success small fw-medium">
-                                <i class="fas fa-arrow-up"></i> +2 คะแนน สัปดาห์นี้
-                            </span>
-                            <a href="javascript:void(0);" class="view-details-link" data-student="student3">
-                                ดูรายละเอียด <i class="fas fa-chevron-right"></i>
-                            </a>
-                        </div>
-                    </div>
+                    @endif
                 </div>
 
                 <!-- Recent Notifications for All Students -->
@@ -241,278 +168,349 @@
 
                 <div class="app-card p-3">
                     <div class="notification-list">
-                        <div class="notification-item d-flex py-2 border-bottom">
-                            <div class="me-3">
-                                <div class="bg-danger rounded-circle notification-icon d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
-                                    <i class="fas fa-exclamation text-white"></i>
+                        @if(isset($notifications) && $notifications->count() > 0)
+                            @foreach($notifications->take(5) as $notification)
+                                <div class="notification-item d-flex py-2 {{ !$loop->last ? 'border-bottom' : '' }}">
+                                    <div class="me-3">
+                                        <div class="bg-{{ $notification['type'] }} rounded-circle notification-icon d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                                            <i class="{{ $notification['icon'] }} text-white"></i>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <p class="mb-0 fw-medium">{{ $notification['message'] }}</p>
+                                        <p class="text-muted small mb-0">{{ $notification['date'] }}</p>
+                                    </div>
+                                    <div class="ms-auto align-self-center">
+                                        <span class="badge {{ $notification['badge_class'] }}">{{ $notification['badge_text'] }}</span>
+                                    </div>
                                 </div>
+                            @endforeach
+                        @else
+                            <div class="text-center py-4">
+                                <i class="fas fa-bell-slash fa-2x text-muted mb-2"></i>
+                                <p class="text-muted mb-0">ยังไม่มีการแจ้งเตือน</p>
                             </div>
-                            <div>
-                                <p class="mb-0 fw-medium">ด.ช. กล้า มาสาย 3 วันติดต่อกัน</p>
-                                <p class="text-muted small mb-0">วันนี้, 08:30 น.</p>
-                            </div>
-                            <div class="ms-auto align-self-center">
-                                <span class="badge bg-danger">ด่วน</span>
-                            </div>
-                        </div>
-                        <div class="notification-item d-flex py-2 border-bottom">
-                            <div class="me-3">
-                                <div class="bg-warning rounded-circle notification-icon d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
-                                    <i class="fas fa-minus-circle text-white"></i>
-                                </div>
-                            </div>
-                            <div>
-                                <p class="mb-0 fw-medium">ด.ญ. ใจดี ถูกหักคะแนน -3 จากการไม่ส่งการบ้าน</p>
-                                <p class="text-muted small mb-0">เมื่อวานนี้, 14:20 น.</p>
-                            </div>
-                            <div class="ms-auto align-self-center">
-                                <span class="badge bg-warning text-dark">แจ้งเตือน</span>
-                            </div>
-                        </div>
-                        <div class="notification-item d-flex py-2">
-                            <div class="me-3">
-                                <div class="bg-success rounded-circle notification-icon d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
-                                    <i class="fas fa-award text-white"></i>
-                                </div>
-                            </div>
-                            <div>
-                                <p class="mb-0 fw-medium">ด.ช. จริง ได้รับเหรียญรางวัล "นักเรียนดีเด่น"</p>
-                                <p class="text-muted small mb-0">3 วันที่แล้ว</p>
-                            </div>
-                            <div class="ms-auto align-self-center">
-                                <span class="badge bg-success">ข่าวดี</span>
-                            </div>
-                        </div>
+                        @endif
                     </div>
                 </div>
-            
             </div>
 
             <!-- Individual Student View (initially hidden) -->
             <div id="individual-student-view" class="d-none">
-                <!-- Back to all students button -->
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <button class="btn btn-sm btn-outline-primary back-to-all">
-                        <i class="fas fa-arrow-left"></i> กลับไปยังภาพรวม
-                    </button>
-                    <div class="dropdown">
-                        <button class="btn btn-sm btn-outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                            <i class="fas fa-calendar-alt"></i> ภาคเรียนนี้
-                        </button>
-                        <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="#">วันนี้</a></li>
-                            <li><a class="dropdown-item" href="#">สัปดาห์นี้</a></li>
-                            <li><a class="dropdown-item" href="#">เดือนนี้</a></li>
-                            <li><a class="dropdown-item" href="#">ภาคเรียนนี้</a></li>
-                            <li><a class="dropdown-item" href="#">ปีการศึกษานี้</a></li>
-                        </ul>
-                    </div>
-                </div>
-
-                <!-- Student Header Info -->
-                <div class="student-header app-card p-3 mb-4">
-                    <div class="d-flex align-items-center">
-                        <div class="student-avatar bg-primary-app text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
-                            <i class="fas fa-user-graduate fa-2x"></i>
-                        </div>
-                        <div class="ms-3">
-                            <h3 class="h5 mb-1 student-name">ด.ช. กล้า ภูมิมาลา</h3>
-                            <p class="text-muted mb-0 student-class">ชั้น ม.2/3 เลขที่ 5</p>
-                        </div>
-                        <div class="ms-auto">
-                            <span class="badge bg-success student-points-badge">95 คะแนน</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Desktop Grid for Individual Student -->
-                <div class="desktop-grid">
-                    <!-- Left Column: Points and Rank -->
-                    <div class="metrics-area">
-                        <!-- Points Score Card -->
-                        <div class="app-card stats-card p-3">
-                            <div class="text-center">
-                                <h3 class="h5 text-primary-app mb-3">คะแนนความประพฤติ</h3>
-                                <p class="display-4 fw-bold mb-2 stats-value student-points">95</p>
-                                <span class="badge bg-success student-status">ดีมาก</span>
+                @if(isset($studentsData) && count($studentsData) > 0)
+                    @foreach($studentsData as $index => $student)
+                        <div id="student{{ $index+1 }}-view" class="student-detail-view d-none">
+                            <!-- Back to all students button -->
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <button class="btn btn-sm btn-outline-primary back-to-all">
+                                    <i class="fas fa-arrow-left"></i> กลับไปยังภาพรวม
+                                </button>
+                                ภาคเรียนนี้
                             </div>
-                        </div>
-                        
-                        <!-- Class Rank Card -->
-                        <div class="app-card stats-card p-3 mt-4">
-                            <div class="text-center">
-                                <h3 class="h5 text-primary-app mb-3">อันดับในห้องเรียน</h3>
-                                <p class="display-4 fw-bold mb-2 stats-value student-rank">3<span class="fs-6">/30</span></p>
-                                <span class="badge bg-secondary-app text-dark">กลุ่มหัวหน้า</span>
-                            </div>
-                        </div>
 
-                        <!-- Teacher Contact Card -->
-                        <div class="app-card p-3 mt-4">
-                            <h3 class="h5 text-primary-app mb-3">ครูประจำชั้น</h3>
-                            <div class="d-flex align-items-center">
-                                <div class="teacher-avatar bg-secondary-app rounded-circle d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
-                                    <i class="fas fa-user-tie text-dark"></i>
-                                </div>
-                                <div class="ms-3">
-                                    <h4 class="h6 mb-1">อ.สมชาย รักดี</h4>
-                                    <a href="tel:0812345678" class="small text-primary">
-                                        <i class="fas fa-phone-alt"></i> 081-234-5678
-                                    </a>
+                            <!-- Student Header Info -->
+                            <div class="student-header app-card p-3 mb-4">
+                                <div class="d-flex align-items-center">
+                                    <div class="student-avatar bg-primary-app text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
+                                        <i class="fas fa-user-graduate fa-2x"></i>
+                                    </div>
+                                    <div class="ms-3">
+                                        <h3 class="h5 mb-1 student-name">{{ $student['name_prefix'] }}{{ $student['first_name'] }} {{ $student['last_name'] }}</h3>
+                                        <p class="text-muted mb-0 student-class">ชั้น {{ $student['class_level'] }}/{{ $student['class_room'] }} เลขที่ {{ $student['student_code'] }}</p>
+                                    </div>
+                                    <div class="ms-auto">
+                                        <span class="badge bg-{{ $student['score_color'] }} student-points-badge">{{ $student['current_score'] }} คะแนน</span>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Middle Column: Behavior Chart -->
-                    <div class="chart-area">
-                        <div class="app-card h-100 p-4">
-                            <h3 class="h5 text-primary-app mb-3">สรุปคะแนนพฤติกรรม</h3>
-                            <div class="chart-container desktop-chart">
-                                <canvas id="studentBehaviorChart"></canvas>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Right Column: Recent Activities -->
-                    <div class="activities-area">
-                        <div class="app-card p-4 h-100">
-                            <h3 class="h5 text-primary-app mb-3">กิจกรรมล่าสุด</h3>
-                            <div class="activity-list">
-                                <div class="activity-item d-flex py-2 border-bottom">
-                                    <div class="me-3">
-                                        <div class="bg-success rounded-circle activity-icon d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
-                                            <i class="fas fa-plus text-white"></i>
+
+                            <!-- แสดงข้อมูลรายละเอียดของนักเรียนแต่ละคน -->
+                            <div class="desktop-grid">
+                                <!-- Left Column: Points and Rank -->
+                                <div class="metrics-area">
+                                    <!-- Points Score Card -->
+                                    <div class="app-card stats-card p-3">
+                                        <div class="text-center">
+                                            <h3 class="h5 text-primary-app mb-3">คะแนนความประพฤติ</h3>
+                                            <p class="display-4 fw-bold mb-2 stats-value student-points">{{ $student['current_score'] }}</p>
+                                            <span class="badge bg-{{ $student['score_color'] }} student-status">{{ $student['score_status'] }}</span>
                                         </div>
                                     </div>
-                                    <div class="activity-content">
-                                        <p class="mb-0 fw-medium">ได้รับคะแนน +5 จากกิจกรรมจิตอาสา</p>
-                                        <p class="text-muted small mb-0">โดย อ.สมศรี - 10 พ.ค. 2568</p>
-                                    </div>
-                                </div>
-                                <div class="activity-item d-flex py-2 border-bottom">
-                                    <div class="me-3">
-                                        <div class="bg-danger rounded-circle activity-icon d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
-                                            <i class="fas fa-minus text-white"></i>
+                                    
+                                    <!-- Class Rank Card -->
+                                    <div class="app-card stats-card p-3 mt-4">
+                                        <div class="text-center">
+                                            <h3 class="h5 text-primary-app mb-3">อันดับในห้องเรียน</h3>
+                                            <p class="display-4 fw-bold mb-2 stats-value student-rank">{{ $student['class_rank'] }}<span class="fs-6">/{{ $student['total_students'] }}</span></p>
+                                            <span class="badge bg-secondary-app text-dark">
+                                                @if($student['class_rank'] == 1)
+                                                    อันดับ 1
+                                                @elseif($student['class_rank'] <= 3)
+                                                    กลุ่มหัวหน้า
+                                                @elseif($student['class_rank'] <= ceil($student['total_students'] / 2))
+                                                    กลุ่มกลาง
+                                                @else
+                                                    ต้องปรับปรุง
+                                                @endif
+                                            </span>
                                         </div>
                                     </div>
-                                    <div class="activity-content">
-                                        <p class="mb-0 fw-medium">ถูกหักคะแนน -2 จากการมาสาย</p>
-                                        <p class="text-muted small mb-0">โดย อ.ใจดี - 8 พ.ค. 2568</p>
-                                    </div>
-                                </div>
-                                <div class="activity-item d-flex py-2 border-bottom">
-                                    <div class="me-3">
-                                        <div class="bg-success rounded-circle activity-icon d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
-                                            <i class="fas fa-plus text-white"></i>
-                                        </div>
-                                    </div>
-                                    <div class="activity-content">
-                                        <p class="mb-0 fw-medium">ได้รับคะแนน +3 จากการช่วยเหลือครู</p>
-                                        <p class="text-muted small mb-0">โดย อ.พิมพ์ใจ - 5 พ.ค. 2568</p>
-                                    </div>
-                                </div>
-                                <div class="activity-item d-flex py-2">
-                                    <div class="me-3">
-                                        <div class="bg-primary-app rounded-circle activity-icon d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
-                                            <i class="fas fa-award text-white"></i>
-                                        </div>
-                                    </div>
-                                    <div class="activity-content">
-                                        <p class="mb-0 fw-medium">ได้รับเหรียญรางวัล "นักเรียนดีเด่น"</p>
-                                        <p class="text-muted small mb-0">ระบบอัตโนมัติ - 1 พ.ค. 2568</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
 
-                <!-- Attendance Overview Card -->
-                <div class="app-card mt-4 p-3">
-                    <h3 class="h5 text-primary-app mb-3">ประวัติการเข้าเรียน</h3>
-                    <div class="row">
-                        <div class="col-md-8">
-                            <div class="attendance-chart-container">
-                                <canvas id="attendanceChart" height="200"></canvas>
+                                    <!-- Teacher Contact Card -->
+                                    <div class="app-card p-3 mt-4">
+                                        <h3 class="h5 text-primary-app mb-3">ครูประจำชั้น</h3>
+                                        <div class="d-flex align-items-center">
+                                            <div class="teacher-avatar bg-secondary-app rounded-circle d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
+                                                <i class="fas fa-user-tie text-dark"></i>
+                                            </div>
+                                            <div class="ms-3">
+                                                <h4 class="h6 mb-1">{{ $student['homeroom_teacher']['name'] }}</h4>
+                                                @if($student['homeroom_teacher']['phone'])
+                                                <a href="tel:{{ $student['homeroom_teacher']['phone'] }}" class="small text-primary">
+                                                    <i class="fas fa-phone-alt"></i> {{ $student['homeroom_teacher']['phone'] }}
+                                                </a>
+                                                @endif
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Middle Column: Behavior Chart -->
+                                <div class="chart-area">
+                                    <div class="app-card h-100 p-4">
+                                        <h3 class="h5 text-primary-app mb-3">สรุปคะแนนพฤติกรรม</h3>
+                                        <div class="chart-container desktop-chart">
+                                            <canvas id="studentBehaviorChart{{ $index+1 }}"></canvas>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Right Column: Recent Activities -->
+                                <div class="activities-area">
+                                    <div class="app-card p-4 h-100">
+                                        <h3 class="h5 text-primary-app mb-3">กิจกรรมล่าสุด</h3>
+                                        <div class="activity-list">
+                                            @if(isset($student['recent_activities']) && count($student['recent_activities']) > 0)
+                                                @foreach($student['recent_activities'] as $activity)
+                                                    <div class="activity-item d-flex py-2 {{ !$loop->last ? 'border-bottom' : '' }}">
+                                                        <div class="me-3">
+                                                            <div class="bg-{{ $activity['color'] }} rounded-circle activity-icon d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                                                                <i class="{{ $activity['icon'] }} text-white"></i>
+                                                            </div>
+                                                        </div>
+                                                        <div class="activity-content">
+                                                            <p class="mb-0 fw-medium">{{ $activity['message'] }}</p>
+                                                            <p class="text-muted small mb-0">โดย {{ $activity['teacher'] }} - {{ $activity['date'] }}</p>
+                                                        </div>
+                                                    </div>
+                                                @endforeach
+                                            @else
+                                                <div class="text-center py-4">
+                                                    <i class="fas fa-history fa-2x text-muted mb-2"></i>
+                                                    <p class="text-muted mb-0">ยังไม่มีกิจกรรมที่บันทึก</p>
+                                                </div>
+                                            @endif
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="attendance-stats">
-                                <div class="attendance-stat-item d-flex justify-content-between align-items-center mb-3">
-                                    <div>
-                                        <i class="fas fa-check-circle text-success"></i>
-                                        <span>มาเรียน</span>
-                                    </div>
-                                    <span class="fw-medium">42 วัน (84%)</span>
-                                </div>
-                                <div class="attendance-stat-item d-flex justify-content-between align-items-center mb-3">
-                                    <div>
-                                        <i class="fas fa-clock text-warning"></i>
-                                        <span>มาสาย</span>
-                                    </div>
-                                    <span class="fw-medium">5 วัน (10%)</span>
-                                </div>
-                                <div class="attendance-stat-item d-flex justify-content-between align-items-center">
-                                    <div>
-                                        <i class="fas fa-times-circle text-danger"></i>
-                                        <span>ขาดเรียน</span>
-                                    </div>
-                                    <span class="fw-medium">3 วัน (6%)</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Contact Teacher Button -->
-                <div class="mt-4 mb-4 text-center">
-                    <button class="btn btn-primary btn-lg contact-teacher-btn">
-                        <i class="fas fa-comment-dots me-2"></i> ติดต่อครูประจำชั้น
-                    </button>
-                </div>
+                    @endforeach
+                @endif
             </div>
+
         </div>
 
-        <!-- Bottom Navbar (Mobile Only) -->
-        <nav class="bottom-navbar d-lg-none">
-            <div class="container">
-                <div class="row text-center">
-                    <div class="col">
-                        <a href="javascript:void(0);" class="nav-link text-primary-app active">
-                            <i class="fas fa-home"></i>
-                            <span>หน้าหลัก</span>
-                        </a>
-                    </div>
-                    <div class="col">
-                        <a href="javascript:void(0);" class="nav-link text-muted">
-                            <i class="fas fa-history"></i>
-                            <span>ประวัติ</span>
-                        </a>
-                    </div>
-                    <div class="col">
-                        <a href="javascript:void(0);" class="nav-link text-muted position-relative">
-                            <i class="fas fa-bell"></i>
-                            <span class="position-absolute top-0 start-75 translate-middle badge rounded-pill bg-danger">
-                                2
-                            </span>
-                            <span>แจ้งเตือน</span>
-                        </a>
-                    </div>
-                    <div class="col">
-                        <a href="javascript:void(0);" class="nav-link text-muted">
-                            <i class="fas fa-user"></i>
-                            <span>โปรไฟล์</span>
-                        </a>
-                    </div>
-                </div>
-            </div>
-        </nav>
     </div>
 
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
     <!-- Parent Dashboard JS -->
     <script src="/js/parent-dashboard.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // ข้อมูลนักเรียนจาก PHP
+            const studentsData = @json($studentsData ?? []);
+            
+            // Student tab functionality
+            const studentTabs = document.querySelectorAll('.student-tab');
+            const allStudentsView = document.getElementById('all-students-view');
+            const individualStudentView = document.getElementById('individual-student-view');
+            const backToAllButtons = document.querySelectorAll('.back-to-all');
+            const viewDetailsLinks = document.querySelectorAll('.view-details-link');
+
+            // ฟังก์ชันสำหรับแสดงมุมมองทั้งหมด
+            function showAllStudentsView() {
+                allStudentsView.classList.remove('d-none');
+                individualStudentView.classList.add('d-none');
+                
+                // ซ่อนมุมมองรายละเอียดทั้งหมด
+                document.querySelectorAll('.student-detail-view').forEach(view => {
+                    view.classList.add('d-none');
+                });
+                
+                // ตั้งค่าแท็บ "ทั้งหมด" เป็น active
+                studentTabs.forEach(tab => tab.classList.remove('active'));
+                document.querySelector('[data-student="all"]').classList.add('active');
+            }
+
+            // ฟังก์ชันสำหรับแสดงมุมมองรายละเอียดนักเรียน
+            function showStudentDetailView(studentId) {
+                allStudentsView.classList.add('d-none');
+                individualStudentView.classList.remove('d-none');
+                
+                // ซ่อนมุมมองรายละเอียดทั้งหมดก่อน
+                document.querySelectorAll('.student-detail-view').forEach(view => {
+                    view.classList.add('d-none');
+                });
+                
+                // แสดงมุมมองของนักเรียนที่เลือก
+                const targetView = document.getElementById(`${studentId}-view`);
+                if (targetView) {
+                    targetView.classList.remove('d-none');
+                    
+                    // โหลดข้อมูลเพิ่มเติมสำหรับนักเรียนคนนี้
+                    const studentIndex = parseInt(studentId.replace('student', '')) - 1;
+                    if (studentsData[studentIndex]) {
+                        loadStudentDetails(studentsData[studentIndex], studentIndex + 1);
+                    }
+                }
+            }
+
+            // ฟังก์ชันโหลดข้อมูลรายละเอียดนักเรียน
+            function loadStudentDetails(student, index) {
+                // โหลดกราฟคะแนน
+                loadStudentScoreChart(student.id, index);
+            }
+
+            // ฟังก์ชันสร้างกราฟคะแนนนักเรียนจากข้อมูลจริง
+            function loadStudentScoreChart(studentId, index) {
+                const ctx = document.getElementById(`studentBehaviorChart${index}`);
+                if (!ctx) return;
+
+                // ดึงข้อมูลจาก API
+                fetch(`/api/parent/student/${studentId}/chart`)
+                    .then(response => response.json())
+                    .then(data => {
+                        new Chart(ctx, {
+                            type: 'line',
+                            data: {
+                                labels: data.labels,
+                                datasets: [{
+                                    label: 'คะแนนพฤติกรรม',
+                                    data: data.data,
+                                    borderColor: '#1020AD',
+                                    backgroundColor: 'rgba(16, 32, 173, 0.1)',
+                                    tension: 0.4,
+                                    fill: true
+                                }]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                plugins: {
+                                    legend: {
+                                        display: false
+                                    }
+                                },
+                                scales: {
+                                    y: {
+                                        beginAtZero: false,
+                                        min: 0,
+                                        max: 100,
+                                        ticks: {
+                                            callback: function(value) {
+                                                return value + ' คะแนน';
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        });
+                    })
+                    .catch(error => {
+                        console.error('Error loading chart data:', error);
+                        // แสดงข้อมูลตัวอย่างหากไม่สามารถโหลดได้
+                        const fallbackData = {
+                            labels: ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.'],
+                            datasets: [{
+                                label: 'คะแนนพฤติกรรม',
+                                data: [95, 92, 88, 90, 85, studentsData[index-1]?.current_score || 100],
+                                borderColor: '#1020AD',
+                                backgroundColor: 'rgba(16, 32, 173, 0.1)',
+                                tension: 0.4,
+                                fill: true
+                            }]
+                        };
+
+                        new Chart(ctx, {
+                            type: 'line',
+                            data: fallbackData,
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                plugins: {
+                                    legend: {
+                                        display: false
+                                    }
+                                },
+                                scales: {
+                                    y: {
+                                        beginAtZero: false,
+                                        min: 0,
+                                        max: 100,
+                                        ticks: {
+                                            callback: function(value) {
+                                                return value + ' คะแนน';
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        });
+                    });
+            }
+
+            // Event listeners สำหรับแท็บนักเรียน
+            studentTabs.forEach(tab => {
+                tab.addEventListener('click', function() {
+                    const studentId = this.dataset.student;
+                    
+                    // อัปเดตแท็บที่ active
+                    studentTabs.forEach(t => t.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    if (studentId === 'all') {
+                        showAllStudentsView();
+                    } else {
+                        showStudentDetailView(studentId);
+                    }
+                });
+            });
+
+            // Event listeners สำหรับลิงก์ "ดูรายละเอียด"
+            viewDetailsLinks.forEach(link => {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const studentId = this.dataset.student;
+                    
+                    // อัปเดตแท็บที่ active
+                    studentTabs.forEach(tab => tab.classList.remove('active'));
+                    const targetTab = document.querySelector(`[data-student="${studentId}"]`);
+                    if (targetTab) {
+                        targetTab.classList.add('active');
+                    }
+                    
+                    showStudentDetailView(studentId);
+                });
+            });
+
+            // Event listeners สำหรับปุ่ม "กลับไปยังภาพรวม"
+            backToAllButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    showAllStudentsView();
+                });
+            });
+        });
+    </script>
 </body>
 </html>

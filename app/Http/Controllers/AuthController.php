@@ -154,7 +154,7 @@ class AuthController extends Controller
             case 'teacher':
                 return redirect()->route('teacher.dashboard');
             case 'guardian':
-                return redirect()->route('guardian.dashboard');
+                return redirect()->route('parent.dashboard'); // เปลี่ยนให้ไปหน้า parent dashboard
             default:
                 return redirect()->intended('dashboard');
         }
@@ -167,20 +167,18 @@ class AuthController extends Controller
             $role = $request->role;
             
             // กำหนดกฎการตรวจสอบตาม role
-            $rules = [
-                'password' => 'required',
-            ];
+            $rules = [];
 
             // เพิ่มกฎการตรวจสอบตาม role
             switch ($role) {
                 case 'teacher':
                 case 'student':
                     $rules['email'] = 'required|email';
+                    $rules['password'] = 'required';
                     break;
                     
                 case 'guardian':
-                    $rules['parent_phone'] = 'required';
-                    $rules['student_code'] = 'required';
+                    $rules['parent_phone'] = 'required|string';
                     break;
             }
             
@@ -198,47 +196,44 @@ class AuthController extends Controller
                 case 'teacher':
                 case 'student':
                     $credentials = [
-                        'users_email' => $request->email, // แก้จาก email เป็น users_email
-                        'users_password' => $request->password, // แก้จาก password เป็น users_password
-                        'users_role' => $role // แก้จาก role เป็น users_role
+                        'users_email' => $request->email,
+                        'users_password' => $request->password,
+                        'users_role' => $role
                     ];
                     break;
                     
                 case 'guardian':
-                    // ค้นหา user ที่เป็น guardian จากหมายเลขโทรศัพท์และรหัสนักเรียน
-                    $guardian = Guardian::where('guardians_phone', $request->parent_phone)->first(); // แก้จาก phone เป็น guardians_phone
+                    // ค้นหา guardian จากเบอร์โทรศัพท์
+                    $guardian = Guardian::where('guardians_phone', $request->parent_phone)->first();
+                    
                     if ($guardian) {
                         $user = User::find($guardian->user_id);
-                        if ($user) {
-                            // ตรวจสอบว่า guardian คนนี้เป็นผู้ปกครองของนักเรียนรหัสนี้จริงหรือไม่
-                            $student = Student::where('students_student_code', $request->student_code)->first(); // แก้จาก student_code เป็น students_student_code
-                            if ($student) {
-                                $isGuardianOfStudent = \DB::table('tb_guardian_student')
-                                    ->where('guardian_id', $guardian->guardians_id) // แก้จาก id เป็น guardians_id
-                                    ->where('student_id', $student->students_id) // แก้จาก id เป็น students_id
-                                    ->exists();
-                                    
-                                if ($isGuardianOfStudent) {
-                                    // ใส่ข้อมูลให้ตรงกับ guardian
-                                    $credentials = [
-                                        'users_email' => $user->users_email, // แก้จาก email เป็น users_email
-                                        'users_password' => $request->password, // แก้จาก password เป็น users_password
-                                        'users_role' => 'guardian' // แก้จาก role เป็น users_role
-                                    ];
-                                }
-                            }
+                        if ($user && $user->users_role === 'guardian') {
+                            // เข้าสู่ระบบโดยตรงสำหรับผู้ปกครอง (ไม่ต้องใช้รหัสผ่าน)
+                            Auth::login($user, $request->has('remember'));
+                            $request->session()->regenerate();
+                            
+                            // Log การเข้าสู่ระบบเพื่อความปลอดภัย
+                            \Log::info('Guardian login successful', [
+                                'guardian_id' => $guardian->guardians_id,
+                                'phone' => $request->parent_phone,
+                                'user_id' => $user->users_id
+                            ]);
+                            
+                            // นำทางไปยัง parent dashboard
+                            return redirect()->route('parent.dashboard');
                         }
                     }
-                    break;
+                    
+                    // ถ้าไม่พบข้อมูลผู้ปกครอง
+                    return back()
+                        ->withErrors([
+                            'parent_phone' => 'ไม่พบข้อมูลผู้ปกครองที่ตรงกับเบอร์โทรศัพท์นี้',
+                        ])
+                        ->withInput();
             }
             
-            // เพิ่ม code สำหรับ debug ข้อมูล login
-            \Log::info('Login attempt with credentials:', [
-                'credentials' => $credentials,
-                'request_data' => $request->all()
-            ]);
-
-            // พยายามเข้าสู่ระบบ แต่ไม่ใช้ remember me ด้วยชื่อฟิลด์ที่ถูกต้อง
+            // สำหรับ teacher และ student ใช้การตรวจสอบแบบเดิม
             if (!empty($credentials)) {
                 // ตรวจสอบการ login แบบ manual
                 $user = User::where('users_email', $credentials['users_email'])
@@ -246,26 +241,18 @@ class AuthController extends Controller
                             ->first();
                 
                 if ($user && Hash::check($request->password, $user->users_password)) {
-                    Auth::login($user, false);
+                    Auth::login($user, $request->has('remember'));
                     $request->session()->regenerate();
                     return redirect()->intended('dashboard');
                 }
             }
             
             // กรณีที่เข้าสู่ระบบไม่สำเร็จ
-            if ($role === 'guardian') {
-                return back()
-                    ->withErrors([
-                        'parent_phone' => 'ข้อมูลการเข้าสู่ระบบไม่ถูกต้อง หรือไม่พบความสัมพันธ์ระหว่างผู้ปกครองและนักเรียน',
-                    ])
-                    ->withInput();
-            } else {
-                return back()
-                    ->withErrors([
-                        'email' => 'ข้อมูลการเข้าสู่ระบบไม่ถูกต้อง',
-                    ])
-                    ->withInput();
-            }
+            return back()
+                ->withErrors([
+                    'email' => 'ข้อมูลการเข้าสู่ระบบไม่ถูกต้อง',
+                ])
+                ->withInput();
         }
         
         // ถ้าไม่ได้ระบุ role ให้แจ้งเตือน
