@@ -35,10 +35,10 @@
                 <div class="collapse navbar-collapse" id="navbarNav">
                     <ul class="navbar-nav ms-auto">
                         <li class="nav-item">
-                            <a class="nav-link text-white" href="#">เข้าสู่ระบบ</a>
+                            <a class="nav-link text-white" href="/login">เข้าสู่ระบบ</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link text-white" href="#">ลงทะเบียน</a>
+                            <a class="nav-link text-white" href="/register">ลงทะเบียน</a>
                         </li>
                     </ul>
                 </div>
@@ -58,7 +58,7 @@
                             ติดตาม บันทึก และส่งเสริม<span id="typed-text"></span>
                         </p>
                         <div class="d-flex flex-column flex-sm-row gap-3 justify-content-center justify-content-lg-start" data-aos="fade-up" data-aos-delay="200">
-                            <a href="#" class="btn btn-primary-app py-2 px-4 rounded-pill fw-medium btn-hover-effect">
+                            <a href="/login" class="btn btn-primary-app py-2 px-4 rounded-pill fw-medium btn-hover-effect">
                                 <i class="fas fa-sign-in-alt me-2"></i> เข้าสู่ระบบ
                             </a>
                             <a href="#" class="btn btn-secondary-app py-2 px-4 rounded-pill fw-medium btn-hover-effect">
@@ -285,7 +285,7 @@
                     <h2 class="fw-bold mb-4">เริ่มใช้งานระบบตอนนี้</h2>
                     <p class="lead mb-4">ระบบที่จะช่วยให้การติดตามพฤติกรรมนักเรียนเป็นเรื่องง่าย</p>
                     <div class="d-flex justify-content-center gap-3">
-                        <a href="#" class="btn btn-light text-primary-app py-2 px-4 rounded-pill fw-medium btn-hover-effect">
+                        <a href="/login" class="btn btn-light text-primary-app py-2 px-4 rounded-pill fw-medium btn-hover-effect">
                             <i class="fas fa-sign-in-alt me-2"></i> เข้าสู่ระบบ
                         </a>
                         <a href="#" class="btn btn-secondary-app py-2 px-4 rounded-pill fw-medium btn-hover-effect">
