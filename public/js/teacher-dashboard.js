@@ -1520,3 +1520,137 @@ function saveViolationType() {
         submitBtn.innerHTML = originalText;
     });
 }
+
+// เพิ่มเข้าไปในส่วนท้ายของ document.addEventListener('DOMContentLoaded', function() { ... });
+
+// ฟังก์ชันสำหรับการค้นหานักเรียนในตารางหน้าหลัก
+function setupMainStudentSearch() {
+    const searchInput = document.querySelector('#students .input-group input[placeholder="ค้นหานักเรียน..."]');
+    const searchButton = document.querySelector('#students .input-group button');
+    
+    if (searchInput && searchButton) {
+        // เมื่อกดปุ่มค้นหา
+        searchButton.addEventListener('click', function() {
+            filterStudentsInTable(searchInput.value);
+        });
+        
+        // เมื่อกด Enter ในช่องค้นหา
+        searchInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                filterStudentsInTable(this.value);
+            }
+        });
+        
+        // ตั้งค่าเริ่มต้นให้สามารถค้นหาทันทีเมื่อพิมพ์เสร็จ (debounce)
+        let timeout = null;
+        searchInput.addEventListener('input', function() {
+            clearTimeout(timeout);
+            timeout = setTimeout(() => {
+                filterStudentsInTable(this.value);
+            }, 500);
+        });
+    }
+}
+
+// ฟังก์ชันกรองข้อมูลนักเรียนในตารางหน้าหลัก
+function filterStudentsInTable(searchTerm) {
+    // ล้างไฮไลท์เดิม (ถ้ามี)
+    document.querySelectorAll('#students .table tbody tr .highlight').forEach(el => {
+        el.outerHTML = el.innerHTML;
+    });
+    
+    // ดึงตาราง
+    const tableRows = document.querySelectorAll('#students .table tbody tr');
+    if (!tableRows.length) return;
+    
+    // กรณีไม่มีข้อมูลค้นหา แสดงทุกแถว (ลบตัว s ที่ไม่เกี่ยวข้องออก)
+    if (!searchTerm || searchTerm.trim() === '') {
+        tableRows.forEach(row => {
+            row.style.display = '';
+        });
+        return;
+    }
+    
+    // ทำการค้นหาแบบไม่สนใจตัวพิมพ์เล็ก-ใหญ่
+    searchTerm = searchTerm.toLowerCase();
+    let matchCount = 0;
+    
+    tableRows.forEach(row => {
+        // ดึงข้อมูลที่ต้องการค้นหา: รหัสนักเรียน, ชื่อ-นามสกุล, ชั้นเรียน
+        const studentId = row.querySelector('td:nth-child(1)')?.textContent || '';
+        const studentName = row.querySelector('td:nth-child(2) span')?.textContent || '';
+        const className = row.querySelector('td:nth-child(3)')?.textContent || '';
+        
+        // รวมข้อความทั้งหมดที่ต้องการค้นหา
+        const allText = `${studentId} ${studentName} ${className}`.toLowerCase();
+        
+        // ถ้าพบคำค้นหาในข้อความ
+        if (allText.includes(searchTerm)) {
+            row.style.display = '';
+            matchCount++;
+            
+            // ไฮไลท์คำที่ค้นหา
+            highlightSearchTerm(row, searchTerm);
+        } else {
+            row.style.display = 'none';
+        }
+    });
+    
+    // แสดงข้อความถ้าไม่พบข้อมูล
+    if (matchCount === 0 && tableRows.length > 0) {
+        const firstRow = tableRows[0].parentElement;
+        
+        // ตรวจสอบว่ามีแถว "ไม่พบข้อมูล" อยู่แล้วหรือไม่
+        const noDataRow = document.getElementById('no-search-results');
+        if (!noDataRow) {
+            const newRow = document.createElement('tr');
+            newRow.id = 'no-search-results';
+            newRow.innerHTML = `<td colspan="6" class="text-center py-4">
+                <div class="text-muted">
+                    <i class="fas fa-search fa-2x mb-3"></i>
+                    <p>ไม่พบนักเรียนที่ตรงกับคำค้นหา "${searchTerm}"</p>
+                </div>
+            </td>`;
+            firstRow.appendChild(newRow);
+        } else {
+            noDataRow.style.display = '';
+            noDataRow.querySelector('p').textContent = `ไม่พบนักเรียนที่ตรงกับคำค้นหา "${searchTerm}"`;
+        }
+    } else {
+        // ซ่อนข้อความ "ไม่พบข้อมูล" ถ้ามี
+        const noDataRow = document.getElementById('no-search-results');
+        if (noDataRow) {
+            noDataRow.style.display = 'none';
+        }
+    }
+}
+
+// ฟังก์ชันไฮไลท์คำที่ค้นหา
+function highlightSearchTerm(row, searchTerm) {
+    // ไฮไลท์ในคอลัมน์รหัสนักเรียน
+    const idCell = row.querySelector('td:nth-child(1)');
+    if (idCell) {
+        idCell.innerHTML = idCell.textContent.replace(new RegExp(`(${searchTerm})`, 'gi'), 
+            '<span class="highlight bg-warning bg-opacity-50">$1</span>');
+    }
+    
+    // ไฮไลท์ในคอลัมน์ชื่อ-นามสกุล
+    const nameCell = row.querySelector('td:nth-child(2) span');
+    if (nameCell) {
+        nameCell.innerHTML = nameCell.textContent.replace(new RegExp(`(${searchTerm})`, 'gi'), 
+            '<span class="highlight bg-warning bg-opacity-50">$1</span>');
+    }
+    
+    // ไฮไลท์ในคอลัมน์ชั้นเรียน
+    const classCell = row.querySelector('td:nth-child(3)');
+    if (classCell) {
+        classCell.innerHTML = classCell.textContent.replace(new RegExp(`(${searchTerm})`, 'gi'), 
+            '<span class="highlight bg-warning bg-opacity-50">$1</span>');
+    }
+}
+
+// เรียกใช้ฟังก์ชันเมื่อโหลดหน้าเสร็จ
+document.addEventListener('DOMContentLoaded', function() {
+    setupMainStudentSearch();
+});

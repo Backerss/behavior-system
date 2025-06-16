@@ -50,23 +50,44 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Event listener สำหรับการค้นหานักเรียน
-    if (studentSearch) {
-        studentSearch.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                studentSearchTerm = this.value;
-                studentCurrentPage = 1;
-                loadClassStudents(currentClassId, studentCurrentPage, studentSearchTerm);
-            }
-        });
-    }
-    
-    if (btnSearchStudent) {
-        btnSearchStudent.addEventListener('click', function() {
-            studentSearchTerm = studentSearch.value;
-            studentCurrentPage = 1;
-            loadClassStudents(currentClassId, studentCurrentPage, studentSearchTerm);
+    // แก้ไขการทำงานของ event listeners สำหรับการค้นหานักเรียน
+    const setupStudentSearchListeners = function() {
+        const studentSearch = document.getElementById('studentSearch');
+        const btnSearchStudent = document.getElementById('btnSearchStudent');
+        
+        if (studentSearch) {
+            studentSearch.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    studentSearchTerm = this.value;
+                    studentCurrentPage = 1;
+                    loadClassStudents(currentClassId, studentCurrentPage, studentSearchTerm);
+                }
+            });
+            
+            // เพิ่ม event listener สำหรับการพิมพ์ (อาจต้องการแสดงผลทันที)
+            studentSearch.addEventListener('input', function() {
+                console.log('Search input changed:', this.value);
+            });
+        }
+        
+        if (btnSearchStudent) {
+            btnSearchStudent.addEventListener('click', function() {
+                const searchInput = document.getElementById('studentSearch');
+                if (searchInput) {
+                    studentSearchTerm = searchInput.value;
+                    studentCurrentPage = 1;
+                    loadClassStudents(currentClassId, studentCurrentPage, studentSearchTerm);
+                }
+            });
+        }
+    };
+
+    // เพิ่ม event listener สำหรับ modal เมื่อถูกแสดงเสร็จสมบูรณ์
+    if (classDetailModal) {
+        classDetailModal.addEventListener('shown.bs.modal', function() {
+            // เรียกฟังก์ชันตั้งค่า event listeners หลังจาก modal แสดงเสร็จแล้ว
+            setupStudentSearchListeners();
         });
     }
     
@@ -221,6 +242,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // ฟังก์ชันโหลดข้อมูลนักเรียนในห้องเรียน
     function loadClassStudents(classId, page = 1, search = '') {
         if (!classId) return;
+        
         
         // แสดง loading ในตาราง
         studentsList.innerHTML = `
