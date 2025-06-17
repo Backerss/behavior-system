@@ -120,7 +120,7 @@
                 <div class="desktop-grid-summary">
                     @if(isset($studentsData) && count($studentsData) > 0)
                         @foreach($studentsData as $index => $student)
-                            <div class="app-card student-summary-card p-3">
+                            <div class="app-card student-summary-card p-3 mb-3">
                                 <div class="d-flex align-items-center mb-3">
                                     <div class="me-3">
                                         <div class="student-avatar-summary bg-primary-app text-white rounded-circle d-flex align-items-center justify-content-center">
@@ -200,14 +200,6 @@
                 @if(isset($studentsData) && count($studentsData) > 0)
                     @foreach($studentsData as $index => $student)
                         <div id="student{{ $index+1 }}-view" class="student-detail-view d-none">
-                            <!-- Back to all students button -->
-                            <div class="d-flex justify-content-between align-items-center mb-3">
-                                <button class="btn btn-sm btn-outline-primary back-to-all">
-                                    <i class="fas fa-arrow-left"></i> กลับไปยังภาพรวม
-                                </button>
-                                ภาคเรียนนี้
-                            </div>
-
                             <!-- Student Header Info -->
                             <div class="student-header app-card p-3 mb-4">
                                 <div class="d-flex align-items-center">
@@ -224,7 +216,7 @@
                                 </div>
                             </div>
 
-                            <!-- แสดงข้อมูลรายละเอียดของนักเรียนแต่ละคน -->
+                            <!-- Desktop Grid Layout -->
                             <div class="desktop-grid">
                                 <!-- Left Column: Points and Rank -->
                                 <div class="metrics-area">
@@ -238,7 +230,7 @@
                                     </div>
                                     
                                     <!-- Class Rank Card -->
-                                    <div class="app-card stats-card p-3 mt-4">
+                                    <div class="app-card stats-card p-3 mt-3">
                                         <div class="text-center">
                                             <h3 class="h5 text-primary-app mb-3">อันดับในห้องเรียน</h3>
                                             <p class="display-4 fw-bold mb-2 stats-value student-rank">{{ $student['class_rank'] }}<span class="fs-6">/{{ $student['total_students'] }}</span></p>
@@ -247,8 +239,6 @@
                                                     อันดับ 1
                                                 @elseif($student['class_rank'] <= 3)
                                                     กลุ่มหัวหน้า
-                                                @elseif($student['class_rank'] <= ceil($student['total_students'] / 2))
-                                                    กลุ่มกลาง
                                                 @else
                                                     ต้องปรับปรุง
                                                 @endif
@@ -257,7 +247,7 @@
                                     </div>
 
                                     <!-- Teacher Contact Card -->
-                                    <div class="app-card p-3 mt-4">
+                                    <div class="app-card p-3 mt-3">
                                         <h3 class="h5 text-primary-app mb-3">ครูประจำชั้น</h3>
                                         <div class="d-flex align-items-center">
                                             <div class="teacher-avatar bg-secondary-app rounded-circle d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
@@ -279,7 +269,7 @@
                                 <div class="chart-area">
                                     <div class="app-card h-100 p-4">
                                         <h3 class="h5 text-primary-app mb-3">สรุปคะแนนพฤติกรรม</h3>
-                                        <div class="chart-container desktop-chart">
+                                        <div class="chart-container">
                                             <canvas id="studentBehaviorChart{{ $index+1 }}"></canvas>
                                         </div>
                                     </div>
@@ -292,9 +282,9 @@
                                         <div class="activity-list">
                                             @if(isset($student['recent_activities']) && count($student['recent_activities']) > 0)
                                                 @foreach($student['recent_activities'] as $activity)
-                                                    <div class="activity-item d-flex py-2 {{ !$loop->last ? 'border-bottom' : '' }}">
+                                                    <div class="activity-item d-flex py-2">
                                                         <div class="me-3">
-                                                            <div class="bg-{{ $activity['color'] }} rounded-circle activity-icon d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                                                            <div class="bg-{{ $activity['color'] }} rounded-circle activity-icon d-flex align-items-center justify-content-center">
                                                                 <i class="{{ $activity['icon'] }} text-white"></i>
                                                             </div>
                                                         </div>
@@ -314,6 +304,7 @@
                                     </div>
                                 </div>
                             </div>
+                        </div>
                     @endforeach
                 @endif
             </div>
@@ -330,154 +321,326 @@
         document.addEventListener('DOMContentLoaded', function() {
             // ข้อมูลนักเรียนจาก PHP
             const studentsData = @json($studentsData ?? []);
+            console.log('Students Data:', studentsData.length, 'students found');
             
-            // Student tab functionality
+            // Global chart management - ใช้ Map แทน Object
+            window.parentDashboardCharts = new Map();
+            
+            // DOM Elements
             const studentTabs = document.querySelectorAll('.student-tab');
             const allStudentsView = document.getElementById('all-students-view');
             const individualStudentView = document.getElementById('individual-student-view');
-            const backToAllButtons = document.querySelectorAll('.back-to-all');
             const viewDetailsLinks = document.querySelectorAll('.view-details-link');
 
-            // ฟังก์ชันสำหรับแสดงมุมมองทั้งหมด
-            function showAllStudentsView() {
-                allStudentsView.classList.remove('d-none');
-                individualStudentView.classList.add('d-none');
-                
-                // ซ่อนมุมมองรายละเอียดทั้งหมด
-                document.querySelectorAll('.student-detail-view').forEach(view => {
-                    view.classList.add('d-none');
-                });
-                
-                // ตั้งค่าแท็บ "ทั้งหมด" เป็น active
-                studentTabs.forEach(tab => tab.classList.remove('active'));
-                document.querySelector('[data-student="all"]').classList.add('active');
+            // Utility Functions
+            function showElement(element) {
+                if (element) {
+                    element.classList.remove('d-none');
+                }
             }
 
-            // ฟังก์ชันสำหรับแสดงมุมมองรายละเอียดนักเรียน
-            function showStudentDetailView(studentId) {
-                allStudentsView.classList.add('d-none');
-                individualStudentView.classList.remove('d-none');
+            function hideElement(element) {
+                if (element) {
+                    element.classList.add('d-none');
+                }
+            }
+
+            function setActiveTab(targetTab) {
+                studentTabs.forEach(tab => tab.classList.remove('active'));
+                if (targetTab) {
+                    targetTab.classList.add('active');
+                }
+            }
+
+            // Chart Management - ปรับปรุงใหม่
+            function destroyChart(chartId) {
+                // ทำลายจาก Map
+                if (window.parentDashboardCharts.has(chartId)) {
+                    try {
+                        const chart = window.parentDashboardCharts.get(chartId);
+                        chart.destroy();
+                        window.parentDashboardCharts.delete(chartId);
+                        console.log(`Chart ${chartId} destroyed from Map`);
+                    } catch (error) {
+                        console.warn(`Error destroying chart ${chartId}:`, error);
+                        window.parentDashboardCharts.delete(chartId);
+                    }
+                }
                 
-                // ซ่อนมุมมองรายละเอียดทั้งหมดก่อน
-                document.querySelectorAll('.student-detail-view').forEach(view => {
-                    view.classList.add('d-none');
-                });
-                
-                // แสดงมุมมองของนักเรียนที่เลือก
-                const targetView = document.getElementById(`${studentId}-view`);
-                if (targetView) {
-                    targetView.classList.remove('d-none');
-                    
-                    // โหลดข้อมูลเพิ่มเติมสำหรับนักเรียนคนนี้
-                    const studentIndex = parseInt(studentId.replace('student', '')) - 1;
-                    if (studentsData[studentIndex]) {
-                        loadStudentDetails(studentsData[studentIndex], studentIndex + 1);
+                // ทำลายจาก Chart.js registry
+                const canvas = document.getElementById(chartId);
+                if (canvas) {
+                    const existingChart = Chart.getChart(canvas);
+                    if (existingChart) {
+                        try {
+                            existingChart.destroy();
+                            console.log(`Chart ${chartId} destroyed from Registry`);
+                        } catch (error) {
+                            console.warn(`Error destroying chart from registry:`, error);
+                        }
                     }
                 }
             }
 
-            // ฟังก์ชันโหลดข้อมูลรายละเอียดนักเรียน
+            function destroyAllCharts() {
+                // ทำลายทุก chart ใน Map
+                window.parentDashboardCharts.forEach((chart, chartId) => {
+                    destroyChart(chartId);
+                });
+                window.parentDashboardCharts.clear();
+                
+                // ทำลายทุก chart ใน Chart.js registry
+                Chart.helpers.each(Chart.instances, function(instance) {
+                    instance.destroy();
+                });
+            }
+
+            // Main View Functions
+            function showAllStudentsView() {
+                console.log('Showing all students view');
+                
+                hideElement(individualStudentView);
+                showElement(allStudentsView);
+                
+                // Hide all individual views
+                document.querySelectorAll('.student-detail-view').forEach(view => {
+                    hideElement(view);
+                });
+                
+                // Set "All" tab as active
+                const allTab = document.querySelector('[data-student="all"]');
+                setActiveTab(allTab);
+                
+                // Destroy all charts
+                destroyAllCharts();
+            }
+
+            function showStudentDetailView(studentId) {
+                console.log('Showing student detail view:', studentId);
+                
+                hideElement(allStudentsView);
+                showElement(individualStudentView);
+                
+                // Hide all individual views first
+                document.querySelectorAll('.student-detail-view').forEach(view => {
+                    hideElement(view);
+                });
+                
+                // Show target view
+                const targetView = document.getElementById(`${studentId}-view`);
+                if (targetView) {
+                    showElement(targetView);
+                    
+                    // Load student details immediately
+                    const studentIndex = parseInt(studentId.replace('student', '')) - 1;
+                    if (studentsData[studentIndex]) {
+                        loadStudentDetails(studentsData[studentIndex], studentIndex + 1);
+                    }
+                } else {
+                    console.error('Target view not found:', `${studentId}-view`);
+                }
+            }
+
             function loadStudentDetails(student, index) {
-                // โหลดกราฟคะแนน
+                console.log('Loading details for student:', student.first_name, 'Index:', index);
+                
+                // Update student data in view
+                updateStudentViewData(student, index);
+                
+                // Load chart immediately
                 loadStudentScoreChart(student.id, index);
             }
 
-            // ฟังก์ชันสร้างกราฟคะแนนนักเรียนจากข้อมูลจริง
-            function loadStudentScoreChart(studentId, index) {
-                const ctx = document.getElementById(`studentBehaviorChart${index}`);
-                if (!ctx) return;
-
-                // ดึงข้อมูลจาก API
-                fetch(`/api/parent/student/${studentId}/chart`)
-                    .then(response => response.json())
-                    .then(data => {
-                        new Chart(ctx, {
-                            type: 'line',
-                            data: {
-                                labels: data.labels,
-                                datasets: [{
-                                    label: 'คะแนนพฤติกรรม',
-                                    data: data.data,
-                                    borderColor: '#1020AD',
-                                    backgroundColor: 'rgba(16, 32, 173, 0.1)',
-                                    tension: 0.4,
-                                    fill: true
-                                }]
-                            },
-                            options: {
-                                responsive: true,
-                                maintainAspectRatio: false,
-                                plugins: {
-                                    legend: {
-                                        display: false
-                                    }
-                                },
-                                scales: {
-                                    y: {
-                                        beginAtZero: false,
-                                        min: 0,
-                                        max: 100,
-                                        ticks: {
-                                            callback: function(value) {
-                                                return value + ' คะแนน';
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        });
-                    })
-                    .catch(error => {
-                        console.error('Error loading chart data:', error);
-                        // แสดงข้อมูลตัวอย่างหากไม่สามารถโหลดได้
-                        const fallbackData = {
-                            labels: ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.'],
-                            datasets: [{
-                                label: 'คะแนนพฤติกรรม',
-                                data: [95, 92, 88, 90, 85, studentsData[index-1]?.current_score || 100],
-                                borderColor: '#1020AD',
-                                backgroundColor: 'rgba(16, 32, 173, 0.1)',
-                                tension: 0.4,
-                                fill: true
-                            }]
-                        };
-
-                        new Chart(ctx, {
-                            type: 'line',
-                            data: fallbackData,
-                            options: {
-                                responsive: true,
-                                maintainAspectRatio: false,
-                                plugins: {
-                                    legend: {
-                                        display: false
-                                    }
-                                },
-                                scales: {
-                                    y: {
-                                        beginAtZero: false,
-                                        min: 0,
-                                        max: 100,
-                                        ticks: {
-                                            callback: function(value) {
-                                                return value + ' คะแนน';
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        });
-                    });
+            function updateStudentViewData(student, index) {
+                const viewElement = document.getElementById(`student${index}-view`);
+                if (!viewElement) {
+                    console.error('View element not found:', `student${index}-view`);
+                    return;
+                }
+                
+                // Update student name
+                const nameElement = viewElement.querySelector('.student-name');
+                if (nameElement) {
+                    nameElement.textContent = `${student.name_prefix}${student.first_name} ${student.last_name}`;
+                }
+                
+                // Update class info
+                const classElement = viewElement.querySelector('.student-class');
+                if (classElement) {
+                    classElement.textContent = `ชั้น ${student.class_level}/${student.class_room} เลขที่ ${student.student_code}`;
+                }
+                
+                // Update points
+                const pointsElement = viewElement.querySelector('.student-points');
+                if (pointsElement) {
+                    pointsElement.textContent = student.current_score;
+                }
+                
+                // Update badge
+                const badgeElement = viewElement.querySelector('.student-points-badge');
+                if (badgeElement) {
+                    badgeElement.className = `badge bg-${student.score_color}`;
+                    badgeElement.textContent = `${student.current_score} คะแนน`;
+                }
+                
+                // Update status
+                const statusElement = viewElement.querySelector('.student-status');
+                if (statusElement) {
+                    statusElement.className = `badge bg-${student.score_color}`;
+                    statusElement.textContent = student.score_status;
+                }
+                
+                // Update rank
+                const rankElement = viewElement.querySelector('.student-rank');
+                if (rankElement) {
+                    rankElement.innerHTML = `${student.class_rank}<span class="fs-6">/${student.total_students}</span>`;
+                }
             }
 
-            // Event listeners สำหรับแท็บนักเรียน
-            studentTabs.forEach(tab => {
-                tab.addEventListener('click', function() {
-                    const studentId = this.dataset.student;
+            function loadStudentScoreChart(studentId, index) {
+                const chartId = `studentBehaviorChart${index}`;
+                const canvas = document.getElementById(chartId);
+                
+                if (!canvas) {
+                    console.error('Canvas not found:', chartId);
+                    return;
+                }
+
+                console.log('Loading chart for student ID:', studentId, 'Chart ID:', chartId);
+                
+                // ทำลาย chart เก่าอย่างสมบูรณ์
+                destroyChart(chartId);
+                
+                // รอให้ Chart.js ทำความสะอาดเสร็จ
+                setTimeout(() => {
+                    // ใช้ข้อมูล fallback ทันที (ไม่ fetch จาก API)
+                    const fallbackData = {
+                        labels: ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.'],
+                        data: [95, 92, 88, 90, 85, studentsData[index - 1]?.current_score || 100]
+                    };
                     
-                    // อัปเดตแท็บที่ active
-                    studentTabs.forEach(t => t.classList.remove('active'));
-                    this.classList.add('active');
+                    createChart(canvas, chartId, fallbackData, index);
+                }, 100);
+            }
+
+            function createChart(canvas, chartId, data, index) {
+                try {
+                    // ตรวจสอบ canvas
+                    if (!canvas) {
+                        throw new Error('Canvas element not found');
+                    }
+                    
+                    const ctx = canvas.getContext('2d');
+                    if (!ctx) {
+                        throw new Error('Cannot get canvas context');
+                    }
+
+                    // สร้าง chart ใหม่ (ลบ animation ทั้งหมด)
+                    const chart = new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: data.labels || ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.'],
+                            datasets: [{
+                                label: 'คะแนนพฤติกรรม',
+                                data: data.data || [95, 92, 88, 90, 85, 100],
+                                borderColor: '#1020AD',
+                                backgroundColor: 'rgba(16, 32, 173, 0.1)',
+                                tension: 0,
+                                fill: true,
+                                pointBackgroundColor: '#1020AD',
+                                pointBorderColor: '#fff',
+                                pointBorderWidth: 2,
+                                pointRadius: 4,
+                                pointHoverRadius: 6
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            animation: false, // ปิด animation
+                            transitions: {
+                                active: {
+                                    animation: {
+                                        duration: 0
+                                }
+                            }
+                            },
+                            plugins: {
+                                legend: {
+                                    display: false
+                                },
+                                tooltip: {
+                                    mode: 'index',
+                                    intersect: false,
+                                    animation: false, // ปิด tooltip animation
+                                    callbacks: {
+                                        label: function(context) {
+                                            return `คะแนน: ${context.parsed.y} คะแนน`;
+                                        }
+                                    }
+                                }
+                            },
+                            scales: {
+                                y: {
+                                    beginAtZero: false,
+                                    min: 0,
+                                    max: 100,
+                                    ticks: {
+                                        callback: function(value) {
+                                            return value + ' คะแนน';
+                                        }
+                                    },
+                                    grid: {
+                                        color: 'rgba(0,0,0,0.1)'
+                                    }
+                                },
+                                x: {
+                                    grid: {
+                                        display: false
+                                    }
+                                }
+                            },
+                            interaction: {
+                                intersect: false,
+                                mode: 'index'
+                            },
+                            onHover: function(event, activeElements) {
+                                // ปิด hover animation
+                                event.native.target.style.cursor = activeElements.length > 0 ? 'pointer' : 'default';
+                            }
+                        }
+                    });
+                    
+                    // เก็บ chart instance ใน Map
+                    window.parentDashboardCharts.set(chartId, chart);
+                    console.log(`Chart created successfully: ${chartId}`);
+                    
+                } catch (error) {
+                    console.error(`Error creating chart ${chartId}:`, error);
+                    showChartError(canvas.parentElement);
+                }
+            }
+
+            function showChartError(container) {
+                container.innerHTML = `
+                    <div class="text-center py-4 text-muted">
+                        <i class="fas fa-chart-line fa-2x mb-2"></i>
+                        <p class="mb-2">ไม่สามารถโหลดกราฟได้</p>
+                        <button class="btn btn-sm btn-outline-primary" onclick="location.reload()">
+                            <i class="fas fa-redo me-1"></i> ลองใหม่
+                        </button>
+                    </div>
+                `;
+            }
+
+            // Event Listeners
+            studentTabs.forEach(tab => {
+                tab.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const studentId = this.dataset.student;
+                    console.log('Tab clicked:', studentId);
+                    
+                    setActiveTab(this);
                     
                     if (studentId === 'all') {
                         showAllStudentsView();
@@ -487,29 +650,34 @@
                 });
             });
 
-            // Event listeners สำหรับลิงก์ "ดูรายละเอียด"
             viewDetailsLinks.forEach(link => {
                 link.addEventListener('click', function(e) {
                     e.preventDefault();
                     const studentId = this.dataset.student;
+                    console.log('View details clicked:', studentId);
                     
-                    // อัปเดตแท็บที่ active
-                    studentTabs.forEach(tab => tab.classList.remove('active'));
                     const targetTab = document.querySelector(`[data-student="${studentId}"]`);
-                    if (targetTab) {
-                        targetTab.classList.add('active');
-                    }
+                    setActiveTab(targetTab);
                     
                     showStudentDetailView(studentId);
                 });
             });
 
-            // Event listeners สำหรับปุ่ม "กลับไปยังภาพรวม"
-            backToAllButtons.forEach(button => {
-                button.addEventListener('click', function() {
-                    showAllStudentsView();
-                });
+            // Cleanup on page unload
+            window.addEventListener('beforeunload', function() {
+                destroyAllCharts();
             });
+            
+            document.addEventListener('visibilitychange', function() {
+                if (document.hidden) {
+                    destroyAllCharts();
+                }
+            });
+
+            // Initialize
+            console.log('Initializing parent dashboard...');
+            showAllStudentsView();
+            console.log('Parent dashboard initialized successfully');
         });
     </script>
 </body>

@@ -7,11 +7,10 @@ use App\Http\Controllers\ClassroomController;
 use App\Http\Controllers\StudentController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ParentController;
+use App\Http\Controllers\WelcomeController;
 
 // หน้าหลัก
-Route::get('/', function () {
-    return view('welcome');
-});
+Route::get('/', [WelcomeController::class, 'index'])->name('welcome');
 
 // เส้นทางสำหรับผู้ที่ไม่ได้เข้าสู่ระบบ
 Route::middleware('guest')->group(function () {

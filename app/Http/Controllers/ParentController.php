@@ -254,26 +254,53 @@ class ParentController extends Controller
      */
     public function getStudentScoreChart($studentId)
     {
-        $months = [];
-        $scores = [];
-        $currentScore = Student::find($studentId)->students_current_score ?? 100;
-        
-        for ($i = 5; $i >= 0; $i--) {
-            $date = Carbon::now()->subMonths($i);
-            $months[] = $date->locale('th')->format('M');
+        try {
+            $student = Student::find($studentId);
             
-            if ($i == 0) {
-                $scores[] = $currentScore;
-            } else {
-                // คำนวณคะแนนประมาณการ
-                $estimatedScore = max(60, min(100, $currentScore - ($i * 2)));
-                $scores[] = $estimatedScore;
+            if (!$student) {
+                return response()->json([
+                    'error' => 'ไม่พบข้อมูลนักเรียน'
+                ], 404);
             }
+            
+            $months = [];
+            $scores = [];
+            $currentScore = $student->students_current_score ?? 100;
+            
+            // สร้างข้อมูลกราฟ 6 เดือนย้อนหลัง
+            for ($i = 5; $i >= 0; $i--) {
+                $date = Carbon::now()->subMonths($i);
+                $months[] = $date->locale('th')->format('M');
+                
+                if ($i == 0) {
+                    $scores[] = $currentScore;
+                } else {
+                    // คำนวณคะแนนจาก behavior reports
+                    $monthlyDeduction = BehaviorReport::join('tb_violations', 'tb_behavior_reports.violation_id', '=', 'tb_violations.violations_id')
+                        ->where('tb_behavior_reports.student_id', $studentId)
+                        ->whereYear('tb_behavior_reports.reports_report_date', $date->year)
+                        ->whereMonth('tb_behavior_reports.reports_report_date', $date->month)
+                        ->sum('tb_violations.violations_points_deducted');
+                    
+                    $estimatedScore = max(60, min(100, $currentScore + ($i * 2) - $monthlyDeduction));
+                    $scores[] = $estimatedScore;
+                }
+            }
+            
+            return response()->json([
+                'labels' => $months,
+                'data' => $scores,
+                'success' => true
+            ]);
+            
+        } catch (\Exception $e) {
+            \Log::error('Error generating student chart: ' . $e->getMessage());
+            
+            return response()->json([
+                'error' => 'เกิดข้อผิดพลาดในการสร้างกราฟ',
+                'labels' => ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.'],
+                'data' => [95, 92, 88, 90, 85, 100]
+            ], 500);
         }
-        
-        return response()->json([
-            'labels' => $months,
-            'data' => $scores
-        ]);
     }
 }

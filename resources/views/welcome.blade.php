@@ -26,7 +26,7 @@
         <nav class="navbar navbar-expand-lg bg-primary-app">
             <div class="container">
                 <a class="navbar-brand text-white d-flex align-items-center" href="#">
-                    <img src="https://placehold.co/40x40" alt="Logo" class="rounded-circle me-2"> 
+                    <img src="{{ asset('images/logo.png') }}" alt="Logo" class="rounded-circle me-2" style="width: 35px; height: 35px;"> 
                     <span>ระบบติดตามพฤติกรรม</span>
                 </a>
                 <button class="navbar-toggler border-0 text-white" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
@@ -77,20 +77,20 @@
                                 <i class="fas fa-award fa-2x text-white"></i>
                             </div>
                         </div>
-                        <img src="{{  asset('img/iconic_1.png') }}" alt="นวมินทราชูทิศ มัชฌิม" class="img-fluid rounded-4 shadow-lg hero-image">
+                        <img src="https://scontent.fphs1-1.fna.fbcdn.net/v/t1.6435-9/106901635_3073111836118631_6212078526993960303_n.jpg?_nc_cat=106&ccb=1-7&_nc_sid=127cfc&_nc_eui2=AeHfidpl_waNguk-6BaEUnEOjRQgSMfYI7GNFCBIx9gjsQD3Umb_ygafoCndnkGfIs_2Ax4bnVseTzX4UbWqucmh&_nc_ohc=0vS3nHxUudsQ7kNvwE302r_&_nc_oc=Adlha40JFNalfg-xsyWENv6NoJJIlk9fNqYO9xlodHxtsccREWOri9NzqPZJ1m3ecUg&_nc_zt=23&_nc_ht=scontent.fphs1-1.fna&_nc_gid=zQYy6Cu5cSJYZiDFVAz_Lg&oh=00_AfMDXhnY9DZ0hKvfCsCvcOb_gebcKmDTYI_IkM91ZwthoQ&oe=6878CE3B" alt="นวมินทราชูทิศ มัชฌิม" class="img-fluid rounded-4 shadow-lg hero-image">
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Stats Section -->
+        <!-- Stats Section - แสดงข้อมูลจริงจากฐานข้อมูล -->
         <div class="grid-section">
             <div class="container py-5 my-3">
                 <div class="row g-4 stats-container">
                     <div class="col-6 col-md-3" data-aos="fade-up">
                         <div class="text-center p-3">
                             <div class="display-4 fw-bold text-primary-app mb-2">
-                                <span class="counter" data-target="2150">0</span>+
+                                <span class="counter" data-target="{{ $stats['total_students'] ?? 0 }}">0</span>
                             </div>
                             <p class="mb-0 text-muted">จำนวนนักเรียน</p>
                         </div>
@@ -98,7 +98,7 @@
                     <div class="col-6 col-md-3" data-aos="fade-up" data-aos-delay="100">
                         <div class="text-center p-3">
                             <div class="display-4 fw-bold text-accent-app mb-2">
-                                <span class="counter" data-target="120">0</span>+
+                                <span class="counter" data-target="{{ $stats['total_teachers'] ?? 0 }}">0</span>
                             </div>
                             <p class="mb-0 text-muted">คุณครู</p>
                         </div>
@@ -106,7 +106,7 @@
                     <div class="col-6 col-md-3" data-aos="fade-up" data-aos-delay="200">
                         <div class="text-center p-3">
                             <div class="display-4 fw-bold text-secondary-app mb-2">
-                                <span class="counter" data-target="62">0</span>+
+                                <span class="counter" data-target="{{ $stats['total_classes'] ?? 0 }}">0</span>
                             </div>
                             <p class="mb-0 text-muted">ห้องเรียน</p>
                         </div>
@@ -114,14 +114,15 @@
                     <div class="col-6 col-md-3" data-aos="fade-up" data-aos-delay="300">
                         <div class="text-center p-3">
                             <div class="display-4 fw-bold text-primary-app mb-2">
-                                <span class="counter" data-target="55">0</span>+
+                                <span class="counter" data-target="{{ $stats['total_behavior_reports'] ?? 0 }}">0</span>
                             </div>
-                            <p class="mb-0 text-muted">ปีแห่งความภาคภูมิใจ</p>
+                            <p class="mb-0 text-muted">บันทึกพฤติกรรม</p>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
+
 
         <!-- Features Section -->
         <div class="container py-5">
@@ -202,14 +203,14 @@
                 </div>
                 
                 <div class="col-lg-6 position-relative" data-aos="fade-left">
-                    <img src="https://placehold.co/600x400" alt="ระบบติดตามพฤติกรรม" class="img-fluid rounded-4 shadow-lg">
+                    <img src="{{ asset('images/banner.png') }}" alt="ระบบติดตามพฤติกรรม" class="img-fluid rounded-4 shadow-lg">
                     
                     <!-- Floating elements for decoration -->
                     <div class="position-absolute" style="top: -25px; right: 30px; z-index: 2">
                         <div class="bg-white rounded-4 shadow-sm p-3 floating-card">
                             <div class="d-flex align-items-center">
                                 <i class="fas fa-exclamation-triangle text-warning me-2"></i>
-                                <span>แจ้งเตือนพฤติกรรม</span>
+                                <span>{{ $stats['reports_this_month'] ?? 0 }} รายงานใหม่</span>
                             </div>
                         </div>
                     </div>
@@ -217,8 +218,8 @@
                     <div class="position-absolute" style="bottom: -15px; left: 20px; z-index: 2">
                         <div class="bg-white rounded-4 shadow-sm p-3 floating-card">
                             <div class="d-flex align-items-center">
-                                <i class="fas fa-thumbs-up text-success me-2"></i>
-                                <span>บันทึกความดี</span>
+                                <i class="fas fa-users text-success me-2"></i>
+                                <span>{{ $stats['total_students'] ?? 0 }} นักเรียน</span>
                             </div>
                         </div>
                     </div>
@@ -226,7 +227,7 @@
             </div>
         </div>
 
-        <!-- School Information Section (แทน Testimonials) -->
+        <!-- School Information Section -->
         <div class="container py-5 my-3">
             <h2 class="text-center mb-5 text-primary-app fw-bold" data-aos="fade-up">โรงเรียนนวมินทราชูทิศ มัชฌิม</h2>
             
@@ -372,7 +373,7 @@
             });
         }
         
-        // Typing animation - เปลี่ยนข้อความให้เข้ากับบริบทของโรงเรียน
+        // Typing animation
         let typed = new Typed('#typed-text', {
             strings: [
                 'พฤติกรรมนักเรียน', 
@@ -386,24 +387,6 @@
             loop: true
         });
         
-        // Initialize Swiper
-        const swiper = new Swiper('.testimonial-swiper', {
-            slidesPerView: 1,
-            spaceBetween: 30,
-            autoplay: {
-                delay: 5000,
-            },
-            pagination: {
-                el: '.swiper-pagination',
-                clickable: true,
-            },
-            breakpoints: {
-                768: {
-                    slidesPerView: 2
-                }
-            }
-        });
-
         // Initialize School Info Swiper
         const infoSwiper = new Swiper('.info-swiper', {
             slidesPerView: 1,
