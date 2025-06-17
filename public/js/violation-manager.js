@@ -331,3 +331,141 @@ document.addEventListener('DOMContentLoaded', function() {
             });
     }
 });
+
+// สำหรับเปิด modal เพิ่มประเภทพฤติกรรมใหม่
+document.addEventListener('DOMContentLoaded', function() {
+    // ปุ่มเพิ่มประเภทพฤติกรรมใหม่
+    const btnShowAddViolationType = document.getElementById('btnShowAddViolationType');
+    
+    if (btnShowAddViolationType) {
+        btnShowAddViolationType.addEventListener('click', function() {
+            // ปิด modal รายการพฤติกรรม
+            const violationTypesModal = bootstrap.Modal.getInstance(document.getElementById('violationTypesModal'));
+            if (violationTypesModal) {
+                violationTypesModal.hide();
+                
+                // รอให้ modal เดิมปิดก่อน แล้วจึงเปิด modal ใหม่
+                setTimeout(() => {
+                    // รีเซ็ตฟอร์ม
+                    const form = document.getElementById('addViolationTypeForm');
+                    if (form) form.reset();
+                    
+                    // ซ่อนข้อความแจ้งเตือนต่างๆ
+                    document.querySelector('#addViolationTypeModal .save-success')?.classList.add('d-none');
+                    document.querySelector('#addViolationTypeModal .save-error')?.classList.add('d-none');
+                    
+                    // เปิด modal ใหม่
+                    const addViolationTypeModal = new bootstrap.Modal(document.getElementById('addViolationTypeModal'));
+                    addViolationTypeModal.show();
+                }, 150);
+            }
+        });
+    }
+    
+    // ปุ่มบันทึกข้อมูลประเภทพฤติกรรม
+    const btnSaveViolationType = document.getElementById('btnSaveViolationType');
+    if (btnSaveViolationType) {
+        btnSaveViolationType.addEventListener('click', function() {
+            saveNewViolationType();
+        });
+    }
+    
+    // ตรวจสอบเมื่อกดปิด modal เพิ่มพฤติกรรม ให้กลับไปเปิด modal รายการพฤติกรรม
+    const addViolationTypeModal = document.getElementById('addViolationTypeModal');
+    if (addViolationTypeModal) {
+        addViolationTypeModal.addEventListener('hidden.bs.modal', function() {
+            setTimeout(() => {
+                const violationTypesModal = new bootstrap.Modal(document.getElementById('violationTypesModal'));
+                violationTypesModal.show();
+                
+                // โหลดข้อมูลรายการประเภทพฤติกรรมใหม่
+                fetchViolations();
+            }, 150);
+        });
+    }
+});
+
+// ฟังก์ชันสำหรับบันทึกประเภทพฤติกรรมใหม่
+function saveNewViolationType() {
+    const form = document.getElementById('addViolationTypeForm');
+    
+    // ตรวจสอบความถูกต้องของฟอร์ม
+    if (!form.checkValidity()) {
+        form.classList.add('was-validated');
+        return;
+    }
+    
+    // ปิดการแสดงข้อความแจ้งเตือนเก่า
+    document.querySelector('#addViolationTypeModal .save-success').classList.add('d-none');
+    document.querySelector('#addViolationTypeModal .save-error').classList.add('d-none');
+    
+    // แสดงสถานะกำลังบันทึก
+    const btnSave = document.getElementById('btnSaveViolationType');
+    const originalText = btnSave.innerHTML;
+    btnSave.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> กำลังบันทึก...`;
+    btnSave.disabled = true;
+    
+    // สร้าง FormData จากฟอร์ม
+    const formData = new FormData(form);
+    
+    // แปลงชื่อฟิลด์ให้ตรงกับที่ API คาดหวัง
+    const data = {
+        violations_name: formData.get('name'),
+        violations_category: formData.get('category'),
+        violations_points_deducted: parseInt(formData.get('points_deducted')) || 0,
+        violations_description: formData.get('description') || ''
+    };
+    
+    // ส่งข้อมูลไปบันทึก
+    fetch('/api/violations', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+            'Accept': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => {
+        if (!response.ok) {
+            if (response.status === 422) {
+                // กรณี validation error
+                return response.json().then(errorData => {
+                    throw new Error(errorData.message || 'ข้อมูลไม่ถูกต้องตามเงื่อนไข');
+                });
+            }
+            throw new Error('Network response was not ok');
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.success) {
+            // แสดงข้อความบันทึกสำเร็จ
+            document.querySelector('#addViolationTypeModal .save-success').classList.remove('d-none');
+            
+            // รีเซ็ตฟอร์ม
+            form.reset();
+            form.classList.remove('was-validated');
+            
+            // หน่วงเวลาสักครู่แล้วปิด modal
+            setTimeout(() => {
+                bootstrap.Modal.getInstance(document.getElementById('addViolationTypeModal')).hide();
+            }, 1500);
+        } else {
+            throw new Error(data.message || 'เกิดข้อผิดพลาดในการบันทึกข้อมูล');
+        }
+    })
+    .catch(error => {
+        // แสดงข้อความผิดพลาด
+        const errorMessageElement = document.querySelector('#addViolationTypeModal .error-message');
+        errorMessageElement.textContent = error.message || 'เกิดข้อผิดพลาดในการบันทึกข้อมูล';
+        document.querySelector('#addViolationTypeModal .save-error').classList.remove('d-none');
+        console.error('Error saving violation type:', error);
+    })
+    .finally(() => {
+        // คืนสถานะปุ่มบันทึก
+        btnSave.innerHTML = originalText;
+        btnSave.disabled = false;
+    });
+}

@@ -17,6 +17,8 @@
     <!-- Dashboard CSS -->
     <link href="/css/teacher-dashboard.css" rel="stylesheet">
     <link href="/css/loading-effects.css" rel="stylesheet">
+    <!-- Animate.css -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 </head>
 <body>
@@ -671,14 +673,14 @@
     <!-- Violation Types Modal -->
     <div class="modal fade" id="violationTypesModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
-            <div class="modal-content">
+            <div class="modal-content animate__animated animate__fadeInUp animate__faster">
                 <div class="modal-header border-0 pb-0">
                     <h5 class="modal-title">จัดการประเภทพฤติกรรม</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
                     <!-- การค้นหาและการเพิ่มใหม่ -->
-                    <div class="d-flex justify-content-between mb-3">
+                    <div class="d-flex justify-content-between mb-3 animate__animated animate__fadeIn" style="animation-delay: 0.1s">
                         <div class="input-group" style="max-width: 300px;">
                             <input type="text" class="form-control" id="violationTypeSearch" placeholder="ค้นหาประเภทพฤติกรรม...">
                             <button class="btn btn-primary-app" type="button"><i class="fas fa-search"></i></button>
@@ -689,7 +691,7 @@
                     </div>
                     
                     <!-- ส่วนแสดงรายการประเภทพฤติกรรม -->
-                    <div id="violationTypesList" class="mb-4">
+                    <div id="violationTypesList" class="mb-4 animate__animated animate__fadeIn" style="animation-delay: 0.2s">
                         <div class="table-responsive">
                             <table class="table table-hover align-middle">
                                 <thead class="table-light">
@@ -702,17 +704,14 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-
+                                    <!-- ข้อมูลจะถูกเติมด้วย JavaScript -->
                                 </tbody>
                             </table>
                         </div>
                         <!-- Pagination -->
                         <nav>
                             <ul class="pagination pagination-sm justify-content-end mt-3 mb-0">
-                                <li class="page-item disabled"><a class="page-link" href="#">Previous</a></li>
-                                <li class="page-item active"><a class="page-link" href="#">1</a></li>
-                                <li class="page-item"><a class="page-link" href="#">2</a></li>
-                                <li class="page-item"><a class="page-link" href="#">Next</a></li>
+                                <!-- การแบ่งหน้าจะถูกสร้างด้วย JavaScript -->
                             </ul>
                         </nav>
                     </div>
@@ -720,52 +719,7 @@
                     <!-- ฟอร์มเพิ่ม/แก้ไขประเภทพฤติกรรม (ซ่อนไว้ก่อน) -->
                     <div class="card d-none" id="violationTypeForm">
                         <div class="card-body">
-                            <div class="d-flex justify-content-between align-items-center mb-3">
-                                <h5 class="card-title mb-0" id="formViolationTitle">เพิ่มประเภทพฤติกรรมใหม่</h5>
-                                <button type="button" class="btn-close" id="btnCloseViolationForm"></button>
-                            </div>
-                            
-                            <form id="formViolationType">
-                                <input type="hidden" id="violationTypeId" name="violations_id">
-                                
-                                <div class="mb-3">
-                                    <label for="violations_name" class="form-label">ชื่อประเภทพฤติกรรม <span class="text-danger">*</span></label>
-                                    <input type="text" class="form-control" id="violations_name" name="violations_name" 
-                                           placeholder="ระบุชื่อประเภทพฤติกรรม เช่น ผิดระเบียบการแต่งกาย" required maxlength="150">
-                                    <div class="form-text">สูงสุด 150 ตัวอักษร</div>
-                                </div>
-                                
-                                <div class="row">
-                                    <div class="col-md-6 mb-3">
-                                        <label for="violations_category" class="form-label">ระดับความรุนแรง <span class="text-danger">*</span></label>
-                                        <select class="form-select" id="violations_category" name="violations_category" required>
-                                            <option value="" selected disabled>เลือกระดับความรุนแรง</option>
-                                            <option value="light">เบา (light)</option>
-                                            <option value="medium">ปานกลาง (medium)</option>
-                                            <option value="severe">รุนแรง (severe)</option>
-                                        </select>
-                                        <div class="form-text">เลือกระดับความรุนแรงตามประเภทของพฤติกรรม</div>
-                                    </div>
-                                    
-                                    <div class="col-md-6 mb-3">
-                                        <label for="violations_points_deducted" class="form-label">คะแนนที่หัก <span class="text-danger">*</span></label>
-                                        <input type="number" class="form-control" id="violations_points_deducted" name="violations_points_deducted" 
-                                               min="1" max="100" required placeholder="ระบุคะแนนที่จะหัก">
-                                        <div class="form-text">ระบุเป็นตัวเลขระหว่าง 1-100</div>
-                                    </div>
-                                </div>
-                                
-                                <div class="mb-4">
-                                    <label for="violations_description" class="form-label">รายละเอียดเพิ่มเติม</label>
-                                    <textarea class="form-control" id="violations_description" name="violations_description" rows="3"
-                                              placeholder="อธิบายรายละเอียดเพิ่มเติมเกี่ยวกับพฤติกรรมนี้..."></textarea>
-                                </div>
-                                
-                                <div class="d-flex justify-content-end">
-                                    <button type="button" class="btn btn-secondary me-2" id="btnCancelViolationType">ยกเลิก</button>
-                                    <button type="submit" class="btn btn-primary-app" id="btnSaveViolationType">บันทึก</button>
-                                </div>
-                            </form>
+                            <!-- เนื้อหาฟอร์มจะถูกเติมด้วย JavaScript -->
                         </div>
                     </div>
                 </div>
@@ -776,6 +730,72 @@
         </div>
     </div>
 
+    <!-- Add Violation Type Modal -->
+    <div class="modal fade" id="addViolationTypeModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content animate__animated animate__fadeInUp animate__faster">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title">เพิ่มประเภทพฤติกรรมใหม่</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="addViolationTypeForm" class="needs-validation" novalidate>
+                        <input type="hidden" id="violation_id" name="id">
+                        
+                        <div class="mb-3">
+                            <label for="violation_name" class="form-label">ชื่อพฤติกรรม <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="violation_name" name="name" 
+                                   placeholder="ระบุชื่อพฤติกรรม เช่น มาสาย, ไม่ทำการบ้าน" required>
+                            <div class="invalid-feedback">กรุณาระบุชื่อพฤติกรรม</div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="violation_category" class="form-label">ระดับความรุนแรง <span class="text-danger">*</span></label>
+                                <select class="form-select" id="violation_category" name="category" required>
+                                    <option value="" selected disabled>เลือกระดับความรุนแรง</option>
+                                    <option value="light">เบา</option>
+                                    <option value="medium">ปานกลาง</option>
+                                    <option value="severe">หนัก</option>
+                                </select>
+                                <div class="invalid-feedback">กรุณาเลือกระดับความรุนแรง</div>
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="violation_points" class="form-label">คะแนนที่หัก <span class="text-danger">*</span></label>
+                                <input type="number" class="form-control" id="violation_points" name="points_deducted" 
+                                       min="0" max="100" required placeholder="ระบุคะแนนที่หัก">
+                                <div class="invalid-feedback">กรุณาระบุคะแนนที่หัก (0-100)</div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="violation_description" class="form-label">รายละเอียด</label>
+                            <textarea class="form-control" id="violation_description" name="description" 
+                                      rows="3" placeholder="อธิบายรายละเอียดเพิ่มเติม (ถ้ามี)"></textarea>
+                        </div>
+                        
+                        <div class="alert alert-success save-success d-none">
+                            <i class="fas fa-check-circle me-2"></i>
+                            บันทึกข้อมูลสำเร็จ
+                        </div>
+                        
+                        <div class="alert alert-danger save-error d-none">
+                            <i class="fas fa-exclamation-circle me-2"></i>
+                            <span class="error-message">เกิดข้อผิดพลาดในการบันทึกข้อมูล</span>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+                    <button type="button" class="btn btn-primary-app" id="btnSaveViolationType">
+                        <i class="fas fa-save me-1"></i> บันทึกข้อมูล
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
     <!-- Delete Violation Confirmation Modal -->
     <div class="modal fade" id="deleteViolationModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-sm">

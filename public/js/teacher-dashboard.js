@@ -110,7 +110,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // สำหรับแสดงฟอร์มเพิ่มประเภทพฤติกรรมใหม่
-    const btnShowAddViolationType = document.getElementById('btnShowAddViolationType');
     const violationTypesList = document.getElementById('violationTypesList');
     const violationTypeForm = document.getElementById('violationTypeForm');
     const btnCloseViolationForm = document.getElementById('btnCloseViolationForm');
@@ -119,15 +118,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const studentSearch = document.getElementById('studentSearch');
     const btnSearchStudent = document.getElementById('btnSearchStudent');
     const classFilter = document.getElementById('classFilter');
-    
-    // ปุ่มแสดงฟอร์มเพิ่มใหม่
-    if (btnShowAddViolationType) {
-        btnShowAddViolationType.addEventListener('click', function() {
-            if (violationTypesList) violationTypesList.classList.add('d-none');
-            if (violationTypeForm) violationTypeForm.classList.remove('d-none');
-            if (formViolationTitle) formViolationTitle.textContent = 'เพิ่มประเภทพฤติกรรมใหม่';
-        });
-    }
     
     // ปุ่มปิดฟอร์ม
     if (btnCloseViolationForm) {
