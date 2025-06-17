@@ -8,10 +8,10 @@ use Illuminate\Database\Eloquent\Model;
 class Student extends Model
 {
     use HasFactory;
-    
+
     protected $table = 'tb_students';
     protected $primaryKey = 'students_id';
-    public $timestamps = false;
+    public $timestamps = false; // เพราะใช้ students_created_at
     
     protected $fillable = [
         'user_id',
@@ -20,38 +20,54 @@ class Student extends Model
         'students_academic_year',
         'students_current_score',
         'students_status',
-        'students_gender',
-        'id_number', // เพิ่มฟิลด์นี้เข้าไป
+        'students_gender'
     ];
-    
-    // ความสัมพันธ์กับผู้ใช้
+
+    // Relationships - แก้ไข foreign key ให้ตรงกับโครงสร้างฐานข้อมูล
     public function user()
     {
         return $this->belongsTo(User::class, 'user_id', 'users_id');
     }
-    
-    // ความสัมพันธ์กับห้องเรียน
+
     public function classroom()
     {
-        return $this->belongsTo(ClassRoom::class, 'class_id', 'classes_id');
+        return $this->belongsTo(Classroom::class, 'class_id', 'classes_id');
     }
-    
-    // ความสัมพันธ์กับผู้ปกครอง
+
+    // แก้ไข relationship guardian เพื่อป้องกัน error
     public function guardians()
     {
-        return $this->belongsToMany(
-            Guardian::class, 
-            'tb_guardian_student', 
-            'student_id', 
-            'guardian_id', 
-            'students_id', 
-            'guardians_id'
-        );
+        return $this->belongsToMany(Guardian::class, 'tb_guardian_student', 'student_id', 'guardian_id');
     }
-    
-    // ความสัมพันธ์กับรายงานพฤติกรรม
+
+    // สำหรับ guardian หลัก (ตัวแรก) - ป้องกัน null
+    public function guardian()
+    {
+        return $this->guardians()->first();
+    }
+
     public function behaviorReports()
     {
         return $this->hasMany(BehaviorReport::class, 'student_id', 'students_id');
+    }
+
+    // เพิ่ม accessor สำหรับ user profile image ที่ปลอดภัย
+    public function getUserProfileImageAttribute()
+    {
+        if ($this->user && $this->user->users_profile_image) {
+            return $this->user->users_profile_image;
+        }
+        return null;
+    }
+
+    // เพิ่ม accessor สำหรับชื่อเต็มที่ปลอดภัย
+    public function getFullNameAttribute()
+    {
+        if ($this->user) {
+            return ($this->user->users_name_prefix ?? '') . 
+                   ($this->user->users_first_name ?? '') . ' ' . 
+                   ($this->user->users_last_name ?? '');
+        }
+        return 'ไม่มีข้อมูล';
     }
 }

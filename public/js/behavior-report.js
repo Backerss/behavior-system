@@ -469,7 +469,7 @@ function loadRecentReports() {
             }
             return response.json();
         })
-        .then(data => {
+        .then (data => {
             if (data.success) {
                 displayRecentReports(data.data);
             } else {
@@ -713,6 +713,9 @@ function loadStudentDetails(studentId) {
         return;
     }
 
+    // ตั้งค่า data-student-id ให้กับ modal (เพิ่มบรรทัดนี้)
+    document.getElementById('studentDetailModal').setAttribute('data-student-id', studentId);
+    
     showStudentDetailLoading();
     
     fetch(`/api/students/${studentId}`, {
@@ -884,7 +887,7 @@ function populateStudentDetailModal(student) {
                         <button class="btn btn-primary-app" onclick="openBehaviorRecordModal(${student.students_id}, '${fullName}', '${classroomText}')">
                             บันทึกพฤติกรรม
                         </button>
-                        <button class="btn btn-outline-secondary">พิมพ์รายงาน</button>
+                        <button class="btn btn-outline-secondary" onclick="printStudentReport(event)" data-student-id="${ student.students_id }">พิมพ์รายงาน</button>
                     </div>
                 </div>
             </div>
@@ -1006,6 +1009,126 @@ function showSuccess(message) {
 function showError(message) {
     // Implementation ขึ้นอยู่กับระบบ notification ที่ใช้
     alert(message);
+}
+
+/**
+ * ฟังก์ชันสำหรับพิมพ์รายงานนักเรียน
+ */
+function printStudentReport(event) {
+    const button = event.currentTarget;
+    let studentId = button.getAttribute('data-student-id');
+
+    // ถ้าไม่เจอในปุ่ม ให้ไปหาใน modal
+    if (!studentId) {
+        const modal = document.getElementById('studentDetailModal');
+        studentId = modal ? modal.getAttribute('data-student-id') : null;
+    }
+
+    if (!studentId) {
+        alert('ไม่พบรหัสนักเรียน กรุณาลองใหม่อีกครั้ง');
+        return;
+    }
+    
+    // แสดง loading
+    const originalText = button.innerHTML;
+    button.disabled = true;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> กำลังสร้างรายงาน...';
+
+    // ไม่จำเป็นต้องดึง API Token จาก meta tag อีกต่อไป
+    // console.log('API Token for PDF report:', apiToken); // ลบส่วนนี้
+
+    // if (!apiToken) { // ลบส่วนนี้
+    //     alert('ไม่พบ API Token สำหรับการยืนยันตัวตน กรุณาตรวจสอบการเข้าสู่ระบบ');
+    //     button.disabled = false;
+    //     button.innerHTML = originalText;
+    //     return;
+    // }
+    
+    // เรียก API เพื่อสร้าง PDF
+    // ลบ 'Authorization': `Bearer ${apiToken}` ออกจาก headers
+    // เพิ่ม credentials: 'include' เพื่อให้แน่ใจว่า cookies (เช่น session cookie) ถูกส่งไปด้วย
+    fetch(`/api/students/${studentId}/report`, {
+        method: 'GET',
+        headers: {
+            'Accept': 'application/pdf, application/json', // Client ยอมรับ PDF หรือ JSON (สำหรับ error)
+            'X-Requested-With': 'XMLHttpRequest', // ระบุว่าเป็น AJAX request
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '' // ส่ง CSRF Token
+        },
+        credentials: 'include' // เพิ่มบรรทัดนี้เพื่อให้ browser ส่ง cookies ไปกับ request
+    })
+    .then(async response => { // เพิ่ม async เพื่อให้ใช้ await ภายในได้
+        console.log('Response status:', response.status);
+        
+        if (!response.ok) {
+            let errorMessage = `เกิดข้อผิดพลาด (${response.status})`;
+
+
+            // พยายามอ่าน error message จาก JSON response ถ้ามี
+            if (response.headers.get('content-type')?.includes('application/json')) {
+                try {
+                    const errorData = await response.json();
+                    console.error('Server error data:', errorData);
+                    if (errorData && errorData.message) {
+                        errorMessage = errorData.message;
+                    }
+                } catch (e) {
+                    console.error('Could not parse JSON error response:', e);
+                }
+            } else {
+                // ถ้าไม่ใช่ JSON อาจอ่านเป็น text
+                try {
+                    const errorText = await response.text();
+                    console.error('Server error text:', errorText);
+                    // อาจจะแสดง errorText บางส่วนถ้ามีประโยชน์
+                } catch (e) {
+                     console.error('Could not read text error response:', e);
+                }
+            }
+            // ตรวจสอบสถานะเพื่อแสดงข้อความที่เหมาะสม
+            if (response.status === 401) { // Unauthorized
+                errorMessage = 'คุณไม่มีสิทธิ์เข้าถึง กรุณาเข้าสู่ระบบใหม่อีกครั้ง (401)';
+            } else if (response.status === 403) { // Forbidden
+                errorMessage = 'คุณไม่มีสิทธิ์ในการดำเนินการนี้ (403)';
+            } else if (response.status === 404) { // Not Found
+                errorMessage = 'ไม่พบข้อมูลหรือ Endpoint ที่ร้องขอ (404)';
+            }
+            throw new Error(errorMessage); // โยน Error พร้อม message ที่ได้
+        }
+        
+        return response.blob();
+    })
+    .then(blob => {
+        console.log('Received blob:', blob.type, blob.size);
+        
+        if (blob.type !== 'application/pdf') {
+            console.warn('Received blob is not PDF. Type:', blob.type);
+            // พยายามอ่าน blob เป็น text เพื่อ debug
+            blob.text().then(text => console.log('Blob content as text:', text));
+            throw new Error('Server ไม่ได้ส่งไฟล์ PDF กลับมาอย่างถูกต้อง');
+        }
+
+        // สร้าง URL สำหรับดาวน์โหลด
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = url;
+        a.download = `รายงานนักเรียน-${studentId}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        
+        console.log('Download initiated');
+    })
+    .catch(error => { // แก้ไขการจัดการ error ให้แสดง message ที่ชัดเจนขึ้น
+        console.error('Error generating report:', error);
+        alert(`ไม่สามารถสร้างรายงานได้: ${error.message}`);
+    })
+    .finally(() => {
+        // คืนค่าปุ่ม
+        button.disabled = false;
+        button.innerHTML = originalText;
+    });
 }
 
 // Event Listeners สำหรับ Student Detail Modal

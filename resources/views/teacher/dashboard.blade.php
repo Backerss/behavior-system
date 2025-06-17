@@ -865,7 +865,7 @@
                                 <hr>
                                 <div class="d-grid gap-2 mt-3">
                                     <button class="btn btn-primary-app">บันทึกพฤติกรรม</button>
-                                    <button class="btn btn-outline-secondary">พิมพ์รายงาน</button>
+                                    <button class="btn btn-outline-secondary" onclick="printStudentReport(event)" data-student-id="{{ $student->id }}">พิมพ์รายงาน</button>
                                 </div>
                             </div>
                         </div>

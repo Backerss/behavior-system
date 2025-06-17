@@ -6,6 +6,7 @@ use App\Http\Controllers\StudentApiController;
 use App\Http\Controllers\BehaviorReportController;
 use App\Http\Controllers\ViolationController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\API\StudentReportController;
 
 /*
 |--------------------------------------------------------------------------
@@ -17,8 +18,11 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
 
-// Student API routes
-Route::middleware(['auth'])->group(function () {
+// เปลี่ยนจาก auth:sanctum เป็น auth เฉพาะสำหรับ PDF report
+Route::get('/students/{id}/report', [StudentReportController::class, 'generatePDF'])->middleware('auth');
+
+// Student API routes อื่นๆ ใช้ auth:sanctum ตามเดิม
+Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/students/{id}', [StudentApiController::class, 'show']);
     
     // Behavior Report routes
@@ -35,7 +39,6 @@ Route::middleware(['auth'])->group(function () {
     Route::put('/violations/{id}', [ViolationController::class, 'update']);
     Route::delete('/violations/{id}', [ViolationController::class, 'destroy']);
 
-    // Dashboard statistics routes - แก้ไขโดยนำ routes ออกจาก prefix group
     Route::get('/dashboard/trends', [DashboardController::class, 'getMonthlyTrends']);
     Route::get('/dashboard/violations', [DashboardController::class, 'getViolationTypes']);
     Route::get('/dashboard/stats', [DashboardController::class, 'getMonthlyStats']);

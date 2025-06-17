@@ -105,6 +105,9 @@ Route::prefix('api')->middleware('auth')->group(function () {
         Route::get('/violations', [DashboardController::class, 'getViolationTypes']);
         Route::get('/stats', [DashboardController::class, 'getMonthlyStats']);
     });
+    
+    // เพิ่มบรรทัดนี้
+    Route::get('/students/{id}/report', [App\Http\Controllers\API\StudentReportController::class, 'generatePDF'])->middleware('auth');
 });
 
 // Profile update route
