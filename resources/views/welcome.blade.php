@@ -35,10 +35,14 @@
                 <div class="collapse navbar-collapse" id="navbarNav">
                     <ul class="navbar-nav ms-auto">
                         <li class="nav-item">
-                            <a class="nav-link text-white" href="/login">เข้าสู่ระบบ</a>
+                            <a class="nav-link text-white" href="/login">
+                                <i class="fas fa-sign-in-alt me-1"></i> เข้าสู่ระบบ
+                            </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link text-white" href="/register">ลงทะเบียน</a>
+                            <a class="nav-link text-white" href="/register">
+                                <i class="fas fa-user-plus me-1"></i> ลงทะเบียน
+                            </a>
                         </li>
                     </ul>
                 </div>
@@ -298,30 +302,6 @@
                 <div class="cta-shape-2"></div>
             </div>
         </div>
-
-        <!-- Bottom Navbar (Mobile) -->
-        <nav class="bottom-navbar d-block d-lg-none">
-            <div class="container">
-                <div class="d-flex justify-content-around">
-                    <a href="#" class="nav-link text-primary-app">
-                        <i class="fas fa-home"></i>
-                        <span>หน้าแรก</span>
-                    </a>
-                    <a href="#" class="nav-link text-muted">
-                        <i class="fas fa-search"></i>
-                        <span>ค้นหา</span>
-                    </a>
-                    <a href="#" class="nav-link text-muted">
-                        <i class="fas fa-info-circle"></i>
-                        <span>ข้อมูล</span>
-                    </a>
-                    <a href="#" class="nav-link text-muted">
-                        <i class="fas fa-user"></i>
-                        <span>โปรไฟล์</span>
-                    </a>
-                </div>
-            </div>
-        </nav>
     </div>
 
     <!-- Bootstrap JS bundle -->

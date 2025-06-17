@@ -844,7 +844,9 @@
                             <h5 class="card-title mb-3">ส่งออกรายงาน</h5>
                             <p class="card-text text-muted">เลือกรูปแบบรายงานที่ต้องการส่งออก</p>
                             <div class="d-grid gap-2">
-                                <button class="btn btn-outline-primary d-flex justify-content-between align-items-center">
+                                <button class="btn btn-outline-primary d-flex justify-content-between align-items-center" 
+                                        id="generateMonthlyReport" 
+                                        onclick="generateMonthlyReport()">
                                     <span>รายงานพฤติกรรมประจำเดือน</span>
                                     <i class="fas fa-file-pdf"></i>
                                 </button>
@@ -1308,6 +1310,70 @@
         </div>
     </div>
 
+    <!-- Monthly Report Modal -->
+    <div class="modal fade" id="monthlyReportModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title">สร้างรายงานพฤติกรรมประจำเดือน</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="report_month" class="form-label">เลือกเดือน</label>
+                        <select class="form-select" id="report_month">
+                            <option value="1">มกราคม</option>
+                            <option value="2">กุมภาพันธ์</option>
+                            <option value="3">มีนาคม</option>
+                            <option value="4">เมษายน</option>
+                            <option value="5">พฤษภาคม</option>
+                            <option value="6">มิถุนายน</option>
+                            <option value="7">กรกฎาคม</option>
+                            <option value="8">สิงหาคม</option>
+                            <option value="9">กันยายน</option>
+                            <option value="10">ตุลาคม</option>
+                            <option value="11">พฤศจิกายน</option>
+                            <option value="12">ธันวาคม</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="report_year" class="form-label">เลือกปี</label>
+                        <select class="form-select" id="report_year">
+                            @php
+                                $currentYear = (int)date('Y');
+                                $startYear = $currentYear - 2;
+                                $endYear = $currentYear + 1;
+                            @endphp
+                            @for($year = $startYear; $year <= $endYear; $year++)
+                                <option value="{{ $year }}" {{ $year == $currentYear ? 'selected' : '' }}>
+                                    {{ $year + 543 }}
+                                </option>
+                            @endfor
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="report_class_id" class="form-label">เลือกห้องเรียน (ไม่ระบุเพื่อดูทั้งหมด)</label>
+                        <select class="form-select" id="report_class_id">
+                            <option value="">ทุกห้องเรียน</option>
+                            <!-- ตัวเลือกจะถูกเติมด้วย JavaScript หรือข้อมูลจาก Controller -->
+                            @foreach($classes ?? [] as $class)
+                                <option value="{{ $class->classes_id }}">
+                                    {{ $class->classes_level }}/{{ $class->classes_room_number }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+                    <button type="button" class="btn btn-primary-app" onclick="downloadMonthlyReport()">
+                        <i class="fas fa-download me-2"></i>สร้างรายงาน
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Bootstrap JS Bundle -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <!-- Chart.js -->
@@ -1319,6 +1385,7 @@
     <script src="/js/class-detail.js"></script>
     <!-- เพิ่ม behavior report script -->
     <script src="/js/behavior-report.js"></script>
-    <!-- Student Search and Filter Script -->
+    <!-- Reports JS -->
+    <script src="/js/reports.js"></script>
 </body>
 </html>

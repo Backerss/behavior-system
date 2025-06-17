@@ -109,6 +109,11 @@ Route::prefix('api')->middleware('auth')->group(function () {
     Route::get('/students/{id}/report', [App\Http\Controllers\API\StudentReportController::class, 'generatePDF'])->middleware('auth');
 });
 
+// เพิ่ม Route สำหรับรายงาน
+Route::prefix('reports')->middleware(['auth'])->group(function () {
+    Route::get('/monthly', [App\Http\Controllers\ReportController::class, 'monthlyReport'])->name('reports.monthly');
+});
+
 // Profile update route
 Route::put('/teacher/profile/update', [App\Http\Controllers\TeacherController::class, 'updateProfile'])
      ->name('teacher.profile.update')
