@@ -8,6 +8,7 @@ use App\Http\Controllers\StudentController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ParentController;
 use App\Http\Controllers\WelcomeController;
+use App\Http\Controllers\NotificationController; // เพิ่มบรรทัดนี้
 
 // หน้าหลัก
 Route::get('/', [WelcomeController::class, 'index'])->name('welcome');
@@ -118,3 +119,21 @@ Route::prefix('reports')->middleware(['auth'])->group(function () {
 Route::put('/teacher/profile/update', [App\Http\Controllers\TeacherController::class, 'updateProfile'])
      ->name('teacher.profile.update')
      ->middleware('auth');
+
+// เพิ่ม Route สำหรับการแจ้งเตือนผู้ปกครองที่นี่
+Route::match(['get','post'], '/notifications/parent', [NotificationController::class, 'sendParentNotification'])
+    ->middleware('auth')
+    ->name('notifications.parent');
+
+// Parent notification API routes
+Route::prefix('api/parent')->middleware('auth')->group(function () {
+    Route::get('/notifications', [ParentController::class, 'getNotifications']);
+    Route::get('/notifications/unread-count', [ParentController::class, 'getUnreadNotificationCount']);
+    Route::put('/notifications/{id}/read', [ParentController::class, 'markNotificationAsRead']);
+    Route::put('/notifications/mark-all-read', [ParentController::class, 'markAllNotificationsAsRead']);
+    
+    // existing routes...
+    Route::get('/student/{id}/reports', [ParentController::class, 'getStudentBehaviorReports']);
+    Route::get('/student/{id}/stats', [ParentController::class, 'getStudentBehaviorStats']);
+    Route::get('/student/{id}/chart', [ParentController::class, 'getStudentScoreChart']);
+});

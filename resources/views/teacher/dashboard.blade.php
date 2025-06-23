@@ -1485,6 +1485,92 @@
         </div>
     </div>
 
+    <!-- Parent Notification Modal -->
+    <div class="modal fade" id="parentNotificationModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title">แจ้งเตือนผู้ปกครอง</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="notification-student-info" class="alert alert-light border mb-3"></div>
+                    
+                    <div id="notification-warning" class="alert alert-danger d-none">
+                        <div class="d-flex align-items-center mb-2">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            <strong>คะแนนความประพฤติต่ำกว่าเกณฑ์</strong>
+                        </div>
+                        <p class="mb-0">นักเรียนมีคะแนนความประพฤติต่ำมาก จำเป็นต้องได้รับการดูแลและติดตามอย่างใกล้ชิด</p>
+                    </div>
+                    
+                    <form id="notification-form">
+                        <input type="hidden" id="notification-student-id">
+                        <input type="hidden" id="notification-score">
+                        <input type="hidden" id="notification-phone">
+                        
+                        <div class="mb-3">
+                            <label for="notification-type" class="form-label">ประเภทการแจ้งเตือน</label>
+                            <select class="form-select" id="notification-type" onchange="updateNotificationTemplate()">
+                                <option value="behavior">พฤติกรรมเบี่ยงเบน</option>
+                                <option value="attendance">การขาดเรียน</option>
+                                <option value="meeting">เชิญประชุมผู้ปกครอง</option>
+                                <option value="custom">กำหนดเอง</option>
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="notification-message" class="form-label">ข้อความ</label>
+                            <textarea class="form-control" id="notification-message" rows="5" required></textarea>
+                            <div class="form-text">
+                                <span id="message-suggestion" class="text-primary cursor-pointer d-none" onclick="applyMessageSuggestion()">
+                                    <i class="fas fa-lightbulb"></i> ใช้ข้อความแนะนำ
+                                </span>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="notification-method" class="form-label">วิธีการแจ้งเตือน</label>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="notification-sms" checked>
+                                <label class="form-check-label" for="notification-sms">
+                                    <i class="fas fa-sms me-1"></i> SMS (<span id="notification-phone-display"></span>)
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="notification-line">
+                                <label class="form-check-label" for="notification-line">
+                                    <i class="fab fa-line me-1"></i> Line
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="notification-system" checked>
+                                <label class="form-check-label" for="notification-system">
+                                    <i class="fas fa-bell me-1"></i> ระบบแจ้งเตือน
+                                </label>
+                            </div>
+                        </div>
+                    </form>
+                    
+                    <div id="notification-success" class="alert alert-success d-none">
+                        <i class="fas fa-check-circle me-2"></i> ส่งการแจ้งเตือนสำเร็จแล้ว
+                    </div>
+                    
+                    <div id="notification-error" class="alert alert-danger d-none">
+                        <i class="fas fa-exclamation-circle me-2"></i>
+                        <span id="notification-error-message">เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง</span>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+                    <button type="button" class="btn btn-primary" id="send-notification-btn" onclick="sendParentNotification()">
+                        <i class="fas fa-paper-plane me-1"></i> ส่งการแจ้งเตือน
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Bootstrap JS Bundle -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <!-- Chart.js -->
@@ -1499,5 +1585,6 @@
     <!-- Reports JS -->
     <script src="/js/reports.js"></script>
     <script src="/js/student-filter.js"></script>
+    <script src="/js/parent-notification.js"></script>
 </body>
 </html>

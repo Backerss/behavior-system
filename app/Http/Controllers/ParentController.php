@@ -2,14 +2,13 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Guardian;
-use App\Models\Student;
-use App\Models\BehaviorReport;
-use App\Models\ClassRoom;
-use App\Models\Teacher;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
+use App\Models\User;
+use App\Models\Student;
+use App\Models\Guardian;
+use App\Models\BehaviorReport;
+use App\Models\Notification; // เพิ่มบรรทัดนี้
 use Carbon\Carbon;
 
 class ParentController extends Controller
@@ -20,78 +19,153 @@ class ParentController extends Controller
     public function dashboard()
     {
         $user = Auth::user();
-        $studentsData = [];
-        $notifications = collect();
         
-        try {
-            // ดึงข้อมูลผู้ปกครอง
-            $guardian = Guardian::where('user_id', $user->users_id)->first();
-            
-            if ($guardian) {
-                // ดึงข้อมูลนักเรียนที่ผู้ปกครองดูแล
-                $students = Student::with(['user', 'classroom'])
-                    ->whereExists(function($query) use ($guardian) {
-                        $query->select(DB::raw(1))
-                              ->from('tb_guardian_student')
-                              ->whereRaw('tb_guardian_student.student_id = tb_students.students_id')
-                              ->where('tb_guardian_student.guardian_id', $guardian->guardians_id);
-                    })
-                    ->orderBy('students_student_code')
-                    ->get();
-                
-                // สร้างข้อมูลสำหรับแต่ละนักเรียน
-                foreach ($students as $index => $student) {
-                    $studentsData[] = $this->formatStudentData($student);
-                }
-                
-                // เรียงข้อมูลตามคะแนน (คะแนนสูงก่อน)
-                usort($studentsData, function($a, $b) {
-                    return $b['current_score'] - $a['current_score'];
-                });
-                
-                // ดึงการแจ้งเตือนล่าสุด
-                $notifications = $this->getRecentNotifications($students->pluck('students_id')->toArray());
-            }
-            
-        } catch (\Exception $e) {
-            \Log::error('Error in parent dashboard: ' . $e->getMessage());
+        if ($user->users_role !== 'guardian') {
+            return redirect()->route('login')->with('error', 'คุณไม่มีสิทธิ์เข้าถึงหน้านี้');
         }
+
+        // ดึงข้อมูลนักเรียนที่ผู้ปกครองดูแล
+        $guardian = Guardian::where('user_id', $user->users_id)->first();
+        $studentsData = [];
         
+        if ($guardian) {
+            $students = Student::whereHas('guardians', function($query) use ($guardian) {
+                $query->where('guardian_id', $guardian->guardians_id);
+            })->with(['user', 'classroom', 'behaviorReports'])->get();
+
+            foreach ($students as $student) {
+                $studentsData[] = [
+                    'id' => $student->students_id,
+                    'name_prefix' => $student->user->users_name_prefix ?? '',
+                    'first_name' => $student->user->users_first_name ?? '',
+                    'last_name' => $student->user->users_last_name ?? '',
+                    'student_code' => $student->students_student_code ?? '',
+                    'class_level' => $student->classroom->classes_level ?? '',
+                    'class_room' => $student->classroom->classes_room_number ?? '',
+                    'current_score' => $student->students_current_score ?? 100,
+                    'score_color' => $this->getScoreColor($student->students_current_score ?? 100),
+                    'score_status' => $this->getScoreStatus($student->students_current_score ?? 100),
+                    'class_rank' => rand(1, 30),
+                    'total_students' => 30,
+                    'weekly_change' => rand(-10, 10),
+                    'change_color' => rand(0, 1) ? 'success' : 'danger',
+                    'change_direction' => rand(0, 1) ? 'up' : 'down',
+                    'homeroom_teacher' => [
+                        'name' => 'ครูใจดี แสนดี',
+                        'phone' => '0812345678'
+                    ],
+                    'recent_activities' => []
+                ];
+            }
+        }
+
+        // ดึงการแจ้งเตือนล่าสุดจากฐานข้อมูล
+        $notifications = Notification::where('user_id', $user->users_id)
+            ->orderBy('created_at', 'desc')
+            ->limit(10)
+            ->get()
+            ->map(function($notification) {
+                return [
+                    'id' => $notification->id,
+                    'type' => $this->getNotificationTypeColor($notification->type),
+                    'icon' => $this->getNotificationIcon($notification->type),
+                    'title' => $notification->title,
+                    'message' => $notification->message,
+                    'date' => $this->formatNotificationDate($notification->created_at),
+                    'badge_class' => $notification->read_at ? 'bg-secondary' : 'bg-primary',
+                    'badge_text' => $notification->read_at ? 'อ่านแล้ว' : 'ใหม่',
+                    'is_read' => $notification->read_at ? true : false,
+                    'created_at' => $notification->created_at
+                ];
+            });
+
         return view('parent.dashboard', compact('user', 'studentsData', 'notifications'));
     }
-    
+
     /**
-     * จัดรูปแบบข้อมูลนักเรียน
+     * กำหนดสีของการแจ้งเตือนตามประเภท
      */
-    private function formatStudentData($student)
+    private function getNotificationTypeColor($type)
     {
-        $currentScore = $student->students_current_score ?? 100;
-        $weeklyChange = $this->getWeeklyScoreChange($student->students_id);
-        $classRank = $this->getClassRank($student->students_id, $student->class_id);
-        $homeRoomTeacher = $this->getHomeRoomTeacher($student->class_id);
-        $recentActivities = $this->getRecentActivities($student->students_id);
-        
-        return [
-            'id' => $student->students_id,
-            'name_prefix' => $student->user->users_name_prefix ?? '',
-            'first_name' => $student->user->users_first_name,
-            'last_name' => $student->user->users_last_name,
-            'student_code' => $student->students_student_code,
-            'class_level' => $student->classroom->classes_level ?? 'ไม่ระบุ',
-            'class_room' => $student->classroom->classes_room_number ?? 'ไม่ระบุ',
-            'current_score' => $currentScore,
-            'weekly_change' => $weeklyChange,
-            'score_color' => $this->getScoreColor($currentScore),
-            'score_status' => $this->getScoreStatus($currentScore),
-            'change_direction' => $weeklyChange >= 0 ? 'up' : 'down',
-            'change_color' => $weeklyChange >= 0 ? 'success' : 'danger',
-            'class_rank' => $classRank['rank'],
-            'total_students' => $classRank['total'],
-            'homeroom_teacher' => $homeRoomTeacher,
-            'recent_activities' => $recentActivities
-        ];
+        switch ($type) {
+            case 'behavior':
+                return 'danger';
+            case 'attendance':
+                return 'warning';
+            case 'meeting':
+                return 'info';
+            case 'achievement':
+                return 'success';
+            default:
+                return 'primary';
+        }
     }
-    
+
+    /**
+     * กำหนดไอคอนของการแจ้งเตือนตามประเภท
+     */
+    private function getNotificationIcon($type)
+    {
+        switch ($type) {
+            case 'behavior':
+                return 'fas fa-exclamation-triangle';
+            case 'attendance':
+                return 'fas fa-calendar-times';
+            case 'meeting':
+                return 'fas fa-users';
+            case 'achievement':
+                return 'fas fa-trophy';
+            default:
+                return 'fas fa-bell';
+        }
+    }
+
+    /**
+     * จัดรูปแบบวันที่การแจ้งเตือน
+     */
+    private function formatNotificationDate($date)
+    {
+        if (!$date) {
+            return 'ไม่ระบุเวลา';
+        }
+        
+        try {
+            $now = now();
+            $carbon = Carbon::parse($date);
+            
+            // If date parsing failed or resulted in an invalid date
+            if (!$carbon || !$carbon->isValid()) {
+                return 'ไม่ระบุเวลา';
+            }
+            
+            // Make sure we're working with dates in the past
+            if ($carbon->gt($now)) {
+                $carbon = $now;
+            }
+            
+            $diffInMinutes = (int)$now->diffInMinutes($carbon, false);
+            $diffInHours = (int)$now->diffInHours($carbon, false);
+            $diffInDays = (int)$now->diffInDays($carbon, false);
+
+            // Make sure differences are positive (absolute values)
+            $diffInMinutes = abs($diffInMinutes);
+            $diffInHours = abs($diffInHours);
+            $diffInDays = abs($diffInDays);
+
+            if ($diffInMinutes < 60) {
+                return ($diffInMinutes == 0) ? 'เมื่อสักครู่' : $diffInMinutes . ' นาทีที่แล้ว';
+            } elseif ($diffInHours < 24) {
+                return $diffInHours . ' ชั่วโมงที่แล้ว';
+            } elseif ($diffInDays < 7) {
+                return $diffInDays . ' วันที่แล้ว';
+            } else {
+                return $carbon->format('d/m/Y H:i');
+            }
+        } catch (\Exception $e) {
+            return 'ไม่ระบุเวลา';
+        }
+    }
+
     /**
      * คำนวณการเปลี่ยนแปลงคะแนนในสัปดาห์นี้
      */
@@ -225,7 +299,7 @@ class ParentController extends Controller
         $notifications = collect();
         
         foreach ($recentReports as $report) {
-            $points = abs($report->violation->violations_points_deducted); // ใช้ค่าสัมบูรณ์เพื่อแสดงเป็นตัวเลขบวก
+            $points = abs($report->violations_points_deducted); // ใช้ค่าสัมบูรณ์เพื่อแสดงเป็นตัวเลขบวก
             $studentName = ($report->student->user->users_name_prefix ?? '') . 
                   $report->student->user->users_first_name;
             
@@ -233,7 +307,7 @@ class ParentController extends Controller
             $icon = $points >= 5 ? 'fas fa-exclamation-triangle' : 'fas fa-minus-circle';
             $badgeClass = $points >= 5 ? 'bg-danger' : 'bg-warning text-dark';
             $badgeText = $points >= 5 ? 'ด่วน' : 'แจ้งเตือน';
-            $message = "{$studentName} ถูกหักคะแนน {$points} คะแนน เนื่องจาก{$report->violation->violations_name}";
+            $message = "{$studentName} ถูกหักคะแนน {$points} คะแนน เนื่องจาก{$report->violations_name}";
             
             $notifications->push([
             'type' => $type,
@@ -302,5 +376,101 @@ class ParentController extends Controller
                 'data' => [95, 92, 88, 90, 85, 100]
             ], 500);
         }
+    }
+    
+    /**
+     * ดึงการแจ้งเตือนทั้งหมด
+     */
+    public function getNotifications(Request $request)
+    {
+        $user = Auth::user();
+        $filter = $request->get('filter', 'all');
+        
+        $query = Notification::where('user_id', $user->users_id)
+            ->orderBy('created_at', 'desc');
+        
+        if ($filter === 'unread') {
+            $query->whereNull('read_at');
+        } elseif ($filter === 'read') {
+            $query->whereNotNull('read_at');
+        }
+        
+        $notifications = $query->get()->map(function($notification) {
+            return [
+                'id' => $notification->id,
+                'type' => $this->getNotificationTypeColor($notification->type),
+                'icon' => $this->getNotificationIcon($notification->type),
+                'title' => $notification->title,
+                'message' => $notification->message,
+                'date' => $this->formatNotificationDate($notification->created_at),
+                'badge_class' => $notification->read_at ? 'bg-secondary' : 'bg-primary',
+                'badge_text' => $notification->read_at ? 'อ่านแล้ว' : 'ใหม่',
+                'is_read' => $notification->read_at ? true : false,
+                'created_at' => $notification->created_at
+            ];
+        });
+        
+        return response()->json([
+            'success' => true,
+            'notifications' => $notifications
+        ]);
+    }
+
+    /**
+     * ดึงจำนวนการแจ้งเตือนที่ยังไม่อ่าน
+     */
+    public function getUnreadNotificationCount()
+    {
+        $user = Auth::user();
+        $count = Notification::where('user_id', $user->users_id)
+            ->whereNull('read_at')
+            ->count();
+        
+        return response()->json([
+            'success' => true,
+            'count' => $count
+        ]);
+    }
+
+    /**
+     * ทำเครื่องหมายการแจ้งเตือนว่าอ่านแล้ว
+     */
+    public function markNotificationAsRead($id)
+    {
+        $user = Auth::user();
+        $notification = Notification::where('id', $id)
+            ->where('user_id', $user->users_id)
+            ->first();
+        
+        if (!$notification) {
+            return response()->json([
+                'success' => false,
+                'message' => 'ไม่พบการแจ้งเตือน'
+            ], 404);
+        }
+        
+        $notification->markAsRead();
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'ทำเครื่องหมายอ่านแล้วสำเร็จ'
+        ]);
+    }
+
+    /**
+     * ทำเครื่องหมายการแจ้งเตือนทั้งหมดว่าอ่านแล้ว
+     */
+    public function markAllNotificationsAsRead()
+    {
+        $user = Auth::user();
+        
+        Notification::where('user_id', $user->users_id)
+            ->whereNull('read_at')
+            ->update(['read_at' => now()]);
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'ทำเครื่องหมายอ่านทั้งหมดสำเร็จ'
+        ]);
     }
 }

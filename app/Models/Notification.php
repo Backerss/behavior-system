@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -25,6 +26,9 @@ class Notification extends Model
         'created_at' => 'datetime'
     ];
 
+    /**
+     * ความสัมพันธ์กับผู้ใช้
+     */
     public function user()
     {
         return $this->belongsTo(User::class, 'user_id', 'users_id');

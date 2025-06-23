@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">{{-- เพิ่มบรรทัดนี้ --}}
     <title>ระบบสารสนเทศจัดการคะแนนนักเรียน - หน้าผู้ปกครอง</title>
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -161,7 +162,7 @@
                 <!-- Recent Notifications for All Students -->
                 <div class="section-header d-flex justify-content-between align-items-center mt-4 mb-3">
                     <h3 class="h5 mb-0">การแจ้งเตือนล่าสุด</h3>
-                    <a href="javascript:void(0);" class="btn btn-sm btn-outline-primary">
+                    <a href="javascript:void(0);" class="btn btn-sm btn-outline-primary" onclick="showAllNotifications()">
                         ดูทั้งหมด <i class="fas fa-chevron-right"></i>
                     </a>
                 </div>
@@ -170,21 +171,37 @@
                     <div class="notification-list">
                         @if(isset($notifications) && $notifications->count() > 0)
                             @foreach($notifications->take(5) as $notification)
-                                <div class="notification-item d-flex py-2 {{ !$loop->last ? 'border-bottom' : '' }}">
+                                <div class="notification-item d-flex py-2 {{ !$loop->last ? 'border-bottom' : '' }} {{ !$notification['is_read'] ? 'notification-unread' : '' }}" 
+                                     data-notification-id="{{ $notification['id'] }}" 
+                                     onclick="markAsRead({{ $notification['id'] }})">
                                     <div class="me-3">
                                         <div class="bg-{{ $notification['type'] }} rounded-circle notification-icon d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
                                             <i class="{{ $notification['icon'] }} text-white"></i>
                                         </div>
                                     </div>
-                                    <div>
-                                        <p class="mb-0 fw-medium">{{ $notification['message'] }}</p>
-                                        <p class="text-muted small mb-0">{{ $notification['date'] }}</p>
+                                    <div class="flex-grow-1">
+                                        <h6 class="mb-1 fw-medium">{{ $notification['title'] }}</h6>
+                                        <p class="mb-1">{{ Str::limit($notification['message'], 100) }}</p>
+                                        <p class="text-muted small mb-0">
+                                            <i class="fas fa-clock me-1"></i>{{ $notification['date'] }}
+                                        </p>
                                     </div>
-                                    <div class="ms-auto align-self-center">
+                                    <div class="ms-auto align-self-start">
                                         <span class="badge {{ $notification['badge_class'] }}">{{ $notification['badge_text'] }}</span>
+                                        @if(!$notification['is_read'])
+                                            <div class="notification-dot"></div>
+                                        @endif
                                     </div>
                                 </div>
                             @endforeach
+                            
+                            @if($notifications->count() > 5)
+                                <div class="text-center mt-3">
+                                    <button class="btn btn-sm btn-outline-primary" onclick="loadMoreNotifications()">
+                                        <i class="fas fa-plus me-1"></i> โหลดเพิ่มเติม
+                                    </button>
+                                </div>
+                            @endif
                         @else
                             <div class="text-center py-4">
                                 <i class="fas fa-bell-slash fa-2x text-muted mb-2"></i>
@@ -317,6 +334,8 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
     <!-- Parent Dashboard JS -->
     <script src="/js/parent-dashboard.js"></script>
+    <!-- Parent Notifications JS -->
+    <script src="/js/parent-notifications.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             // ข้อมูลนักเรียนจาก PHP

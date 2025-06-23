@@ -887,7 +887,15 @@ function populateStudentDetailModal(student) {
                         <button class="btn btn-primary-app" onclick="openBehaviorRecordModal(${student.students_id}, '${fullName}', '${classroomText}')">
                             บันทึกพฤติกรรม
                         </button>
-                        <button class="btn btn-outline-secondary" onclick="printStudentReport(event)" data-student-id="${ student.students_id }">พิมพ์รายงาน</button>
+                        <button class="btn btn-outline-secondary" onclick="printStudentReport(event)" data-student-id="${student.students_id}">พิมพ์รายงาน</button>
+                        ${guardianPhone !== '-' ? 
+                            `<button class="btn ${score < 40 ? 'btn-danger' : 'btn-outline-warning'}" 
+                                    onclick="openParentNotificationModal(${student.students_id}, '${fullName}', '${classroomText}', ${score}, '${guardianPhone}')">
+                                <i class="fas fa-bell me-1"></i> แจ้งเตือนผู้ปกครอง
+                                ${score < 40 ? '<span class="badge bg-white text-danger ms-1">!</span>' : ''}
+                            </button>` 
+                            : ''
+                        }
                     </div>
                 </div>
             </div>
