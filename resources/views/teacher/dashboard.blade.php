@@ -263,7 +263,7 @@
                                             <input type="text" class="form-control form-control-sm" placeholder="ค้นหานักเรียน...">
                                             <button class="btn btn-sm btn-primary-app"><i class="fas fa-search"></i></button>
                                         </div>
-                                        <button class="btn btn-sm btn-outline-secondary">
+                                        <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#studentFilterModal">
                                             <i class="fas fa-filter"></i>
                                         </button>
                                     </div>
@@ -1374,6 +1374,117 @@
         </div>
     </div>
 
+    <!-- Student Filter Modal -->
+    <div class="modal fade" id="studentFilterModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title">กรองข้อมูลนักเรียน</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="studentFilterForm">
+                        <!-- ค้นหาจากชื่อ/รหัสนักเรียน -->
+                        <div class="mb-3">
+                            <label for="filter_name" class="form-label">ชื่อหรือรหัสนักเรียน</label>
+                            <input type="text" class="form-control" id="filter_name" placeholder="พิมพ์ชื่อหรือรหัสนักเรียน...">
+                        </div>
+                        
+                        <!-- กรองตามระดับชั้น -->
+                        <div class="mb-3">
+                            <label for="filter_class_level" class="form-label">ระดับชั้น</label>
+                            <select class="form-select" id="filter_class_level">
+                                <option value="">ทุกระดับชั้น</option>
+                                <option value="ม.1">ม.1</option>
+                                <option value="ม.2">ม.2</option>
+                                <option value="ม.3">ม.3</option>
+                                <option value="ม.4">ม.4</option>
+                                <option value="ม.5">ม.5</option>
+                                <option value="ม.6">ม.6</option>
+                            </select>
+                        </div>
+                        
+                        <!-- กรองตามห้อง -->
+                        <div class="mb-3">
+                            <label for="filter_class_room" class="form-label">ห้อง</label>
+                            <select class="form-select" id="filter_class_room">
+                                <option value="">ทุกห้อง</option>
+                                <option value="1">1</option>
+                                <option value="2">2</option>
+                                <option value="3">3</option>
+                                <option value="4">4</option>
+                                <option value="5">5</option>
+                                <option value="6">6</option>
+                                <option value="7">7</option>
+                                <option value="8">8</option>
+                                <option value="9">9</option>
+                                <option value="10">10</option>
+                            </select>
+                        </div>
+                        
+                        <!-- กรองตามคะแนนคงเหลือ -->
+                        <div class="mb-3">
+                            <label class="form-label">คะแนนคงเหลือ</label>
+                            <div class="d-flex gap-2 align-items-center">
+                                <select class="form-select" id="filter_score_operator">
+                                    <option value="any">ไม่ระบุ</option>
+                                    <option value="less">น้อยกว่า</option>
+                                    <option value="more">มากกว่า</option>
+                                    <option value="equal">เท่ากับ</option>
+                                </select>
+                                <input type="number" class="form-control" id="filter_score_value" min="0" max="100" value="75" disabled>
+                            </div>
+                        </div>
+                        
+                        <!-- กรองตามจำนวนครั้งที่ทำผิด -->
+                        <div class="mb-3">
+                            <label class="form-label">จำนวนครั้งที่ทำผิด</label>
+                            <div class="d-flex gap-2 align-items-center">
+                                <select class="form-select" id="filter_violation_operator">
+                                    <option value="any">ไม่ระบุ</option>
+                                    <option value="less">น้อยกว่า</option>
+                                    <option value="more">มากกว่า</option>
+                                    <option value="equal">เท่ากับ</option>
+                                </select>
+                                <input type="number" class="form-control" id="filter_violation_value" min="0" value="5" disabled>
+                            </div>
+                        </div>
+                        
+                        <!-- กรองตามสถานะความเสี่ยง -->
+                        <div class="mb-3">
+                            <label class="form-label">สถานะความเสี่ยง</label>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="filter_risk_high" value="high">
+                                <label class="form-check-label" for="filter_risk_high">
+                                    <span class="badge bg-danger">ความเสี่ยงสูง</span> (คะแนนต่ำกว่า 60)
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="filter_risk_medium" value="medium">
+                                <label class="form-check-label" for="filter_risk_medium">
+                                    <span class="badge bg-warning text-dark">ความเสี่ยงปานกลาง</span> (คะแนน 60-75)
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="filter_risk_low" value="low">
+                                <label class="form-check-label" for="filter_risk_low">
+                                    <span class="badge bg-success">ความเสี่ยงต่ำ</span> (คะแนนมากกว่า 75)
+                                </label>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-link text-secondary" id="resetFilterBtn">รีเซ็ตตัวกรอง</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+                    <button type="button" class="btn btn-primary-app" id="applyFilterBtn">
+                        <i class="fas fa-filter me-1"></i> ใช้ตัวกรอง
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Bootstrap JS Bundle -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <!-- Chart.js -->
@@ -1387,5 +1498,6 @@
     <script src="/js/behavior-report.js"></script>
     <!-- Reports JS -->
     <script src="/js/reports.js"></script>
+    <script src="/js/student-filter.js"></script>
 </body>
 </html>
