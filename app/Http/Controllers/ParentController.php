@@ -8,7 +8,8 @@ use App\Models\User;
 use App\Models\Student;
 use App\Models\Guardian;
 use App\Models\BehaviorReport;
-use App\Models\Notification; // เพิ่มบรรทัดนี้
+use App\Models\Notification;
+use App\Models\ClassRoom;
 use Carbon\Carbon;
 
 class ParentController extends Controller

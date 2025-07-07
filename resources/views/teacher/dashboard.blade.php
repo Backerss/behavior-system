@@ -95,7 +95,7 @@
                     <!-- Welcome Section -->
                     <div class="welcome-section d-flex justify-content-between align-items-center mb-4">
                         <div>
-                            <h1 class="fw-bold">สวัสดี, {{ $user->name_prefix }}{{ $user->first_name }} {{ $user->last_name }}</h1>
+                            <h1 class="fw-bold">สวัสดี, {{ $user->users_name_prefix }}{{ $user->users_first_name }} {{ $user->users_last_name }}</h1>
                             <p class="text-muted">วันนี้คือวันที่ <span class="current-date">{{ date('d F Y') }}</span></p>
                         </div>
                         <div class="d-none d-md-flex">
@@ -697,10 +697,10 @@
                                 <thead class="table-light">
                                     <tr>
                                         <th style="width: 35%">ชื่อพฤติกรรม</th>
-                                        <th style="width: 15%">ระดับความรุนแรง</th>
-                                        <th style="width: 15%">คะแนนที่หัก</th>
+                                        <th style="width: 15%" class="text-center">ระดับความรุนแรง</th>
+                                        <th style="width: 15%" class="text-center">คะแนนที่หัก</th>
                                         <th style="width: 25%">รายละเอียด</th>
-                                        <th style="width: 10%"></th>
+                                        <th style="width: 10%" class="text-center">จัดการ</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -709,8 +709,8 @@
                             </table>
                         </div>
                         <!-- Pagination -->
-                        <nav>
-                            <ul class="pagination pagination-sm justify-content-end mt-3 mb-0">
+                        <nav aria-label="Violation types pagination">
+                            <ul class="pagination pagination-sm justify-content-center mt-3 mb-0">
                                 <!-- การแบ่งหน้าจะถูกสร้างด้วย JavaScript -->
                             </ul>
                         </nav>
@@ -826,19 +826,7 @@
                     <h5 class="modal-title">นำเข้าและส่งออกข้อมูล</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <div class="modal-body">
-                    <div class="card mb-3">
-                        <div class="card-body">
-                            <h5 class="card-title mb-3">นำเข้าข้อมูลนักเรียน</h5>
-                            <p class="card-text text-muted">อัพโหลดไฟล์ Excel ที่มีรายชื่อนักเรียนตามรูปแบบที่กำหนด</p>
-                            <div class="mb-3">
-                                <input type="file" class="form-control" accept=".xlsx, .xls, .csv">
-                            </div>
-                            <a href="#" class="btn btn-sm btn-link">ดาวน์โหลดเทมเพลตไฟล์นำเข้า</a>
-                            <button class="btn btn-primary-app w-100 mt-2">อัพโหลดไฟล์</button>
-                        </div>
-                    </div>
-                    
+                <div class="modal-body">                    
                     <div class="card">
                         <div class="card-body">
                             <h5 class="card-title mb-3">ส่งออกรายงาน</h5>
@@ -878,82 +866,100 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <div class="row">
-                        <div class="col-md-4 mb-3 mb-md-0">
-                            <div class="text-center">
-                                <img src="https://ui-avatars.com/api/?name=สมชาย&background=95A4D8&color=fff" class="rounded-circle" width="100" height="100">
-                                <h5 class="mt-3 mb-1">สมชาย รักเรียน</h5>
-                                <span class="badge bg-primary-app">ม.5/1</span>
-                                <hr>
-                                <div class="d-grid gap-2 mt-3">
-                                    <button class="btn btn-primary-app">บันทึกพฤติกรรม</button>
-                                    <button class="btn btn-outline-secondary" onclick="printStudentReport(event)" data-student-id="{{ $student->id }}">พิมพ์รายงาน</button>
-                                </div>
-                            </div>
+                    <!-- Loading State -->
+                    <div id="studentDetailLoading" class="text-center py-5">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">กำลังโหลด...</span>
                         </div>
-                        <div class="col-md-8">
-                            <div class="row mb-3">
-                                <div class="col-6">
-                                    <label class="form-label fw-bold">รหัสนักเรียน</label>
-                                    <p>1001</p>
-                                </div>
-                                <div class="col-6">
-                                    <label class="form-label fw-bold">ชั้นเรียน</label>
-                                    <p>ม.5/1</p>
-                                </div>
-                            </div>
-                            <div class="row mb-3">
-                                <div class="col-6">
-                                    <label class="form-label fw-bold">เลขประจำตัวประชาชน</label>
-                                    <p>1-2345-67890-12-3</p>
-                                </div>
-                                <div class="col-6">
-                                    <label class="form-label fw-bold">วันเกิด</label>
-                                    <p>15 มกราคม 2553</p>
-                                </div>
-                            </div>
-                            <div class="row mb-3">
-                                <div class="col-6">
-                                    <label class="form-label fw-bold">ชื่อผู้ปกครอง</label>
-                                    <p>นายสมบัติ รักเรียน</p>
-                                </div>
-                                <div class="col-6">
-                                    <label class="form-label fw-bold">เบอร์โทรผู้ปกครอง</label>
-                                    <p>099-999-9999</p>
+                        <p class="mt-2 text-muted">กำลังโหลดข้อมูลนักเรียน...</p>
+                    </div>
+                    
+                    <!-- Error State -->
+                    <div id="studentDetailError" class="text-center py-5 text-danger" style="display: none;">
+                        <i class="fas fa-exclamation-circle fa-2x mb-3"></i>
+                        <p>เกิดข้อผิดพลาดในการโหลดข้อมูล</p>
+                        <button class="btn btn-outline-primary btn-sm" onclick="retryLoadStudentDetail()">ลองใหม่</button>
+                    </div>
+                    
+                    <!-- Content -->
+                    <div id="studentDetailContent" style="display: none;">
+                        <div class="row">
+                            <div class="col-md-4 mb-3 mb-md-0">
+                                <div class="text-center">
+                                    <img id="studentProfileImage" class="rounded-circle" width="100" height="100" alt="รูปโปรไฟล์">
+                                    <h5 id="studentFullName" class="mt-3 mb-1"></h5>
+                                    <span id="studentClassBadge" class="badge bg-primary-app"></span>
+                                    <hr>
+                                    <div class="d-grid gap-2 mt-3">
+                                        <button class="btn btn-primary-app" onclick="openNewViolationModal()">บันทึกพฤติกรรม</button>
+                                        <button id="printReportBtn" class="btn btn-outline-secondary" onclick="printStudentReport(event)">พิมพ์รายงาน</button>
+                                    </div>
                                 </div>
                             </div>
-                            
-                            <h6 class="mt-4">สถิติคะแนนความประพฤติ</h6>
-                            <div style="position: relative; margin-bottom: 25px; margin-top: 30px;">
-                                <div style="position: absolute; left: calc(90% - 18px); top: -10px; z-index: 1000; 
-                                            background-color: white; width: 40px; height: 40px; 
-                                            border-radius: 50%; box-shadow: 0 3px 10px rgba(0,0,0,0.4); 
-                                            display: flex; align-items: center; justify-content: center; 
-                                            border: 3px solid white;">
-                                    <img src="{{ asset('images/smile.png') }}" 
-                                         style="height: 30px; width: 30px;" 
-                                         alt="👍">
+                            <div class="col-md-8">
+                                <div class="row mb-3">
+                                    <div class="col-6">
+                                        <label class="form-label fw-bold">รหัสนักเรียน</label>
+                                        <p id="studentCode"></p>
+                                    </div>
+                                    <div class="col-6">
+                                        <label class="form-label fw-bold">ชั้นเรียน</label>
+                                        <p id="studentClass"></p>
+                                    </div>
                                 </div>
-                                <div class="progress" style="height: 20px;">
-                                    <div class="progress-bar bg-success" role="progressbar" style="width: 90%">90/100</div>
+                                <div class="row mb-3">
+                                    <div class="col-6">
+                                        <label class="form-label fw-bold">เลขประจำตัวประชาชน</label>
+                                        <p id="studentIdNumber"></p>
+                                    </div>
+                                    <div class="col-6">
+                                        <label class="form-label fw-bold">วันเกิด</label>
+                                        <p id="studentBirthdate"></p>
+                                    </div>
                                 </div>
-                            </div>
-                            
-                            <h6 class="mt-4">ประวัติการกระทำผิดล่าสุด</h6>
-                            <div class="table-responsive">
-                                <table class="table table-sm table-borderless">
-                                    <thead class="table-light">
-                                        <tr>
-                                            <th>วันที่</th>
-                                            <th>ประเภท</th>
-                                            <th>คะแนนที่หัก</th>
-                                            <th>บันทึกโดย</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <!-- ข้อมูลจะถูกเติมด้วย JavaScript -->
-                                    </tbody>
-                                </table>
+                                <div class="row mb-3">
+                                    <div class="col-6">
+                                        <label class="form-label fw-bold">ชื่อผู้ปกครอง</label>
+                                        <p id="guardianName"></p>
+                                    </div>
+                                    <div class="col-6">
+                                        <label class="form-label fw-bold">เบอร์โทรผู้ปกครอง</label>
+                                        <p id="guardianPhone"></p>
+                                    </div>
+                                </div>
+                                
+                                <h6 class="mt-4">สถิติคะแนนความประพฤติ</h6>
+                                <div style="position: relative; margin-bottom: 25px; margin-top: 30px;">
+                                    <div id="scoreIcon" style="position: absolute; top: -10px; z-index: 1000; 
+                                                background-color: white; width: 40px; height: 40px; 
+                                                border-radius: 50%; box-shadow: 0 3px 10px rgba(0,0,0,0.4); 
+                                                display: flex; align-items: center; justify-content: center; 
+                                                border: 3px solid white;">
+                                        <img src="{{ asset('images/smile.png') }}" 
+                                             style="height: 30px; width: 30px;" 
+                                             alt="👍">
+                                    </div>
+                                    <div class="progress" style="height: 20px;">
+                                        <div id="scoreProgressBar" class="progress-bar" role="progressbar"></div>
+                                    </div>
+                                </div>
+                                
+                                <h6 class="mt-4">ประวัติการกระทำผิดล่าสุด</h6>
+                                <div class="table-responsive">
+                                    <table class="table table-sm table-borderless">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>วันที่</th>
+                                                <th>ประเภท</th>
+                                                <th>คะแนนที่หัก</th>
+                                                <th>บันทึกโดย</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="behaviorHistoryTable">
+                                            <!-- ข้อมูลจะถูกเติมด้วย JavaScript -->
+                                        </tbody>
+                                    </table>
+                                </div>
                             </div>
                         </div>
                     </div>

@@ -1643,4 +1643,751 @@ function highlightSearchTerm(row, searchTerm) {
 // เรียกใช้ฟังก์ชันเมื่อโหลดหน้าเสร็จ
 document.addEventListener('DOMContentLoaded', function() {
     setupMainStudentSearch();
+    setupStudentDetailModal();
+    setupNewViolationModal();
 });
+
+// ===== Student Detail Modal Functions =====
+
+let currentStudentId = null;
+
+/**
+ * ตั้งค่า Student Detail Modal
+ */
+function setupStudentDetailModal() {
+    // เพิ่ม event listener สำหรับปุ่มดูข้อมูลนักเรียน
+    document.addEventListener('click', function(e) {
+        if (e.target.closest('[data-bs-target="#studentDetailModal"]')) {
+            const button = e.target.closest('[data-bs-target="#studentDetailModal"]');
+            const studentId = button.getAttribute('data-student-id');
+            if (studentId) {
+                currentStudentId = studentId;
+                loadStudentDetail(studentId);
+            }
+        }
+    });
+
+    // เพิ่ม event listener สำหรับการปิด modal
+    const modal = document.getElementById('studentDetailModal');
+    if (modal) {
+        modal.addEventListener('hidden.bs.modal', function() {
+            resetStudentDetailModal();
+        });
+    }
+}
+
+/**
+ * โหลดข้อมูลนักเรียนจาก API
+ */
+async function loadStudentDetail(studentId) {
+    showStudentDetailLoading();
+    
+    try {
+        const response = await fetch(`/api/students/${studentId}`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        
+        if (data.success) {
+            populateStudentDetail(data.student);
+            showStudentDetailContent();
+        } else {
+            throw new Error(data.message || 'ไม่สามารถโหลดข้อมูลได้');
+        }
+    } catch (error) {
+        console.error('Error loading student detail:', error);
+        showStudentDetailError(error.message);
+    }
+}
+
+/**
+ * แสดงสถานะ Loading
+ */
+function showStudentDetailLoading() {
+    document.getElementById('studentDetailLoading').style.display = 'block';
+    document.getElementById('studentDetailContent').style.display = 'none';
+    document.getElementById('studentDetailError').style.display = 'none';
+}
+
+/**
+ * แสดงข้อมูลนักเรียน
+ */
+function showStudentDetailContent() {
+    document.getElementById('studentDetailLoading').style.display = 'none';
+    document.getElementById('studentDetailContent').style.display = 'block';
+    document.getElementById('studentDetailError').style.display = 'none';
+}
+
+/**
+ * แสดงข้อผิดพลาด
+ */
+function showStudentDetailError(message) {
+    document.getElementById('studentDetailLoading').style.display = 'none';
+    document.getElementById('studentDetailContent').style.display = 'none';
+    const errorElement = document.getElementById('studentDetailError');
+    errorElement.style.display = 'block';
+    
+    const errorText = errorElement.querySelector('p');
+    if (errorText) {
+        errorText.textContent = message || 'เกิดข้อผิดพลาดในการโหลดข้อมูล';
+    }
+}
+
+/**
+ * เติมข้อมูลลงใน Modal
+ */
+function populateStudentDetail(student) {
+    // รูปโปรไฟล์
+    const profileImg = document.getElementById('studentProfileImage');
+    if (profileImg) {
+        const studentName = `${student.user.users_first_name} ${student.user.users_last_name}`;
+        if (student.user.users_profile_image) {
+            profileImg.src = `/storage/${student.user.users_profile_image}`;
+        } else {
+            profileImg.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(studentName)}&background=95A4D8&color=fff`;
+        }
+        profileImg.alt = `รูปโปรไฟล์ ${studentName}`;
+    }
+
+    // ชื่อเต็ม
+    const fullNameElement = document.getElementById('studentFullName');
+    if (fullNameElement) {
+        fullNameElement.textContent = `${student.user.users_name_prefix}${student.user.users_first_name} ${student.user.users_last_name}`;
+    }
+
+    // ชั้นเรียน (Badge)
+    const classBadge = document.getElementById('studentClassBadge');
+    if (classBadge) {
+        if (student.classroom) {
+            classBadge.textContent = `${student.classroom.classes_level}/${student.classroom.classes_room_number}`;
+        } else {
+            classBadge.textContent = 'ไม่ระบุชั้นเรียน';
+        }
+    }
+
+    // รหัสนักเรียน
+    const studentCodeElement = document.getElementById('studentCode');
+    if (studentCodeElement) {
+        studentCodeElement.textContent = student.students_student_code || 'ไม่ระบุ';
+    }
+
+    // ชั้นเรียน
+    const studentClassElement = document.getElementById('studentClass');
+    if (studentClassElement) {
+        if (student.classroom) {
+            studentClassElement.textContent = `${student.classroom.classes_level}/${student.classroom.classes_room_number}`;
+        } else {
+            studentClassElement.textContent = 'ไม่ระบุชั้นเรียน';
+        }
+    }
+
+    // เลขบัตรประชาชน
+    const idNumberElement = document.getElementById('studentIdNumber');
+    if (idNumberElement) {
+        idNumberElement.textContent = student.id_number || 'ไม่ระบุ';
+    }
+
+    // วันเกิด
+    const birthdateElement = document.getElementById('studentBirthdate');
+    if (birthdateElement) {
+        if (student.user.users_birthdate) {
+            const birthDate = new Date(student.user.users_birthdate);
+            const options = { year: 'numeric', month: 'long', day: 'numeric' };
+            birthdateElement.textContent = birthDate.toLocaleDateString('th-TH', options);
+        } else {
+            birthdateElement.textContent = 'ไม่ระบุ';
+        }
+    }
+
+    // ชื่อผู้ปกครอง
+    const guardianNameElement = document.getElementById('guardianName');
+    if (guardianNameElement) {
+        if (student.guardian && student.guardian.user) {
+            guardianNameElement.textContent = `${student.guardian.user.users_name_prefix}${student.guardian.user.users_first_name} ${student.guardian.user.users_last_name}`;
+        } else {
+            guardianNameElement.textContent = 'ไม่มีข้อมูล';
+        }
+    }
+
+    // เบอร์โทรผู้ปกครอง
+    const guardianPhoneElement = document.getElementById('guardianPhone');
+    if (guardianPhoneElement) {
+        if (student.guardian && student.guardian.guardians_phone) {
+            guardianPhoneElement.textContent = student.guardian.guardians_phone;
+        } else {
+            guardianPhoneElement.textContent = 'ไม่มีข้อมูล';
+        }
+    }
+
+    // คะแนนความประพฤติ
+    updateScoreDisplay(student.students_current_score || 100);
+
+    // ประวัติการกระทำผิด
+    populateBehaviorHistory(student.behavior_reports || []);
+
+    // ตั้งค่าวงเงินคะแนน
+    const scoreLimitElement = document.getElementById('scoreLimit');
+    if (scoreLimitElement) {
+        scoreLimitElement.textContent = `วงเงินคะแนน: ${student.students_score_limit || 100} คะแนน`;
+    }
+
+    // ตั้งค่าปุ่มพิมพ์รายงาน
+    const printBtn = document.getElementById('printReportBtn');
+    if (printBtn) {
+        printBtn.setAttribute('data-student-id', student.students_id);
+    }
+}
+
+/**
+ * อัปเดตการแสดงคะแนน
+ */
+function updateScoreDisplay(score) {
+    const progressBar = document.getElementById('scoreProgressBar');
+    const scoreIcon = document.getElementById('scoreIcon');
+    
+    if (progressBar) {
+        progressBar.style.width = `${score}%`;
+        progressBar.textContent = `${score}/100`;
+        
+        // เปลี่ยนสีตามคะแนน
+        progressBar.className = 'progress-bar';
+        if (score >= 80) {
+            progressBar.classList.add('bg-success');
+        } else if (score >= 60) {
+            progressBar.classList.add('bg-warning');
+        } else {
+            progressBar.classList.add('bg-danger');
+        }
+    }
+
+    if (scoreIcon) {
+        // ปรับตำแหน่งไอคอนตามคะแนน
+        scoreIcon.style.left = `calc(${score}% - 20px)`;
+    }
+}
+
+/**
+ * เติมประวัติการกระทำผิด
+ */
+function populateBehaviorHistory(behaviorReports) {
+    const tableBody = document.getElementById('behaviorHistoryTable');
+    if (!tableBody) return;
+
+    tableBody.innerHTML = '';
+
+    if (behaviorReports.length === 0) {
+        tableBody.innerHTML = `
+            <tr>
+                <td colspan="4" class="text-center text-muted py-3">
+                    <i class="fas fa-info-circle me-2"></i>ไม่มีประวัติการกระทำผิด
+                </td>
+            </tr>
+        `;
+        return;
+    }
+
+    behaviorReports.forEach(report => {
+        const reportDate = new Date(report.reports_report_date);
+        const formattedDate = reportDate.toLocaleDateString('th-TH', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric'
+        });
+
+        const row = `
+            <tr>
+                <td>${formattedDate}</td>
+                <td>
+                    <span class="badge bg-secondary">${escapeHtml(report.violation.violations_name)}</span>
+                </td>
+                <td class="text-danger fw-bold">-${report.violation.violations_points_deducted}</td>
+                <td>${escapeHtml(report.teacher.user.users_first_name)} ${escapeHtml(report.teacher.user.users_last_name)}</td>
+            </tr>
+        `;
+        tableBody.insertAdjacentHTML('beforeend', row);
+    });
+}
+
+/**
+ * รีเซ็ต Modal
+ */
+function resetStudentDetailModal() {
+    currentStudentId = null;
+    showStudentDetailLoading();
+}
+
+/**
+ * ลองโหลดข้อมูลใหม่
+ */
+function retryLoadStudentDetail() {
+    if (currentStudentId) {
+        loadStudentDetail(currentStudentId);
+    }
+}
+
+/**
+ * เปิด New Violation Modal (สำหรับปุ่มบันทึกพฤติกรรม)
+ */
+function openNewViolationModal() {
+    // ปิด Student Detail Modal ก่อน
+    const studentModal = bootstrap.Modal.getInstance(document.getElementById('studentDetailModal'));
+    if (studentModal) {
+        studentModal.hide();
+    }
+
+    // เปิด New Violation Modal
+    setTimeout(() => {
+        const newViolationModal = new bootstrap.Modal(document.getElementById('newViolationModal'));
+        newViolationModal.show();
+        
+        // ถ้ามีข้อมูลนักเรียนปัจจุบัน ให้เลือกนักเรียนคนนั้นใน modal
+        if (currentStudentId) {
+            selectStudentInViolationModal(currentStudentId);
+        }
+    }, 300);
+}
+
+// ===== New Violation Modal Functions =====
+
+let violationStudents = [];
+let violationTypes = [];
+let selectedStudent = null;
+
+/**
+ * ตั้งค่า New Violation Modal
+ */
+function setupNewViolationModal() {
+    // โหลดข้อมูลเริ่มต้น
+    loadViolationTypes();
+    loadClassroomsForFilter();
+    
+    // ตั้งค่าวันที่เริ่มต้น
+    setupViolationDateRestriction();
+    
+    // ตั้งค่า Event Listeners
+    setupViolationEventListeners();
+}
+
+/**
+ * โหลดประเภทพฤติกรรมจาก API
+ */
+async function loadViolationTypes() {
+    try {
+        const response = await fetch('/api/violations/all', {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        violationTypes = data;
+        populateViolationTypeSelect();
+    } catch (error) {
+        console.error('Error loading violation types:', error);
+    }
+}
+
+/**
+ * เติมข้อมูลประเภทพฤติกรรมลงใน select
+ */
+function populateViolationTypeSelect() {
+    const select = document.getElementById('violationType');
+    if (!select) return;
+
+    // Clear existing options except the first one
+    select.innerHTML = '<option value="">เลือกประเภทพฤติกรรม</option>';
+
+    violationTypes.forEach(violation => {
+        const option = document.createElement('option');
+        option.value = violation.violations_id;
+        option.textContent = `${violation.violations_name} (-${violation.violations_points_deducted} คะแนน)`;
+        option.dataset.points = violation.violations_points_deducted;
+        select.appendChild(option);
+    });
+}
+
+/**
+ * โหลดห้องเรียนสำหรับตัวกรอง
+ */
+async function loadClassroomsForFilter() {
+    try {
+        // ใช้ข้อมูลจาก dashboard หรือดึงจาก API
+        const classFilter = document.getElementById('classFilter');
+        if (!classFilter) return;
+
+        // เพิ่มตัวเลือกพื้นฐาน
+        classFilter.innerHTML = '<option value="">ทุกห้อง</option>';
+        
+        // ในอนาคตสามารถดึงจาก API ได้
+        // const response = await fetch('/api/classrooms');
+    } catch (error) {
+        console.error('Error loading classrooms:', error);
+    }
+}
+
+/**
+ * ตั้งค่าวันที่เริ่มต้นและจำกัดวันที่
+ */
+function setupViolationDateRestriction() {
+    const dateInput = document.getElementById('violationDate');
+    const timeInput = document.getElementById('violationTime');
+    
+    if (dateInput) {
+        const today = new Date();
+        const threeDaysAgo = new Date();
+        threeDaysAgo.setDate(today.getDate() - 3);
+        
+        dateInput.valueAsDate = today;
+        dateInput.min = threeDaysAgo.toISOString().split('T')[0];
+        dateInput.max = today.toISOString().split('T')[0];
+    }
+    
+    if (timeInput) {
+        const now = new Date();
+        timeInput.value = now.toTimeString().slice(0, 5);
+    }
+}
+
+/**
+ * ตั้งค่า Event Listeners สำหรับ New Violation Modal
+ */
+function setupViolationEventListeners() {
+    // ค้นหานักเรียน
+    const studentSearch = document.getElementById('behaviorStudentSearch');
+    if (studentSearch) {
+        let searchTimeout;
+        studentSearch.addEventListener('input', function() {
+            clearTimeout(searchTimeout);
+            const query = this.value.trim();
+            
+            if (query.length >= 2) {
+                searchTimeout = setTimeout(() => {
+                    searchStudentsForViolation(query);
+                }, 300);
+            } else {
+                hideStudentResults();
+            }
+        });
+    }
+
+    // เปลี่ยนประเภทพฤติกรรม
+    const violationTypeSelect = document.getElementById('violationType');
+    if (violationTypeSelect) {
+        violationTypeSelect.addEventListener('change', function() {
+            const selectedOption = this.options[this.selectedIndex];
+            const pointsInput = document.getElementById('pointsDeducted');
+            
+            if (pointsInput && selectedOption.dataset.points) {
+                pointsInput.value = selectedOption.dataset.points;
+            }
+        });
+    }
+
+    // บันทึกข้อมูล
+    const saveBtn = document.getElementById('saveViolationBtn');
+    if (saveBtn) {
+        saveBtn.addEventListener('click', function() {
+            submitViolationForm();
+        });
+    }
+
+    // รีเซ็ตเมื่อปิด modal
+    const modal = document.getElementById('newViolationModal');
+    if (modal) {
+        modal.addEventListener('hidden.bs.modal', function() {
+            resetViolationForm();
+        });
+    }
+}
+
+/**
+ * ค้นหานักเรียนสำหรับ violation modal
+ */
+async function searchStudentsForViolation(query) {
+    try {
+        const response = await fetch(`/api/behavior-reports/students/search?term=${encodeURIComponent(query)}`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        displayStudentResults(data);
+    } catch (error) {
+        console.error('Error searching students:', error);
+        // Fallback: ใช้ข้อมูลจากตารางหลัก
+        searchStudentsFromTable(query);
+    }
+}
+
+/**
+ * แสดงผลการค้นหานักเรียน
+ */
+function displayStudentResults(students) {
+    const resultsContainer = document.getElementById('studentResults');
+    if (!resultsContainer) return;
+
+    resultsContainer.innerHTML = '';
+    
+    if (students.length === 0) {
+        resultsContainer.innerHTML = '<div class="list-group-item text-muted">ไม่พบนักเรียน</div>';
+        resultsContainer.style.display = 'block';
+        return;
+    }
+
+    students.forEach(student => {
+        const item = document.createElement('div');
+        item.className = 'list-group-item list-group-item-action cursor-pointer';
+        item.innerHTML = `
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <strong>${student.users_name_prefix}${student.users_first_name} ${student.users_last_name}</strong>
+                    <br>
+                    <small class="text-muted">รหัส: ${student.students_student_code} | ชั้น: ${student.classroom_info || 'ไม่ระบุ'}</small>
+                </div>
+                <span class="badge bg-primary">${student.students_current_score || 100} คะแนน</span>
+            </div>
+        `;
+        
+        item.addEventListener('click', () => {
+            selectStudentForViolation(student);
+        });
+        
+        resultsContainer.appendChild(item);
+    });
+    
+    resultsContainer.style.display = 'block';
+}
+
+/**
+ * เลือกนักเรียนสำหรับบันทึกพฤติกรรม
+ */
+function selectStudentForViolation(student) {
+    selectedStudent = student;
+    
+    // อัปเดต hidden input
+    const hiddenInput = document.getElementById('selectedStudentId');
+    if (hiddenInput) {
+        hiddenInput.value = student.students_id;
+    }
+    
+    // แสดงข้อมูลนักเรียนที่เลือก
+    const infoDisplay = document.getElementById('studentInfoDisplay');
+    const infoContainer = document.getElementById('selectedStudentInfo');
+    
+    if (infoDisplay && infoContainer) {
+        infoDisplay.innerHTML = `
+            <strong>${student.users_name_prefix}${student.users_first_name} ${student.users_last_name}</strong>
+            (รหัส: ${student.students_student_code}) | ชั้น: ${student.classroom_info || 'ไม่ระบุ'} | 
+            คะแนนปัจจุบัน: <span class="badge bg-primary">${student.students_current_score || 100}</span>
+        `;
+        infoContainer.style.display = 'block';
+    }
+    
+    // ซ่อนผลการค้นหาและล้างช่องค้นหา
+    hideStudentResults();
+    const searchInput = document.getElementById('behaviorStudentSearch');
+    if (searchInput) {
+        searchInput.value = `${student.users_first_name} ${student.users_last_name}`;
+    }
+}
+
+/**
+ * ซ่อนผลการค้นหานักเรียน
+ */
+function hideStudentResults() {
+    const resultsContainer = document.getElementById('studentResults');
+    if (resultsContainer) {
+        resultsContainer.style.display = 'none';
+    }
+}
+
+/**
+ * เลือกนักเรียนจาก currentStudentId (จาก Student Detail Modal)
+ */
+function selectStudentInViolationModal(studentId) {
+    // ค้นหานักเรียนจากตารางหลักหรือจาก API
+    // ในอนาคตสามารถปรับปรุงให้ดึงจาก API ได้
+    console.log('Selecting student ID:', studentId);
+}
+
+/**
+ * ค้นหานักเรียนจากตารางหลัก (Fallback)
+ */
+function searchStudentsFromTable(query) {
+    const tableRows = document.querySelectorAll('#students tbody tr');
+    const results = [];
+    
+    tableRows.forEach(row => {
+        const nameCell = row.querySelector('td:nth-child(2)');
+        const codeCell = row.querySelector('td:nth-child(1)');
+        
+        if (nameCell && codeCell) {
+            const name = nameCell.textContent.toLowerCase();
+            const code = codeCell.textContent.toLowerCase();
+            
+            if (name.includes(query.toLowerCase()) || code.includes(query.toLowerCase())) {
+                // Extract student data from table
+                const studentData = {
+                    students_id: row.querySelector('[data-student-id]')?.getAttribute('data-student-id') || '',
+                    users_first_name: nameCell.textContent.split(' ')[0] || '',
+                    users_last_name: nameCell.textContent.split(' ').slice(1).join(' ') || '',
+                    users_name_prefix: '',
+                    students_student_code: codeCell.textContent,
+                    classroom_info: row.querySelector('td:nth-child(3)')?.textContent || '',
+                    students_current_score: '100'
+                };
+                results.push(studentData);
+            }
+        }
+    });
+    
+    displayStudentResults(results);
+}
+
+/**
+ * ส่งข้อมูลฟอร์ม
+ */
+async function submitViolationForm() {
+    if (!validateViolationForm()) {
+        return;
+    }
+    
+    const saveBtn = document.getElementById('saveViolationBtn');
+    const originalText = saveBtn.innerHTML;
+    
+    try {
+        // แสดง loading
+        saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> กำลังบันทึก...';
+        saveBtn.disabled = true;
+        
+        const formData = new FormData();
+        formData.append('student_id', document.getElementById('selectedStudentId').value);
+        formData.append('violation_id', document.getElementById('violationType').value);
+        formData.append('violation_date', document.getElementById('violationDate').value);
+        formData.append('violation_time', document.getElementById('violationTime').value);
+        formData.append('description', document.getElementById('violationDescription').value);
+        
+        const evidenceFile = document.getElementById('evidenceFile').files[0];
+        if (evidenceFile) {
+            formData.append('evidence', evidenceFile);
+        }
+        
+        const response = await fetch('/api/behavior-reports', {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
+            },
+            body: formData
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            // แสดงข้อความสำเร็จ
+            alert('บันทึกพฤติกรรมเรียบร้อยแล้ว');
+            
+            // ปิด modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('newViolationModal'));
+            if (modal) {
+                modal.hide();
+            }
+            
+            // รีเฟรชข้อมูลในหน้า
+            location.reload();
+        } else {
+            throw new Error(data.message || 'เกิดข้อผิดพลาดในการบันทึกข้อมูล');
+        }
+        
+    } catch (error) {
+        console.error('Error submitting violation form:', error);
+        alert('เกิดข้อผิดพลาด: ' + error.message);
+    } finally {
+        // คืนค่าปุ่ม
+        saveBtn.innerHTML = originalText;
+        saveBtn.disabled = false;
+    }
+}
+
+/**
+ * ตรวจสอบความถูกต้องของฟอร์ม
+ */
+function validateViolationForm() {
+    const studentId = document.getElementById('selectedStudentId').value;
+    const violationType = document.getElementById('violationType').value;
+    const violationDate = document.getElementById('violationDate').value;
+    const violationTime = document.getElementById('violationTime').value;
+    
+    if (!studentId) {
+        alert('กรุณาเลือกนักเรียน');
+        return false;
+    }
+    
+    if (!violationType) {
+        alert('กรุณาเลือกประเภทพฤติกรรม');
+        return false;
+    }
+    
+    if (!violationDate) {
+        alert('กรุณาเลือกวันที่');
+        return false;
+    }
+    
+    if (!violationTime) {
+        alert('กรุณาเลือกเวลา');
+        return false;
+    }
+    
+    return true;
+}
+
+/**
+ * รีเซ็ตฟอร์ม
+ */
+function resetViolationForm() {
+    selectedStudent = null;
+    
+    // รีเซ็ตฟิลด์ต่างๆ
+    document.getElementById('behaviorStudentSearch').value = '';
+    document.getElementById('selectedStudentId').value = '';
+    document.getElementById('violationType').value = '';
+    document.getElementById('pointsDeducted').value = '0';
+    document.getElementById('violationDescription').value = '';
+    document.getElementById('evidenceFile').value = '';
+    
+    // ซ่อนข้อมูลนักเรียน
+    document.getElementById('selectedStudentInfo').style.display = 'none';
+    hideStudentResults();
+    
+    // รีเซ็ตวันที่และเวลา
+    setupViolationDateRestriction();
+}

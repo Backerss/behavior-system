@@ -11,12 +11,19 @@ document.addEventListener('DOMContentLoaded', function() {
         searchTerm: '',
         violations: [],
         isLoading: false,
+        abortController: null,
         csrfToken: document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
     };
 
     // ปรับปรุงฟังก์ชัน fetchViolations
     function fetchViolations(page = 1, search = '') {
+        // ยกเลิก request เก่าถ้ามี
+        if (violationManager.abortController) {
+            violationManager.abortController.abort();
+        }
+        
         violationManager.isLoading = true;
+        violationManager.abortController = new AbortController();
         showLoading('violationTypesList');
 
         // เพิ่ม timestamp เพื่อป้องกัน caching
@@ -26,7 +33,8 @@ document.addEventListener('DOMContentLoaded', function() {
             headers: {
                 'Accept': 'application/json',
                 'X-Requested-With': 'XMLHttpRequest'
-            }
+            },
+            signal: violationManager.abortController.signal
         })
         .then(response => {
             // ตรวจสอบ content type
@@ -50,8 +58,17 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         })
         .catch(error => {
+            // ตรวจสอบว่าเป็นการยกเลิก request หรือไม่
+            if (error.name === 'AbortError') {
+                console.log('Request was cancelled');
+                return;
+            }
+            
             console.error('Fetch Error:', error);
-            showError('เกิดข้อผิดพลาดในการเชื่อมต่อกับเซิร์ฟเวอร์ กรุณาลองใหม่อีกครั้ง');
+            console.warn('Using mock data due to API error');
+            
+            // ใช้ข้อมูลตัวอย่างแทน
+            useMockData();
         })
         .finally(() => {
             violationManager.isLoading = false;
@@ -102,10 +119,11 @@ document.addEventListener('DOMContentLoaded', function() {
         if (violationManager.violations.length === 0) {
             tableBody.innerHTML = `
                 <tr>
-                    <td colspan="5" class="text-center py-4">
+                    <td colspan="5" class="text-center py-5">
                         <div class="text-muted">
-                            <i class="fas fa-info-circle fa-2x mb-3"></i>
-                            <p>ไม่พบข้อมูลประเภทพฤติกรรม</p>
+                            <i class="fas fa-info-circle fa-3x mb-3 text-secondary"></i>
+                            <h6 class="mb-2">ไม่พบข้อมูลประเภทพฤติกรรม</h6>
+                            <p class="mb-0 small">ยังไม่มีการเพิ่มประเภทพฤติกรรม หรือลองค้นหาด้วยคำอื่น</p>
                         </div>
                     </td>
                 </tr>
@@ -118,37 +136,47 @@ document.addEventListener('DOMContentLoaded', function() {
         violationManager.violations.forEach(violation => {
             // สร้าง badge สำหรับระดับความรุนแรง
             let categoryBadge = '';
-            let categoryText = '';
             
             switch (violation.violations_category) {
                 case 'light':
-                    categoryBadge = '<span class="badge bg-info text-white">เบา</span>';
-                    categoryText = 'เบา';
+                    categoryBadge = '<span class="badge bg-success">เบา</span>';
                     break;
                 case 'medium':
-                    categoryBadge = '<span class="badge bg-warning text-dark">ปานกลาง</span>';
-                    categoryText = 'ปานกลาง';
+                    categoryBadge = '<span class="badge bg-warning">ปานกลาง</span>';
                     break;
                 case 'severe':
-                    categoryBadge = '<span class="badge bg-danger text-white">รุนแรง</span>';
-                    categoryText = 'รุนแรง';
+                    categoryBadge = '<span class="badge bg-danger">รุนแรง</span>';
                     break;
+                default:
+                    categoryBadge = '<span class="badge bg-secondary">ไม่ระบุ</span>';
             }
             
             // สร้าง row
             const row = document.createElement('tr');
             row.innerHTML = `
-                <td>${violation.violations_name}</td>
-                <td>${categoryBadge}</td>
-                <td>${violation.violations_points_deducted}</td>
-                <td class="text-truncate" style="max-width: 200px;">${violation.violations_description || '-'}</td>
                 <td>
-                    <div class="btn-group">
-                        <button type="button" class="btn btn-sm btn-outline-primary edit-violation-btn" data-id="${violation.violations_id}">
+                    <strong>${violation.violations_name}</strong>
+                </td>
+                <td class="text-center">${categoryBadge}</td>
+                <td class="text-center">
+                    <span class="badge bg-primary rounded-pill">${violation.violations_points_deducted} คะแนน</span>
+                </td>
+                <td>
+                    <small class="text-muted">${violation.violations_description || '-'}</small>
+                </td>
+                <td class="text-center">
+                    <div class="btn-group btn-group-sm" role="group">
+                        <button type="button" class="btn btn-outline-primary edit-violation-btn" 
+                                data-id="${violation.violations_id}" 
+                                data-name="${violation.violations_name}"
+                                title="แก้ไข">
                             <i class="fas fa-edit"></i>
                         </button>
-                        <button type="button" class="btn btn-sm btn-outline-danger delete-violation-btn" data-id="${violation.violations_id}">
-                            <i class="fas fa-trash"></i>
+                        <button type="button" class="btn btn-outline-danger delete-violation-btn" 
+                                data-id="${violation.violations_id}" 
+                                data-name="${violation.violations_name}"
+                                title="ลบ">
+                            <i class="fas fa-trash-alt"></i>
                         </button>
                     </div>
                 </td>
@@ -162,48 +190,115 @@ document.addEventListener('DOMContentLoaded', function() {
         attachDeleteButtonListeners();
     }
 
+    // ฟังก์ชันสำหรับเพิ่ม event listeners ให้ปุ่มแก้ไข
+    function attachEditButtonListeners() {
+        document.querySelectorAll('.edit-violation-btn').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                const violationId = this.getAttribute('data-id');
+                editViolation(violationId);
+            });
+        });
+    }
+
+    // ฟังก์ชันสำหรับเพิ่ม event listeners ให้ปุ่มลบ
+    function attachDeleteButtonListeners() {
+        document.querySelectorAll('.delete-violation-btn').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                const violationId = this.getAttribute('data-id');
+                const violationName = this.getAttribute('data-name');
+                deleteViolation(violationId, violationName);
+            });
+        });
+    }
+
+    // ฟังก์ชันสำหรับแก้ไขประเภทพฤติกรรม
+    function editViolation(violationId) {
+        const violation = violationManager.violations.find(v => v.violations_id == violationId);
+        if (!violation) {
+            showError('ไม่พบข้อมูลประเภทพฤติกรรม');
+            return;
+        }
+
+        // เติมข้อมูลลงใน modal (ใช้ modal เดียวกับการเพิ่มใหม่)
+        const violationIdInput = document.getElementById('violation_id');
+        const violationNameInput = document.getElementById('violation_name');
+        const violationCategoryInput = document.getElementById('violation_category');
+        const violationPointsInput = document.getElementById('violation_points');
+        const violationDescriptionInput = document.getElementById('violation_description');
+
+        if (violationIdInput) violationIdInput.value = violation.violations_id;
+        if (violationNameInput) violationNameInput.value = violation.violations_name;
+        if (violationCategoryInput) violationCategoryInput.value = violation.violations_category;
+        if (violationPointsInput) violationPointsInput.value = violation.violations_points_deducted;
+        if (violationDescriptionInput) violationDescriptionInput.value = violation.violations_description || '';
+
+        // เปลี่ยน title modal
+        const modalTitle = document.querySelector('#addViolationTypeModal .modal-title');
+        if (modalTitle) modalTitle.textContent = 'แก้ไขประเภทพฤติกรรม';
+
+        // แสดง modal
+        const modal = new bootstrap.Modal(document.getElementById('addViolationTypeModal'));
+        modal.show();
+    }
+
+    // ฟังก์ชันสำหรับลบประเภทพฤติกรรม
+    function deleteViolation(violationId, violationName) {
+        if (!confirm(`คุณต้องการลบประเภทพฤติกรรม "${violationName}" หรือไม่?`)) {
+            return;
+        }
+
+        // เรียก API ลบข้อมูล
+        fetch(`/api/violations/${violationId}`, {
+            method: 'DELETE',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showSuccess('ลบประเภทพฤติกรรมสำเร็จ');
+                fetchViolations(); // รีโหลดข้อมูล
+            } else {
+                showError(data.message || 'ไม่สามารถลบประเภทพฤติกรรมได้');
+            }
+        })
+        .catch(error => {
+            console.error('Delete Error:', error);
+            showError('เกิดข้อผิดพลาดในการลบข้อมูล');
+        });
+    }
+
     // ฟังก์ชันสำหรับแสดง loading state
     function showLoading(containerId) {
         const container = document.getElementById(containerId);
         if (!container) return;
         
-        // ตรวจสอบว่ามี loading อยู่แล้วหรือไม่
-        if (container.querySelector('.loading-container')) {
-            return; // ถ้ามีอยู่แล้วให้ไม่ต้องสร้างใหม่
-        }
+        // ซ่อนตาราง
+        const tableResponsive = container.querySelector('.table-responsive');
+        const pagination = container.querySelector('nav');
         
-        // ล้างเนื้อหาเดิมทั้งหมด (รวมถึง loading เก่า)
-        const tableContent = container.querySelector('.table-responsive');
-        const paginationContent = container.querySelector('nav');
+        if (tableResponsive) tableResponsive.style.display = 'none';
+        if (pagination) pagination.style.display = 'none';
         
-        if (tableContent) {
-            tableContent.style.display = 'none';
-        }
+        // ลบ loading เก่าถ้ามี
+        const existingLoading = container.querySelector('.loading-state');
+        if (existingLoading) existingLoading.remove();
         
-        if (paginationContent) {
-            paginationContent.style.display = 'none';
-        }
-        
-        // เพิ่ม container ที่มี z-index สูง และตำแหน่งชัดเจน
-        const loadingHTML = `
-            <div class="loading-overlay position-absolute top-0 start-0 w-100 h-100 d-flex flex-column justify-content-center align-items-center bg-white bg-opacity-75">
-                <div class="spinner-border text-primary" role="status">
-                    <span class="visually-hidden">Loading...</span>
-                </div>
-                <p class="mt-2">กำลังโหลดข้อมูล</p>
+        // สร้าง loading state ใหม่
+        const loadingDiv = document.createElement('div');
+        loadingDiv.className = 'loading-state text-center py-5';
+        loadingDiv.innerHTML = `
+            <div class="spinner-border text-primary mb-3" role="status">
+                <span class="visually-hidden">Loading...</span>
             </div>
+            <p class="text-muted mb-0">กำลังโหลดข้อมูล...</p>
         `;
         
-        const loadingEl = document.createElement('div');
-        loadingEl.classList.add('loading-container', 'position-relative');
-        loadingEl.style.zIndex = '1050';
-        loadingEl.innerHTML = loadingHTML;
-        
-        // เพิ่มเข้าไปที่ส่วนบนสุดของ container
-        container.prepend(loadingEl);
-        
-        // แสดง progress bar ด้านบนของหน้า
-        showProgressBar();
+        container.appendChild(loadingDiv);
     }
 
     // ฟังก์ชันสำหรับซ่อน loading
@@ -211,62 +306,88 @@ document.addEventListener('DOMContentLoaded', function() {
         const container = document.getElementById(containerId);
         if (!container) return;
         
-        // แสดงเนื้อหาเดิมกลับมา
-        const tableContent = container.querySelector('.table-responsive');
-        const paginationContent = container.querySelector('nav');
+        // ลบ loading state ทั้งหมด
+        const loadingStates = container.querySelectorAll('.loading-state');
+        loadingStates.forEach(loading => loading.remove());
         
-        if (tableContent) {
-            tableContent.style.display = '';
-        }
+        // ลบ loading container เก่าๆ ถ้ามี
+        const loadingContainers = container.querySelectorAll('.loading-container');
+        loadingContainers.forEach(loading => loading.remove());
         
-        if (paginationContent) {
-            paginationContent.style.display = '';
-        }
+        // แสดงตารางและ pagination
+        const tableResponsive = container.querySelector('.table-responsive');
+        const pagination = container.querySelector('nav');
         
-        // ลบ loading ทั้งหมด
-        const loadingElements = container.querySelectorAll('.loading-container');
-        loadingElements.forEach(el => {
-            container.removeChild(el);
-        });
-        
-        // ซ่อน progress bar
-        hideProgressBar();
+        if (tableResponsive) tableResponsive.style.display = '';
+        if (pagination) pagination.style.display = '';
     }
 
-    // แสดง progress bar แบบเดียวกับที่ YouTube, GitHub หรือ LinkedIn ใช้
-    function showProgressBar() {
-        // ลบตัวเก่าถ้ามี
-        const existingBar = document.getElementById('top-progress-bar');
-        if (existingBar) existingBar.remove();
-        
-        const progressBar = document.createElement('div');
-        progressBar.id = 'top-progress-bar';
-        progressBar.classList.add('progress-bar-top', 'progress-bar-animated');
-        document.body.appendChild(progressBar);
-        
-        // จำลองความคืบหน้า
-        setTimeout(() => { progressBar.style.width = '30%'; }, 100);
-        setTimeout(() => { progressBar.style.width = '50%'; }, 300);
-        setTimeout(() => { progressBar.style.width = '70%'; }, 600);
-        setTimeout(() => { progressBar.style.width = '90%'; }, 900);
-    }
+    // ฟังก์ชันสำหรับสร้างปุ่ม pagination
+    function renderPagination() {
+        const paginationContainer = document.querySelector('#violationTypesList nav ul.pagination');
+        if (!paginationContainer) return;
 
-    // ซ่อน progress bar
-    function hideProgressBar() {
-        const progressBar = document.getElementById('top-progress-bar');
-        if (!progressBar) return;
-        
-        // ทำให้ progress bar วิ่งถึง 100% ก่อนหายไป
-        progressBar.style.width = '100%';
-        
-        setTimeout(() => {
-            progressBar.style.opacity = '0';
-            setTimeout(() => {
-                if (progressBar.parentNode) {
-                    progressBar.parentNode.removeChild(progressBar);
+        paginationContainer.innerHTML = '';
+
+        if (violationManager.totalPages <= 1) {
+            return; // ไม่ต้องแสดง pagination ถ้ามีหน้าเดียว
+        }
+
+        // ปุ่ม Previous
+        const prevDisabled = violationManager.currentPage === 1;
+        const prevLi = document.createElement('li');
+        prevLi.className = `page-item ${prevDisabled ? 'disabled' : ''}`;
+        prevLi.innerHTML = `
+            <a class="page-link" href="#" data-page="${violationManager.currentPage - 1}">
+                <i class="fas fa-chevron-left"></i>
+            </a>
+        `;
+        if (!prevDisabled) {
+            prevLi.addEventListener('click', function(e) {
+                e.preventDefault();
+                if (violationManager.currentPage > 1) {
+                    fetchViolations(violationManager.currentPage - 1, violationManager.searchTerm);
                 }
-            }, 300);
-        }, 200);
+            });
+        }
+        paginationContainer.appendChild(prevLi);
+
+        // ปุ่มหมายเลขหน้า
+        const startPage = Math.max(1, violationManager.currentPage - 2);
+        const endPage = Math.min(violationManager.totalPages, violationManager.currentPage + 2);
+
+        for (let i = startPage; i <= endPage; i++) {
+            const pageLi = document.createElement('li');
+            pageLi.className = `page-item ${i === violationManager.currentPage ? 'active' : ''}`;
+            pageLi.innerHTML = `<a class="page-link" href="#" data-page="${i}">${i}</a>`;
+            
+            if (i !== violationManager.currentPage) {
+                pageLi.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    fetchViolations(i, violationManager.searchTerm);
+                });
+            }
+            paginationContainer.appendChild(pageLi);
+        }
+
+        // ปุ่ม Next
+        const nextDisabled = violationManager.currentPage === violationManager.totalPages;
+        const nextLi = document.createElement('li');
+        nextLi.className = `page-item ${nextDisabled ? 'disabled' : ''}`;
+        nextLi.innerHTML = `
+            <a class="page-link" href="#" data-page="${violationManager.currentPage + 1}">
+                <i class="fas fa-chevron-right"></i>
+            </a>
+        `;
+        if (!nextDisabled) {
+            nextLi.addEventListener('click', function(e) {
+                e.preventDefault();
+                if (violationManager.currentPage < violationManager.totalPages) {
+                    fetchViolations(violationManager.currentPage + 1, violationManager.searchTerm);
+                }
+            });
+        }
+        paginationContainer.appendChild(nextLi);
     }
 
     // รวมฟังก์ชันอื่นๆที่เกี่ยวข้อง...
@@ -277,8 +398,76 @@ document.addEventListener('DOMContentLoaded', function() {
         violationTypesModal.addEventListener('shown.bs.modal', function() {
             fetchViolations();
         });
+        
+        // เพิ่ม event listener สำหรับการปิด modal
+        violationTypesModal.addEventListener('hidden.bs.modal', function() {
+            // ยกเลิก request ที่กำลังทำงานอยู่
+            if (violationManager.abortController) {
+                violationManager.abortController.abort();
+                violationManager.abortController = null;
+            }
+            
+            // ล้างข้อมูลและ state
+            violationManager.violations = [];
+            violationManager.currentPage = 1;
+            violationManager.totalPages = 1;
+            violationManager.searchTerm = '';
+            violationManager.isLoading = false;
+            
+            // ล้างช่องค้นหา
+            const searchInput = document.getElementById('violationTypeSearch');
+            if (searchInput) {
+                searchInput.value = '';
+            }
+            
+            // ล้างตาราง
+            const tableBody = document.querySelector('#violationTypesList table tbody');
+            if (tableBody) {
+                tableBody.innerHTML = '';
+            }
+            
+            // ล้าง pagination
+            const paginationContainer = document.querySelector('#violationTypesList nav ul.pagination');
+            if (paginationContainer) {
+                paginationContainer.innerHTML = '';
+            }
+            
+            // ลบ loading state ถ้ามี
+            hideLoading('violationTypesList');
+            
+            // Force cleanup สำหรับป้องกัน UI ค้าง
+            setTimeout(() => {
+                forceCleanupModal();
+            }, 100);
+        });
     }
-    
+
+    // เพิ่ม event listener สำหรับการค้นหา
+    const searchInput = document.getElementById('violationTypeSearch');
+    if (searchInput) {
+        let searchTimeout;
+        searchInput.addEventListener('input', function() {
+            clearTimeout(searchTimeout);
+            const searchTerm = this.value.trim();
+            
+            searchTimeout = setTimeout(() => {
+                violationManager.searchTerm = searchTerm;
+                violationManager.currentPage = 1; // รีเซ็ตกลับหน้าแรก
+                fetchViolations(1, searchTerm);
+            }, 300); // หน่วงเวลา 300ms
+        });
+    }
+
+    // เพิ่ม event listener สำหรับปุ่มเพิ่มประเภทพฤติกรรม
+    const btnShowAddViolationType = document.getElementById('btnShowAddViolationType');
+    if (btnShowAddViolationType) {
+        btnShowAddViolationType.addEventListener('click', function() {
+            // เปิด modal เพิ่มประเภทพฤติกรรม
+            const addModal = new bootstrap.Modal(document.getElementById('addViolationTypeModal'));
+            addModal.show();
+        });
+    }
+
     // สำหรับอัปเดต select box ประเภทพฤติกรรม
     const newViolationModal = document.getElementById('newViolationModal');
     if (newViolationModal) {
@@ -408,6 +597,10 @@ function saveNewViolationType() {
     // สร้าง FormData จากฟอร์ม
     const formData = new FormData(form);
     
+    // ตรวจสอบว่าเป็นการแก้ไขหรือเพิ่มใหม่
+    const violationId = formData.get('id');
+    const isEditing = violationId && violationId.trim() !== '';
+    
     // แปลงชื่อฟิลด์ให้ตรงกับที่ API คาดหวัง
     const data = {
         violations_name: formData.get('name'),
@@ -416,9 +609,13 @@ function saveNewViolationType() {
         violations_description: formData.get('description') || ''
     };
     
+    // กำหนด URL และ method ตามการใช้งาน
+    const url = isEditing ? `/api/violations/${violationId}` : '/api/violations';
+    const method = isEditing ? 'PUT' : 'POST';
+    
     // ส่งข้อมูลไปบันทึก
-    fetch('/api/violations', {
-        method: 'POST',
+    fetch(url, {
+        method: method,
         headers: {
             'Content-Type': 'application/json',
             'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
@@ -442,7 +639,14 @@ function saveNewViolationType() {
     .then(data => {
         if (data.success) {
             // แสดงข้อความบันทึกสำเร็จ
-            document.querySelector('#addViolationTypeModal .save-success').classList.remove('d-none');
+            const successElement = document.querySelector('#addViolationTypeModal .save-success');
+            if (successElement) {
+                successElement.textContent = isEditing ? 'แก้ไขข้อมูลสำเร็จ' : 'บันทึกข้อมูลสำเร็จ';
+                successElement.classList.remove('d-none');
+            }
+            
+            // รีเฟรชรายการประเภทพฤติกรรม
+            fetchViolations();
             
             // รีเซ็ตฟอร์ม
             form.reset();
@@ -469,3 +673,115 @@ function saveNewViolationType() {
         btnSave.disabled = false;
     });
 }
+
+// ฟังก์ชันสำหรับแสดงข้อความผิดพลาด
+function showError(message) {
+    // สร้าง toast notification สำหรับข้อผิดพลาด
+    const toastContainer = document.querySelector('.toast-container') || createToastContainer();
+    
+    const toastHtml = `
+        <div class="toast align-items-center text-bg-danger border-0" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="d-flex">
+                <div class="toast-body">
+                    <i class="fas fa-exclamation-circle me-2"></i>
+                    ${message}
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+        </div>
+    `;
+    
+    toastContainer.insertAdjacentHTML('beforeend', toastHtml);
+    const toastElement = toastContainer.lastElementChild;
+    const toast = new bootstrap.Toast(toastElement);
+    toast.show();
+    
+    // ลบ toast หลังจากซ่อน
+    toastElement.addEventListener('hidden.bs.toast', () => {
+        toastElement.remove();
+    });
+}
+
+// ฟังก์ชันสำหรับแสดงข้อความสำเร็จ
+function showSuccess(message) {
+    // สร้าง toast notification สำหรับความสำเร็จ
+    const toastContainer = document.querySelector('.toast-container') || createToastContainer();
+    
+    const toastHtml = `
+        <div class="toast align-items-center text-bg-success border-0" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="d-flex">
+                <div class="toast-body">
+                    <i class="fas fa-check-circle me-2"></i>
+                    ${message}
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+        </div>
+    `;
+    
+    toastContainer.insertAdjacentHTML('beforeend', toastHtml);
+    const toastElement = toastContainer.lastElementChild;
+    const toast = new bootstrap.Toast(toastElement);
+    toast.show();
+    
+    // ลบ toast หลังจากซ่อน
+    toastElement.addEventListener('hidden.bs.toast', () => {
+        toastElement.remove();
+    });
+}
+
+// ฟังก์ชันสำหรับสร้าง toast container
+function createToastContainer() {
+    const container = document.createElement('div');
+    container.className = 'toast-container position-fixed top-0 end-0 p-3';
+    container.style.zIndex = '1055';
+    document.body.appendChild(container);
+    return container;
+}
+
+// เพิ่มฟังก์ชันสำหรับทำความสะอาด modal และ loading state ที่อาจค้างอยู่
+function forceCleanupModal() {
+    // ลบ modal backdrop ที่อาจค้างอยู่
+    const backdrops = document.querySelectorAll('.modal-backdrop');
+    backdrops.forEach(backdrop => backdrop.remove());
+    
+    // ลบ modal-open class จาก body
+    document.body.classList.remove('modal-open');
+    
+    // รีเซ็ต body style
+    document.body.style.paddingRight = '';
+    document.body.style.overflow = '';
+    
+    // ลบ loading element ทั้งหมดที่อาจค้างอยู่
+    const loadingElements = document.querySelectorAll('.loading-state, .loading-container, .loading-overlay');
+    loadingElements.forEach(el => el.remove());
+}
+
+// เพิ่ม event listener สำหรับรีเซ็ต modal เมื่อปิด
+document.addEventListener('DOMContentLoaded', function() {
+    const addViolationModal = document.getElementById('addViolationTypeModal');
+    if (addViolationModal) {
+        addViolationModal.addEventListener('hidden.bs.modal', function () {
+            // รีเซ็ต title กลับเป็นเดิม
+            const modalTitle = this.querySelector('.modal-title');
+            if (modalTitle) modalTitle.textContent = 'เพิ่มประเภทพฤติกรรมใหม่';
+            
+            // รีเซ็ตฟอร์ม
+            const form = this.querySelector('#addViolationTypeForm');
+            if (form) {
+                form.reset();
+                form.classList.remove('was-validated');
+                
+                // ล้าง violation_id สำหรับการเพิ่มใหม่
+                const violationIdInput = document.getElementById('violation_id');
+                if (violationIdInput) violationIdInput.value = '';
+            }
+            
+            // ซ่อนข้อความแจ้งเตือน
+            const successAlert = this.querySelector('.save-success');
+            const errorAlert = this.querySelector('.save-error');
+            if (successAlert) successAlert.classList.add('d-none');
+            if (errorAlert) errorAlert.classList.add('d-none');
+        });
+    }
+});

@@ -156,9 +156,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
         tbody.innerHTML = rowsHtml;
 
-        if (typeof attachViewButtonListeners === 'function') attachViewButtonListeners();
-        if (typeof attachEditButtonListeners === 'function') attachEditButtonListeners();
-        if (typeof attachDeleteButtonListeners === 'function') attachDeleteButtonListeners();
+        attachViewButtonListeners();
+        attachEditButtonListeners();
+        attachDeleteButtonListeners();
     }
 
     // Add this helper function if it's not already globally available or imported
@@ -304,6 +304,82 @@ document.addEventListener('DOMContentLoaded', function() {
         })
         .catch(error => {
             console.error('Error fetching teachers:', error);
+        });
+    }
+
+    // ฟังก์ชันเพิ่ม event listeners สำหรับปุ่มแก้ไข
+    function attachEditButtonListeners() {
+        const editButtons = document.querySelectorAll('#classManagementModal .edit-class-btn');
+        editButtons.forEach(button => {
+            const newButton = button.cloneNode(true); // Clone to remove existing listeners
+            button.parentNode.replaceChild(newButton, button); // Replace old button with new one
+
+            newButton.addEventListener('click', function() {
+                const classId = this.getAttribute('data-id');
+                
+                // โหลดข้อมูลห้องเรียนที่จะแก้ไข
+                fetchClassroomById(classId)
+                    .then(classroom => {
+                        // เติมข้อมูลในฟอร์ม
+                        document.getElementById('classId').value = classroom.classes_id;
+                        document.getElementById('classes_level').value = classroom.classes_level || '';
+                        document.getElementById('classes_room_number').value = classroom.classes_room_number || '';
+                        document.getElementById('classes_academic_year').value = classroom.classes_academic_year || '';
+                        
+                        // เลือกครูที่กำหนดไว้
+                        if (classroom.teacher) {
+                            document.getElementById('teacher_id').value = classroom.teacher.teachers_id || '';
+                        } else {
+                            document.getElementById('teacher_id').value = '';
+                        }
+                        
+                        // เปลี่ยน title ของฟอร์ม
+                        document.getElementById('formClassTitle').textContent = 'แก้ไขข้อมูลห้องเรียน';
+                        
+                        // ล้าง validation errors
+                        formClassroom.querySelectorAll('.is-invalid').forEach(element => {
+                            element.classList.remove('is-invalid');
+                        });
+                        
+                        // แสดงฟอร์ม ซ่อนรายการ
+                        classroomList.classList.add('d-none');
+                        classroomForm.classList.remove('d-none');
+                    })
+                    .catch(error => {
+                        console.error('Error fetching classroom for edit:', error);
+                        showError('ไม่สามารถโหลดข้อมูลห้องเรียนที่จะแก้ไขได้: ' + error.message);
+                    });
+            });
+        });
+    }
+
+    // ฟังก์ชันเพิ่ม event listeners สำหรับปุ่มลบ
+    function attachDeleteButtonListeners() {
+        const deleteButtons = document.querySelectorAll('#classManagementModal .delete-class-btn');
+        deleteButtons.forEach(button => {
+            const newButton = button.cloneNode(true); // Clone to remove existing listeners
+            button.parentNode.replaceChild(newButton, button); // Replace old button with new one
+
+            newButton.addEventListener('click', function() {
+                const classId = this.getAttribute('data-id');
+                
+                // ค้นหาข้อมูลห้องเรียนที่จะลบ
+                const classroom = classManager.classes.find(c => c.classes_id == classId);
+                
+                if (classroom) {
+                    const className = `${classroom.classes_level}/${classroom.classes_room_number}`;
+                    
+                    // เติมข้อมูลใน delete modal
+                    document.getElementById('deleteClassId').value = classId;
+                    document.getElementById('deleteClassName').textContent = className;
+                    
+                    // แสดง delete confirmation modal
+                    const deleteModal = new bootstrap.Modal(document.getElementById('deleteClassModal'));
+                    deleteModal.show();
+                } else {
+                    showError('ไม่พบข้อมูลห้องเรียนที่จะลบ');
+                }
+            });
         });
     }
 
