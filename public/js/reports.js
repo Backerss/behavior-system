@@ -8,6 +8,15 @@ function generateMonthlyReport() {
 }
 
 /**
+ * สร้างรายงานสรุปนักเรียนที่มีความเสี่ยง
+ */
+function generateRiskStudentsReport() {
+    // แสดง Modal สำหรับเลือกเดือนและปี
+    const modal = new bootstrap.Modal(document.getElementById('riskStudentsReportModal'));
+    modal.show();
+}
+
+/**
  * ดาวน์โหลดรายงานพฤติกรรมประจำเดือน
  */
 function downloadMonthlyReport() {
@@ -35,6 +44,38 @@ function downloadMonthlyReport() {
     modal.hide();
 }
 
+/**
+ * ดาวน์โหลดรายงานสรุปนักเรียนที่มีความเสี่ยง
+ */
+function downloadRiskStudentsReport() {
+    const month = document.getElementById('risk_report_month').value;
+    const year = document.getElementById('risk_report_year').value;
+    const classId = document.getElementById('risk_report_class_id').value;
+    const riskLevel = document.getElementById('risk_report_level').value;
+    
+    // ตรวจสอบความถูกต้องของข้อมูล
+    if (!month || !year) {
+        alert('กรุณาเลือกเดือนและปีที่ต้องการสร้างรายงาน');
+        return;
+    }
+    
+    // สร้าง URL พร้อมพารามิเตอร์
+    let url = `/reports/risk-students?month=${month}&year=${year}`;
+    if (classId) {
+        url += `&class_id=${classId}`;
+    }
+    if (riskLevel && riskLevel !== 'all') {
+        url += `&risk_level=${riskLevel}`;
+    }
+    
+    // เปิด URL ใหม่เพื่อดาวน์โหลด (หรือเปิดในแท็บใหม่)
+    window.open(url, '_blank');
+    
+    // ปิด Modal
+    const modal = bootstrap.Modal.getInstance(document.getElementById('riskStudentsReportModal'));
+    modal.hide();
+}
+
 // เตรียม Modal เมื่อ Document โหลดเสร็จ
 document.addEventListener('DOMContentLoaded', function() {
     // ตั้งค่าเริ่มต้นสำหรับเดือนและปี
@@ -44,5 +85,13 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     if (document.getElementById('report_year')) {
         document.getElementById('report_year').value = now.getFullYear();
+    }
+    
+    // ตั้งค่าเริ่มต้นสำหรับรายงานความเสี่ยง
+    if (document.getElementById('risk_report_month')) {
+        document.getElementById('risk_report_month').value = now.getMonth() + 1;
+    }
+    if (document.getElementById('risk_report_year')) {
+        document.getElementById('risk_report_year').value = now.getFullYear();
     }
 });

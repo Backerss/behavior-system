@@ -106,6 +106,17 @@ class Student extends Model
     }
 
     /**
+     * ความสัมพันธ์กับ Guardian หลัก (คนแรก)
+     * สำหรับการเข้าถึงผู้ปกครองหลักได้ง่ายขึ้น
+     * 
+     * @return Guardian|null
+     */
+    public function getGuardianAttribute(): ?Guardian
+    {
+        return $this->guardians()->first();
+    }
+
+    /**
      * ความสัมพันธ์กับ BehaviorReports (One-to-Many)
      * 
      * @return HasMany<BehaviorReport>

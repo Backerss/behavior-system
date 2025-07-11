@@ -113,6 +113,7 @@ Route::prefix('api')->middleware('auth')->group(function () {
 // เพิ่ม Route สำหรับรายงาน
 Route::prefix('reports')->middleware(['auth'])->group(function () {
     Route::get('/monthly', [App\Http\Controllers\ReportController::class, 'monthlyReport'])->name('reports.monthly');
+    Route::get('/risk-students', [App\Http\Controllers\ReportController::class, 'riskStudentsReport'])->name('reports.risk-students');
 });
 
 // Profile update route
