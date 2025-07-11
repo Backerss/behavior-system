@@ -257,6 +257,142 @@ class ReportController extends Controller
     }
 
     /**
+     * ส่งออกข้อมูลพฤติกรรมทั้งหมดเป็น PDF
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\Response
+     */
+    public function allBehaviorDataReport(Request $request)
+    {
+        // รับพารามิเตอร์จาก request
+        $month = $request->input('month', Carbon::now()->month);
+        $year = $request->input('year', Carbon::now()->year);
+        $classId = $request->input('class_id');
+        
+        // สร้างวันแรกและวันสุดท้ายของเดือน
+        $startDate = Carbon::createFromDate($year, $month, 1)->startOfMonth();
+        $endDate = Carbon::createFromDate($year, $month, 1)->endOfMonth();
+        
+        // Query ข้อมูลห้องเรียน
+        $classroom = null;
+        if ($classId) {
+            $classroom = Classroom::with('teacher.user')->find($classId);
+        }
+        
+        // Query ข้อมูลนักเรียนและพฤติกรรม
+        $query = Student::with(['user', 'classroom', 'behaviorReports' => function($query) use ($startDate, $endDate) {
+            $query->whereBetween('reports_report_date', [$startDate, $endDate])
+                  ->with(['violation', 'teacher.user']);
+        }]);
+        
+        if ($classId) {
+            $query->where('class_id', $classId);
+        }
+        
+        $students = $query->get();
+        
+        // เรียงลำดับนักเรียนตามชั้นเรียนและรหัสนักเรียน
+        $students = $students->sortBy(function($student) {
+            return [$student->classroom ? $student->classroom->classes_level : 'zzz',
+                    $student->classroom ? $student->classroom->classes_room_number : 'zzz',
+                    $student->students_student_code];
+        });
+        
+        // เก็บข้อมูลรายงานพฤติกรรมทั้งหมด
+        $allReports = collect();
+        $totalReports = 0;
+        $totalPoints = 0;
+        $categoryStats = [
+            'light' => 0,
+            'medium' => 0,
+            'severe' => 0
+        ];
+        
+        // วนลูปเพื่อเก็บข้อมูลและคำนวณคะแนน
+        foreach ($students as $student) {
+            $totalPointsDeducted = 0;
+            
+            foreach ($student->behaviorReports as $report) {
+                $points = $report->violation ? $report->violation->violations_points_deducted : 0;
+                $category = $report->violation ? $report->violation->violations_category : 'light';
+                
+                $totalPointsDeducted += $points;
+                $totalPoints += $points;
+                $totalReports++;
+                
+                // นับสถิติตามประเภท
+                if (isset($categoryStats[$category])) {
+                    $categoryStats[$category]++;
+                }
+                
+                // เพิ่มข้อมูลรายงานในรายการ
+                $allReports->push([
+                    'student' => $student,
+                    'report' => $report,
+                    'points' => $points,
+                    'category' => $category
+                ]);
+            }
+            
+            $student->monthly_deducted_points = $totalPointsDeducted;
+            $student->monthly_score = max(0, 100 - $totalPointsDeducted);
+        }
+        
+        // เรียงลำดับรายงานตามวันที่
+        $allReports = $allReports->sortByDesc(function($item) {
+            return $item['report']->reports_report_date;
+        });
+        
+        // สร้างข้อมูลสำหรับรายงาน
+        $data = [
+            'title' => 'รายงานข้อมูลพฤติกรรมนักเรียนทั้งหมด',
+            'month' => $month,
+            'year' => $year,
+            'monthName' => Carbon::createFromDate($year, $month, 1)->locale('th')->translatedFormat('F'),
+            'classroom' => $classroom,
+            'students' => $students,
+            'allReports' => $allReports,
+            'totalReports' => $totalReports,
+            'totalPoints' => $totalPoints,
+            'categoryStats' => $categoryStats,
+            'generatedAt' => Carbon::now(),
+            'reportPeriod' => $startDate->format('d/m/Y') . ' - ' . $endDate->format('d/m/Y'),
+        ];
+        
+        // กำหนดชื่อไฟล์
+        $fileName = 'รายงานข้อมูลพฤติกรรมทั้งหมด_' . 
+                    $data['monthName'] . 
+                    ($classroom ? '_' . $classroom->classes_level . '-' . $classroom->classes_room_number : '') . 
+                    '.pdf';
+        
+        // สร้าง PDF ด้วย mPDF
+        $mpdf = new Mpdf([
+            'mode' => 'utf-8', 
+            'format' => 'A4', 
+            'orientation' => 'P',
+            'default_font' => 'thsarabun',
+            'default_font_size' => 14,
+            'tempDir' => storage_path('app/public/temp'),
+        ]);
+
+        // ตั้งค่าเพิ่มเติมสำหรับ mPDF
+        $mpdf->useAdobeCJK = true;
+        $mpdf->autoScriptToLang = true;
+        $mpdf->autoLangToFont = true;
+
+        // สร้าง HTML จาก view
+        $html = view('reports.all_behavior_data_report', $data)->render();
+        
+        // เขียน HTML ลงใน PDF
+        $mpdf->WriteHTML($html);
+        
+        // ส่งไฟล์ PDF กลับไป
+        return response($mpdf->Output($fileName, \Mpdf\Output\Destination::DOWNLOAD))
+            ->header('Content-Type', 'application/pdf')
+            ->header('Content-Disposition', 'attachment; filename="'.$fileName.'"');
+    }
+
+    /**
      * แปลงระดับความเสี่ยงเป็นข้อความ
      */
     private function getRiskLevelText($riskLevel)

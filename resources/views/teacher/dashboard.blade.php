@@ -844,9 +844,11 @@
                                     <span>รายงานสรุปนักเรียนที่มีความเสี่ยง</span>
                                     <i class="fas fa-file-pdf"></i>
                                 </button>
-                                <button class="btn btn-outline-primary d-flex justify-content-between align-items-center">
+                                <button class="btn btn-outline-primary d-flex justify-content-between align-items-center"
+                                        id="generateAllBehaviorDataReport" 
+                                        onclick="generateAllBehaviorDataReport()">
                                     <span>ส่งออกข้อมูลพฤติกรรมทั้งหมด</span>
-                                    <i class="fas fa-file-excel"></i>
+                                    <i class="fas fa-file-pdf"></i>
                                 </button>
                             </div>
                         </div>
@@ -1323,59 +1325,55 @@
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header border-0 pb-0">
-                    <h5 class="modal-title">สร้างรายงานพฤติกรรมประจำเดือน</h5>
+                    <h5 class="modal-title">
+                        <i class="fas fa-calendar-alt text-primary me-2"></i>
+                        รายงานพฤติกรรมประจำเดือน
+                    </h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <div class="mb-3">
-                        <label for="report_month" class="form-label">เลือกเดือน</label>
-                        <select class="form-select" id="report_month">
-                            <option value="1">มกราคม</option>
-                            <option value="2">กุมภาพันธ์</option>
-                            <option value="3">มีนาคม</option>
-                            <option value="4">เมษายน</option>
-                            <option value="5">พฤษภาคม</option>
-                            <option value="6">มิถุนายน</option>
-                            <option value="7">กรกฎาคม</option>
-                            <option value="8">สิงหาคม</option>
-                            <option value="9">กันยายน</option>
-                            <option value="10">ตุลาคม</option>
-                            <option value="11">พฤศจิกายน</option>
-                            <option value="12">ธันวาคม</option>
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label for="report_year" class="form-label">เลือกปี</label>
-                        <select class="form-select" id="report_year">
-                            @php
-                                $currentYear = (int)date('Y');
-                                $startYear = $currentYear - 2;
-                                $endYear = $currentYear + 1;
-                            @endphp
-                            @for($year = $startYear; $year <= $endYear; $year++)
-                                <option value="{{ $year }}" {{ $year == $currentYear ? 'selected' : '' }}>
-                                    {{ $year + 543 }}
-                                </option>
-                            @endfor
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label for="report_class_id" class="form-label">เลือกห้องเรียน (ไม่ระบุเพื่อดูทั้งหมด)</label>
-                        <select class="form-select" id="report_class_id">
-                            <option value="">ทุกห้องเรียน</option>
-                            <!-- ตัวเลือกจะถูกเติมด้วย JavaScript หรือข้อมูลจาก Controller -->
-                            @foreach($classes ?? [] as $class)
-                                <option value="{{ $class->classes_id }}">
-                                    {{ $class->classes_level }}/{{ $class->classes_room_number }}
-                                </option>
-                            @endforeach
-                        </select>
-                    </div>
+                    <form id="monthlyReportForm">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="report_month" class="form-label">เดือน</label>
+                                <select class="form-select" id="report_month" required>
+                                    <option value="1">มกราคม</option>
+                                    <option value="2">กุมภาพันธ์</option>
+                                    <option value="3">มีนาคม</option>
+                                    <option value="4">เมษายน</option>
+                                    <option value="5">พฤษภาคม</option>
+                                    <option value="6">มิถุนายน</option>
+                                    <option value="7">กรกฎาคม</option>
+                                    <option value="8">สิงหาคม</option>
+                                    <option value="9">กันยายน</option>
+                                    <option value="10">ตุลาคม</option>
+                                    <option value="11">พฤศจิกายน</option>
+                                    <option value="12">ธันวาคม</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="report_year" class="form-label">ปี (พ.ศ.)</label>
+                                <select class="form-select" id="report_year" required>
+                                    @for($y = date('Y') + 543; $y >= date('Y') + 540; $y--)
+                                        <option value="{{ $y - 543 }}">{{ $y }}</option>
+                                    @endfor
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="report_class_id" class="form-label">ชั้นเรียน (เฉพาะ)</label>
+                            <select class="form-select" id="report_class_id">
+                                <option value="">ทุกชั้นเรียน</option>
+                                <!-- จะถูกเติมด้วย JavaScript หรือ Blade -->
+                            </select>
+                        </div>
+                    </form>
                 </div>
                 <div class="modal-footer border-0 pt-0">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
-                    <button type="button" class="btn btn-primary-app" onclick="downloadMonthlyReport()">
-                        <i class="fas fa-download me-2"></i>สร้างรายงาน
+                    <button type="button" class="btn btn-primary" onclick="downloadMonthlyReport()">
+                        <i class="fas fa-file-pdf me-1"></i> สร้างรายงาน PDF
                     </button>
                 </div>
             </div>
@@ -1573,6 +1571,149 @@
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
                     <button type="button" class="btn btn-primary" id="send-notification-btn" onclick="sendParentNotification()">
                         <i class="fas fa-paper-plane me-1"></i> ส่งการแจ้งเตือน
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Risk Students Report Modal -->
+    <div class="modal fade" id="riskStudentsReportModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title">
+                        <i class="fas fa-exclamation-triangle text-warning me-2"></i>
+                        รายงานสรุปนักเรียนที่มีความเสี่ยง
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="riskStudentsReportForm">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="risk_report_month" class="form-label">เดือน</label>
+                                <select class="form-select" id="risk_report_month" required>
+                                    <option value="1">มกราคม</option>
+                                    <option value="2">กุมภาพันธ์</option>
+                                    <option value="3">มีนาคม</option>
+                                    <option value="4">เมษายน</option>
+                                    <option value="5">พฤษภาคม</option>
+                                    <option value="6">มิถุนายน</option>
+                                    <option value="7">กรกฎาคม</option>
+                                    <option value="8">สิงหาคม</option>
+                                    <option value="9">กันยายน</option>
+                                    <option value="10">ตุลาคม</option>
+                                    <option value="11">พฤศจิกายน</option>
+                                    <option value="12">ธันวาคม</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="risk_report_year" class="form-label">ปี (พ.ศ.)</label>
+                                <select class="form-select" id="risk_report_year" required>
+                                    @for($y = date('Y') + 543; $y >= date('Y') + 540; $y--)
+                                        <option value="{{ $y - 543 }}">{{ $y }}</option>
+                                    @endfor
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="risk_report_level" class="form-label">ระดับความเสี่ยง</label>
+                                <select class="form-select" id="risk_report_level">
+                                    <option value="all">ทุกระดับ</option>
+                                    <option value="high">ความเสี่ยงสูง</option>
+                                    <option value="medium">ความเสี่ยงปานกลาง</option>
+                                    <option value="low">ความเสี่ยงต่ำ</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="risk_report_class_id" class="form-label">ชั้นเรียน (เฉพาะ)</label>
+                                <select class="form-select" id="risk_report_class_id">
+                                    <option value="">ทุกชั้นเรียน</option>
+                                    <!-- จะถูกเติมด้วย JavaScript หรือ Blade -->
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <strong>หมายเหตุ:</strong> รายงานนี้จะแสดงเฉพาะนักเรียนที่มีพฤติกรรมผิดระเบียบหรือมีคะแนนความประพฤติต่ำกว่า 90 คะแนน
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+                    <button type="button" class="btn btn-warning" onclick="downloadRiskStudentsReport()">
+                        <i class="fas fa-file-pdf me-1"></i> สร้างรายงาน PDF
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- All Behavior Data Report Modal -->
+    <div class="modal fade" id="allBehaviorDataReportModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title">
+                        <i class="fas fa-chart-bar text-primary me-2"></i>
+                        รายงานข้อมูลพฤติกรรมทั้งหมด
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="allBehaviorDataReportForm">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="all_data_report_month" class="form-label">เดือน</label>
+                                <select class="form-select" id="all_data_report_month" required>
+                                    <option value="1">มกราคม</option>
+                                    <option value="2">กุมภาพันธ์</option>
+                                    <option value="3">มีนาคม</option>
+                                    <option value="4">เมษายน</option>
+                                    <option value="5">พฤษภาคม</option>
+                                    <option value="6">มิถุนายน</option>
+                                    <option value="7">กรกฎาคม</option>
+                                    <option value="8">สิงหาคม</option>
+                                    <option value="9">กันยายน</option>
+                                    <option value="10">ตุลาคม</option>
+                                    <option value="11">พฤศจิกายน</option>
+                                    <option value="12">ธันวาคม</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="all_data_report_year" class="form-label">ปี พ.ศ.</label>
+                                <select class="form-select" id="all_data_report_year" required>
+                                    <option value="2023">2566</option>
+                                    <option value="2024">2567</option>
+                                    <option value="2025">2568</option>
+                                    <option value="2026">2569</option>
+                                    <option value="2027">2570</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="all_data_report_class_id" class="form-label">ชั้นเรียน (เฉพาะ)</label>
+                            <select class="form-select" id="all_data_report_class_id">
+                                <option value="">ทุกชั้นเรียน</option>
+                                <!-- จะถูกเติมด้วย JavaScript หรือ Blade -->
+                            </select>
+                        </div>
+                        
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            รายงานนี้จะแสดงข้อมูลพฤติกรรมนักเรียนทั้งหมดในเดือนที่เลือก รวมถึงรายละเอียดการบันทึกแต่ละครั้ง และสถิติสรุป
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+                    <button type="button" class="btn btn-primary" onclick="downloadAllBehaviorDataReport()">
+                        <i class="fas fa-file-pdf me-1"></i> สร้างรายงาน PDF
                     </button>
                 </div>
             </div>

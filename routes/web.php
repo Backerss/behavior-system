@@ -114,6 +114,7 @@ Route::prefix('api')->middleware('auth')->group(function () {
 Route::prefix('reports')->middleware(['auth'])->group(function () {
     Route::get('/monthly', [App\Http\Controllers\ReportController::class, 'monthlyReport'])->name('reports.monthly');
     Route::get('/risk-students', [App\Http\Controllers\ReportController::class, 'riskStudentsReport'])->name('reports.risk-students');
+    Route::get('/all-behavior-data', [App\Http\Controllers\ReportController::class, 'allBehaviorDataReport'])->name('reports.all-behavior-data');
 });
 
 // Profile update route
