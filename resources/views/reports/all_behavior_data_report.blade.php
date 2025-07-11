@@ -44,7 +44,7 @@
         }
         
         .report-title {
-            font-size: 16pt;
+            font-size: 10pt;
             font-weight: bold;
             margin-top: 10px;
             color: #1020AD;
