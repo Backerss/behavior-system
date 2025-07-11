@@ -1714,32 +1714,45 @@ async function loadStudentDetail(studentId) {
  * แสดงสถานะ Loading
  */
 function showStudentDetailLoading() {
-    document.getElementById('studentDetailLoading').style.display = 'block';
-    document.getElementById('studentDetailContent').style.display = 'none';
-    document.getElementById('studentDetailError').style.display = 'none';
+    const loading = document.getElementById('studentDetailLoading');
+    const content = document.getElementById('studentDetailContent');
+    const error = document.getElementById('studentDetailError');
+    
+    if (loading) loading.style.display = 'block';
+    if (content) content.style.display = 'none';
+    if (error) error.style.display = 'none';
 }
 
 /**
  * แสดงข้อมูลนักเรียน
  */
 function showStudentDetailContent() {
-    document.getElementById('studentDetailLoading').style.display = 'none';
-    document.getElementById('studentDetailContent').style.display = 'block';
-    document.getElementById('studentDetailError').style.display = 'none';
+    const loading = document.getElementById('studentDetailLoading');
+    const content = document.getElementById('studentDetailContent');
+    const error = document.getElementById('studentDetailError');
+    
+    if (loading) loading.style.display = 'none';
+    if (content) content.style.display = 'block';
+    if (error) error.style.display = 'none';
 }
 
 /**
  * แสดงข้อผิดพลาด
  */
 function showStudentDetailError(message) {
-    document.getElementById('studentDetailLoading').style.display = 'none';
-    document.getElementById('studentDetailContent').style.display = 'none';
+    const loading = document.getElementById('studentDetailLoading');
+    const content = document.getElementById('studentDetailContent');
     const errorElement = document.getElementById('studentDetailError');
-    errorElement.style.display = 'block';
     
-    const errorText = errorElement.querySelector('p');
-    if (errorText) {
-        errorText.textContent = message || 'เกิดข้อผิดพลาดในการโหลดข้อมูล';
+    if (loading) loading.style.display = 'none';
+    if (content) content.style.display = 'none';
+    if (errorElement) {
+        errorElement.style.display = 'block';
+        
+        const errorText = errorElement.querySelector('p');
+        if (errorText) {
+            errorText.textContent = message || 'เกิดข้อผิดพลาดในการโหลดข้อมูล';
+        }
     }
 }
 
@@ -2061,13 +2074,32 @@ function setupViolationDateRestriction() {
     
     if (timeInput) {
         const now = new Date();
-        timeInput.value = now.toTimeString().slice(0, 5);
+        const hours = now.getHours().toString().padStart(2, '0');
+        const minutes = now.getMinutes().toString().padStart(2, '0');
+        timeInput.value = `${hours}:${minutes}`;
     }
 }
 
 /**
- * ตั้งค่า Event Listeners สำหรับ New Violation Modal
+ * ตั้งค่าเริ่มต้นสำหรับฟอร์มบันทึกพฤติกรรม
  */
+const violationDateInput = document.getElementById('violationDate');
+const violationTimeInput = document.getElementById('violationTime');
+
+if (violationDateInput && !violationDateInput.value) {
+    // ตั้งค่าวันที่เป็นวันนี้
+    violationDateInput.value = new Date().toISOString().split('T')[0];
+}
+
+if (violationTimeInput && !violationTimeInput.value) {
+    // ตั้งค่าเวลาเป็นเวลาปัจจุบัน
+    const now = new Date();
+    const hours = now.getHours().toString().padStart(2, '0');
+    const minutes = now.getMinutes().toString().padStart(2, '0');
+    violationTimeInput.value = `${hours}:${minutes}`;
+}
+
+// ตั้งค่า Event Listeners สำหรับ New Violation Modal
 function setupViolationEventListeners() {
     // ค้นหานักเรียน
     const studentSearch = document.getElementById('behaviorStudentSearch');
@@ -2136,7 +2168,11 @@ async function searchStudentsForViolation(query) {
         }
 
         const data = await response.json();
-        displayStudentResults(data);
+        if (data.success && data.data) {
+            displayStudentResults(data.data);
+        } else {
+            displayStudentResults([]);
+        }
     } catch (error) {
         console.error('Error searching students:', error);
         // Fallback: ใช้ข้อมูลจากตารางหลัก
@@ -2286,11 +2322,30 @@ async function submitViolationForm() {
         saveBtn.disabled = true;
         
         const formData = new FormData();
-        formData.append('student_id', document.getElementById('selectedStudentId').value);
-        formData.append('violation_id', document.getElementById('violationType').value);
-        formData.append('violation_date', document.getElementById('violationDate').value);
-        formData.append('violation_time', document.getElementById('violationTime').value);
-        formData.append('description', document.getElementById('violationDescription').value);
+        const studentId = document.getElementById('selectedStudentId').value;
+        const violationId = document.getElementById('violationType').value;
+        const violationDate = document.getElementById('violationDate').value;
+        const violationTime = document.getElementById('violationTime').value;
+        const description = document.getElementById('violationDescription').value;
+        
+        // ตรวจสอบข้อมูลที่จำเป็น
+        if (!studentId) {
+            throw new Error('กรุณาเลือกนักเรียน');
+        }
+        if (!violationId) {
+            throw new Error('กรุณาเลือกประเภทการกระทำผิด');
+        }
+        if (!violationDate || !violationTime) {
+            throw new Error('กรุณาระบุวันและเวลาที่เกิดเหตุ');
+        }
+        
+        // รวมวันที่และเวลาเป็น datetime format
+        const violationDatetime = violationDate + ' ' + violationTime;
+        
+        formData.append('student_id', studentId);
+        formData.append('violation_id', violationId);
+        formData.append('violation_datetime', violationDatetime);
+        formData.append('description', description);
         
         const evidenceFile = document.getElementById('evidenceFile').files[0];
         if (evidenceFile) {
@@ -2306,11 +2361,17 @@ async function submitViolationForm() {
             body: formData
         });
         
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
         const data = await response.json();
+        
+        if (!response.ok) {
+            // Handle validation errors
+            if (response.status === 422 && data.errors) {
+                const errorMessages = Object.values(data.errors).flat().join('\n');
+                throw new Error(errorMessages);
+            } else {
+                throw new Error(data.message || `HTTP error! status: ${response.status}`);
+            }
+        }
         
         if (data.success) {
             // แสดงข้อความสำเร็จ
@@ -2339,13 +2400,13 @@ async function submitViolationForm() {
 }
 
 /**
- * ตรวจสอบความถูกต้องของฟอร์ม
+ * ตรวจสอบความถูกต้องของฟอร์มก่อนส่ง
  */
 function validateViolationForm() {
-    const studentId = document.getElementById('selectedStudentId').value;
-    const violationType = document.getElementById('violationType').value;
-    const violationDate = document.getElementById('violationDate').value;
-    const violationTime = document.getElementById('violationTime').value;
+    const studentId = document.getElementById('selectedStudentId')?.value;
+    const violationType = document.getElementById('violationType')?.value;
+    const violationDate = document.getElementById('violationDate')?.value;
+    const violationTime = document.getElementById('violationTime')?.value;
     
     if (!studentId) {
         alert('กรุณาเลือกนักเรียน');
@@ -2353,17 +2414,17 @@ function validateViolationForm() {
     }
     
     if (!violationType) {
-        alert('กรุณาเลือกประเภทพฤติกรรม');
+        alert('กรุณาเลือกประเภทการกระทำผิด');
         return false;
     }
     
     if (!violationDate) {
-        alert('กรุณาเลือกวันที่');
+        alert('กรุณาระบุวันที่เกิดเหตุ');
         return false;
     }
     
     if (!violationTime) {
-        alert('กรุณาเลือกเวลา');
+        alert('กรุณาระบุเวลาที่เกิดเหตุ');
         return false;
     }
     

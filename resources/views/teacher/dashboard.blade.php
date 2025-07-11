@@ -54,7 +54,7 @@
                 </a>
                 <a href="#" data-bs-toggle="modal" data-bs-target="#importExportModal" class="menu-item">
                     <i class="fas fa-file-import"></i>
-                    <span>นำเข้า/ส่งออก</span>
+                    <span>ส่งออกรายงาน</span>
                 </a>
                 <a href="#" data-bs-toggle="modal" data-bs-target="#profileModal" class="menu-item">
                     <i class="fas fa-user-circle"></i>
