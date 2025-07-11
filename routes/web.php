@@ -47,6 +47,14 @@ Route::middleware('auth')->group(function () {
     // หน้าแดชบอร์ดของนักเรียน
     Route::get('/student/dashboard', [StudentController::class, 'dashboard'])->name('student.dashboard');
     
+    // ระบบจัดการรหัสผ่านของนักเรียน
+    Route::prefix('student')->middleware('auth')->group(function () {
+        Route::get('/settings', [App\Http\Controllers\StudentPasswordController::class, 'showSettings'])
+            ->name('student.settings');
+        Route::post('/password/change', [App\Http\Controllers\StudentPasswordController::class, 'changePassword'])
+            ->name('student.password.change');
+    });
+    
     // หน้าแดชบอร์ดของครู
     Route::get('/teacher/dashboard', [AuthController::class, 'dashboard'])->name('teacher.dashboard');
     

@@ -33,9 +33,9 @@
                         <i class="fas fa-home"></i>
                         <span>หน้าหลัก</span>
                     </a>
-                    <a href="javascript:void(0);" class="nav-item">
-                        <i class="fas fa-user"></i>
-                        <span>โปรไฟล์</span>
+                    <a href="{{ route('student.settings') }}" class="nav-item">
+                        <i class="fas fa-user-cog"></i>
+                        <span>ตั้งค่าบัญชี</span>
                     </a>
                 </div>
                 <div class="navbar-actions">
@@ -58,6 +58,10 @@
                             </div>
                         </div>
                         <div class="user-menu-body">
+                            <a href="{{ route('student.settings') }}" class="user-menu-item">
+                                <i class="fas fa-user-cog"></i>
+                                <span>ตั้งค่าบัญชี</span>
+                            </a>
                             <a href="javascript:void(0);" class="user-menu-item">
                                 <i class="fas fa-bell"></i>
                                 <span>การแจ้งเตือน</span>
@@ -506,9 +510,9 @@
                         </a>
                     </div>
                     <div class="col">
-                        <a href="javascript:void(0);" class="nav-link text-muted">
-                            <i class="fas fa-user"></i>
-                            <span>โปรไฟล์</span>
+                        <a href="{{ route('student.settings') }}" class="nav-link text-muted">
+                            <i class="fas fa-user-cog"></i>
+                            <span>ตั้งค่าบัญชี</span>
                         </a>
                     </div>
                 </div>
