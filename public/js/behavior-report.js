@@ -888,6 +888,9 @@ function populateStudentDetailModal(student) {
                             บันทึกพฤติกรรม
                         </button>
                         <button class="btn btn-outline-secondary" onclick="printStudentReport(event)" data-student-id="${student.students_id}">พิมพ์รายงาน</button>
+                        <button class="btn btn-warning" onclick="slideToPasswordReset(${student.students_id}, '${fullName}')" id="resetPasswordBtn-${student.students_id}">
+                            <i class="fas fa-key me-1"></i> รีเซ็ตรหัสผ่าน
+                        </button>
                         ${guardianPhone !== '-' ? 
                             `<button class="btn ${score < 40 ? 'btn-danger' : 'btn-outline-warning'}" 
                                     onclick="openParentNotificationModal(${student.students_id}, '${fullName}', '${classroomText}', ${score}, '${guardianPhone}')">
@@ -1007,16 +1010,65 @@ function closeStudentDetailModal() {
  * แสดงข้อความสำเร็จ
  */
 function showSuccess(message) {
-    // Implementation ขึ้นอยู่กับระบบ notification ที่ใช้
-    alert(message);
+    showToast('success', message);
 }
 
 /**
  * แสดงข้อความข้อผิดพลาด
  */
 function showError(message) {
-    // Implementation ขึ้นอยู่กับระบบ notification ที่ใช้
-    alert(message);
+    showToast('error', message);
+}
+
+/**
+ * แสดง Toast Notification
+ */
+function showToast(type, message) {
+    // สร้าง Toast Element ถ้ายังไม่มี
+    let toastContainer = document.getElementById('toast-container');
+    if (!toastContainer) {
+        toastContainer = document.createElement('div');
+        toastContainer.id = 'toast-container';
+        toastContainer.className = 'toast-container position-fixed top-0 end-0 p-3';
+        toastContainer.style.zIndex = '9999';
+        document.body.appendChild(toastContainer);
+    }
+    
+    const toastId = 'toast-' + Date.now();
+    const bgClass = type === 'success' ? 'bg-success' : 'bg-danger';
+    const icon = type === 'success' ? 'fas fa-check-circle' : 'fas fa-exclamation-circle';
+    const title = type === 'success' ? 'สำเร็จ' : 'ข้อผิดพลาด';
+    
+    // แปลง \n เป็น <br> สำหรับการแสดงผล
+    const formattedMessage = message.replace(/\n/g, '<br>');
+    
+    const toastHtml = `
+        <div id="${toastId}" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="toast-header ${bgClass} text-white">
+                <i class="${icon} me-2"></i>
+                <strong class="me-auto">${title}</strong>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+            <div class="toast-body">
+                ${formattedMessage}
+            </div>
+        </div>
+    `;
+    
+    toastContainer.insertAdjacentHTML('beforeend', toastHtml);
+    
+    const toastElement = document.getElementById(toastId);
+    const toast = new bootstrap.Toast(toastElement, {
+        autohide: true,
+        delay: type === 'success' ? 3000 : 5000
+    });
+    
+    toast.show();
+    
+    // ลบ Toast เมื่อซ่อน
+    toastElement.addEventListener('hidden.bs.toast', function() {
+        this.remove();
+    });
 }
 
 /**
@@ -1177,3 +1229,349 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 });
+
+/**
+ * ตรวจสอบสิทธิ์ครูประจำชั้น
+ */
+function checkTeacherPermission(studentId) {
+    return fetch(`/api/teacher/check-permission/${studentId}`, {
+        method: 'GET',
+        headers: {
+            'Accept': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        credentials: 'same-origin'
+    })
+    .then(response => response.json())
+    .then(data => {
+        // หากไม่มีสิทธิ์ แสดง error message
+        if (!data.hasPermission) {
+            showError(data.message || 'คุณไม่มีสิทธิ์รีเซ็ตรหัสผ่านของนักเรียนคนนี้');
+            return false;
+        }
+        
+        return data.success && data.hasPermission;
+    })
+    .catch(error => {
+        console.error('Error checking teacher permission:', error);
+        return false;
+    });
+}
+
+/**
+ * เลื่อนไปยังหน้า Password Reset
+ */
+function slideToPasswordReset(studentId, studentName) {
+    // ตรวจสอบสิทธิ์ครูประจำชั้นก่อน
+    checkTeacherPermission(studentId)
+        .then(hasPermission => {
+            if (!hasPermission) {
+                return; // checkTeacherPermission จะจัดการ error message เอง
+            }
+            
+            // ตรวจสอบว่ามี Modal อยู่แล้วหรือไม่
+            const existingModal = document.getElementById('studentDetailModal');
+            if (!existingModal) {
+                showError('ไม่พบ Modal นักเรียน กรุณาเปิด Modal ใหม่');
+                return;
+            }
+            
+            // แปลง Modal ให้รองรับระบบ slide
+            transformModalToSlideSystem(existingModal, studentId, studentName);
+        })
+        .catch(error => {
+            console.error('Error checking teacher permission:', error);
+            showError('เกิดข้อผิดพลาดในการตรวจสอบสิทธิ์ กรุณาลองใหม่อีกครั้ง');
+        });
+}
+
+/**
+ * แปลง Modal ปัจจุบันให้รองรับระบบ slide
+ */
+function transformModalToSlideSystem(modal, studentId, studentName) {
+    const modalContent = modal.querySelector('.modal-content');
+    const currentBody = modal.querySelector('.modal-body');
+    const currentHeader = modal.querySelector('.modal-header');
+    
+    // เก็บข้อมูลเดิมไว้
+    const originalBodyContent = currentBody.innerHTML;
+    const originalHeaderContent = currentHeader.innerHTML;
+    
+    // สร้างโครงสร้างใหม่สำหรับ slide system
+    const slideHtml = `
+        <div class="modal-slide-container">
+            <div class="modal-slide-content slide-to-main" id="slideContent">
+                <!-- Panel 1: ข้อมูลนักเรียน (เดิม) -->
+                <div class="modal-slide-panel" id="mainPanel">
+                    <div class="modal-header">
+                        ${originalHeaderContent}
+                    </div>
+                    <div class="modal-body">
+                        ${originalBodyContent}
+                    </div>
+                </div>
+                
+                <!-- Panel 2: รีเซ็ตรหัสผ่าน -->
+                <div class="modal-slide-panel" id="passwordPanel">
+                    <div class="modal-header-slide bg-warning text-white">
+                        <button type="button" class="modal-back-btn" onclick="slideToMain()">
+                            <i class="fas fa-arrow-left"></i>
+                        </button>
+                        <h5 class="modal-header-title">
+                            <i class="fas fa-key me-2"></i>รีเซ็ตรหัสผ่าน - ${studentName}
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="password-reset-panel">
+                        <form id="resetPasswordForm">
+                            <div class="form-group-slide">
+                                <label class="form-label fw-bold">รหัสผ่านใหม่</label>
+                                <div class="input-group">
+                                    <input type="password" class="form-control-slide" id="new_password" name="new_password" 
+                                           minlength="8" required placeholder="กรอกรหัสผ่านใหม่ (อย่างน้อย 8 ตัวอักษร)">
+                                    <button class="btn btn-outline-secondary" type="button" onclick="togglePasswordVisibility('new_password')">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                </div>
+                                <div class="password-strength-indicator" id="passwordStrength"></div>
+                            </div>
+
+                            <div class="form-group-slide">
+                                <label class="form-label fw-bold">ยืนยันรหัสผ่านใหม่</label>
+                                <div class="input-group">
+                                    <input type="password" class="form-control-slide" id="new_password_confirmation" 
+                                           name="new_password_confirmation" minlength="8" required placeholder="ยืนยันรหัสผ่านใหม่">
+                                    <button class="btn btn-outline-secondary" type="button" onclick="togglePasswordVisibility('new_password_confirmation')">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                </div>
+                                <div class="text-danger small mt-1" id="passwordMatchError" style="display: none;">
+                                    รหัสผ่านไม่ตรงกัน
+                                </div>
+                            </div>
+
+                            <div class="alert alert-warning">
+                                <h6><i class="fas fa-exclamation-triangle me-2"></i>คำเตือนสำคัญ:</h6>
+                                <ul class="mb-0 small">
+                                    <li>นักเรียนจะสามารถเข้าสู่ระบบได้ทันทีด้วยรหัสผ่านใหม่</li>
+                                    <li>ระบบจะแจ้งเตือนผู้ปกครองโดยอัตโนมัติ</li>
+                                    <li>การดำเนินการนี้จะถูกบันทึกในระบบตรวจสอบ</li>
+                                </ul>
+                            </div>
+                        </form>
+                        
+                        <div class="slide-action-buttons">
+                            <button type="button" class="btn-slide btn-slide-secondary" onclick="slideToMain()">
+                                <i class="fas fa-arrow-left me-2"></i>ย้อนกลับ
+                            </button>
+                            <button type="button" class="btn-slide btn-slide-warning" onclick="resetStudentPassword(${studentId})" id="confirmResetBtn">
+                                <i class="fas fa-key me-2"></i>ยืนยันการรีเซ็ต
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // แทนที่เนื้อหา Modal
+    modalContent.innerHTML = slideHtml;
+    
+    // เพิ่ม event listeners สำหรับ password validation
+    setupPasswordValidation();
+    
+    // Slide ไปหน้า password reset
+    setTimeout(() => {
+        slideToPasswordScreen();
+    }, 100);
+}
+
+/**
+ * เลื่อนไปหน้า Password Reset
+ */
+function slideToPasswordScreen() {
+    const slideContent = document.getElementById('slideContent');
+    if (slideContent) {
+        slideContent.classList.remove('slide-to-main');
+        slideContent.classList.add('slide-to-password');
+    }
+}
+
+/**
+ * เลื่อนกลับไปหน้าหลัก
+ */
+function slideToMain() {
+    const slideContent = document.getElementById('slideContent');
+    if (slideContent) {
+        slideContent.classList.remove('slide-to-password');
+        slideContent.classList.add('slide-to-main');
+    }
+}
+
+/**
+ * ตั้งค่า Password Validation
+ */
+function setupPasswordValidation() {
+    const passwordInput = document.getElementById('new_password');
+    const confirmInput = document.getElementById('new_password_confirmation');
+    const strengthIndicator = document.getElementById('passwordStrength');
+    const matchError = document.getElementById('passwordMatchError');
+    const confirmBtn = document.getElementById('confirmResetBtn');
+    
+    if (!passwordInput || !confirmInput) return;
+    
+    // ตรวจสอบความแข็งแรงของรหัสผ่าน
+    passwordInput.addEventListener('input', function() {
+        const password = this.value;
+        const strength = calculatePasswordStrength(password);
+        
+        if (password.length === 0) {
+            strengthIndicator.style.width = '0%';
+            strengthIndicator.className = 'password-strength-indicator';
+        } else if (strength < 30) {
+            strengthIndicator.style.width = '33%';
+            strengthIndicator.className = 'password-strength-indicator password-strength-weak';
+        } else if (strength < 60) {
+            strengthIndicator.style.width = '66%';
+            strengthIndicator.className = 'password-strength-indicator password-strength-medium';
+        } else {
+            strengthIndicator.style.width = '100%';
+            strengthIndicator.className = 'password-strength-indicator password-strength-strong';
+        }
+        
+        validatePasswordMatch();
+    });
+    
+    // ตรวจสอบรหัสผ่านตรงกันหรือไม่
+    confirmInput.addEventListener('input', validatePasswordMatch);
+    
+    function validatePasswordMatch() {
+        const password = passwordInput.value;
+        const confirm = confirmInput.value;
+        
+        if (confirm.length > 0 && password !== confirm) {
+            matchError.style.display = 'block';
+            confirmInput.style.borderColor = '#dc3545';
+            confirmBtn.disabled = true;
+        } else {
+            matchError.style.display = 'none';
+            confirmInput.style.borderColor = '#ced4da';
+            confirmBtn.disabled = password.length < 8 || password !== confirm;
+        }
+    }
+}
+
+/**
+ * คำนวณความแข็งแรงของรหัสผ่าน
+ */
+function calculatePasswordStrength(password) {
+    let strength = 0;
+    
+    // ความยาว
+    if (password.length >= 8) strength += 25;
+    if (password.length >= 12) strength += 25;
+    
+    // มีตัวเลข
+    if (/\d/.test(password)) strength += 15;
+    
+    // มีตัวอักษรพิมพ์เล็ก
+    if (/[a-z]/.test(password)) strength += 15;
+    
+    // มีตัวอักษรพิมพ์ใหญ่
+    if (/[A-Z]/.test(password)) strength += 10;
+    
+    // มีอักขระพิเศษ
+    if (/[^A-Za-z0-9]/.test(password)) strength += 10;
+    
+    return Math.min(strength, 100);
+}
+
+/**
+ * แสดง/ซ่อน รหัสผ่าน
+ */
+function togglePasswordVisibility(inputId) {
+    const input = document.getElementById(inputId);
+    const icon = input.nextElementSibling.querySelector('i');
+    
+    if (input.type === 'password') {
+        input.type = 'text';
+        icon.classList.remove('fa-eye');
+        icon.classList.add('fa-eye-slash');
+    } else {
+        input.type = 'password';
+        icon.classList.remove('fa-eye-slash');
+        icon.classList.add('fa-eye');
+    }
+}
+
+/**
+ * รีเซ็ตรหัสผ่านนักเรียน
+ */
+function resetStudentPassword(studentId) {
+    const password = document.getElementById('new_password').value;
+    const confirmation = document.getElementById('new_password_confirmation').value;
+    const btn = document.getElementById('confirmResetBtn');
+    
+    // ตรวจสอบรหัสผ่าน
+    if (password !== confirmation) {
+        showError('รหัสผ่านใหม่และการยืนยันไม่ตรงกัน');
+        return;
+    }
+    
+    if (password.length < 8) {
+        showError('รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร');
+        return;
+    }
+    
+    // แสดง loading state
+    btn.disabled = true;
+    btn.classList.add('btn-loading');
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>กำลังรีเซ็ตรหัสผ่าน...';
+    
+    // ส่งข้อมูลไปยัง API
+    fetch(`/api/teacher/student/${studentId}/reset-password`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        credentials: 'same-origin',
+        body: JSON.stringify({
+            password: password,
+            password_confirmation: confirmation
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showSuccess(data.message || 'รีเซ็ตรหัสผ่านสำเร็จแล้ว');
+            
+            // รอ 2 วินาที แล้วปิด Modal
+            setTimeout(() => {
+                const modal = document.getElementById('studentDetailModal');
+                if (modal) {
+                    const bsModal = bootstrap.Modal.getInstance(modal);
+                    if (bsModal) {
+                        bsModal.hide();
+                    }
+                }
+            }, 2000);
+        } else {
+            showError(data.message || 'เกิดข้อผิดพลาดในการรีเซ็ตรหัสผ่าน');
+        }
+    })
+    .catch(error => {
+        console.error('Error resetting password:', error);
+        showError('เกิดข้อผิดพลาดในการเชื่อมต่อ กรุณาลองใหม่อีกครั้ง');
+    })
+    .finally(() => {
+        // คืนสถานะปุ่ม
+        btn.disabled = false;
+        btn.classList.remove('btn-loading');
+        btn.innerHTML = originalText;
+    });
+}
