@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Carbon\Carbon;
 
-class SeedSampleData extends Command
+class PopulateMissingData extends Command
 {
     protected $signature = 'db:seed-sample';
     protected $description = 'Seed sample data for testing purposes';
