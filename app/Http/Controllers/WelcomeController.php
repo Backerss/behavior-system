@@ -44,8 +44,8 @@ class WelcomeController extends Controller
                 
             // สถิติเพิ่มเติม
             'reports_this_month' => DB::table('tb_behavior_reports')
-                ->whereMonth('created_at', date('m'))
-                ->whereYear('created_at', date('Y'))
+                ->whereMonth('reports_report_date', date('m'))
+                ->whereYear('reports_report_date', date('Y'))
                 ->count(),
                 
             'average_score' => DB::table('tb_students')
