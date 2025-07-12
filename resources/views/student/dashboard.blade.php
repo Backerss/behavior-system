@@ -3,7 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>ระบบสารสนเทศจัดการคะแนนนักเรียน - หน้านักเรียน</title>
+    
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Font Awesome -->
@@ -16,70 +18,117 @@
     <link href="{{ asset('css/student.css') }}" rel="stylesheet">
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <style>
+        :root {
+            --primary-app: #3b82f6;
+            --secondary-app: #64748b;
+            --accent-app: #06b6d4;
+            --success-app: #10b981;
+            --warning-app: #f59e0b;
+            --danger-app: #ef4444;
+            --light-app: #f8fafc;
+            --dark-app: #1e293b;
+        }
+
+        body {
+            font-family: 'Prompt', sans-serif;
+            min-height: 100vh;
+        }
+
+        .btn-primary-app {
+            background: var(--primary-app);
+            border-color: var(--primary-app);
+            color: white;
+        }
+
+        .btn-primary-app:hover {
+            background: #2563eb;
+            border-color: #2563eb;
+            color: white;
+        }
+
+        .text-primary-app {
+            color: var(--primary-app) !important;
+        }
+
+        .bg-primary-app {
+            background-color: var(--primary-app) !important;
+        }
+        
+        .card {
+            transition: all 0.3s ease;
+        }
+        
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+        }
+
+        .navbar {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 2px 20px rgba(0,0,0,0.1);
+        }
+
+        .footer {
+            background: var(--dark-app);
+            color: white;
+            margin-top: auto;
+        }
+    </style>
 </head>
 <body>
-    <div class="app-container">
-        <!-- Modern Horizontal Navbar (displays on larger screens) -->
-        <nav class="modern-navbar d-none d-lg-flex">
-            <div class="navbar-container">
-                <div class="navbar-brand">
-                    <div class="brand-icon">
-                        <i class="fas fa-graduation-cap"></i>
-                    </div>
-                    <span>ระบบจัดการคะแนนพฤติกรรม</span>
-                </div>
-                <div class="navbar-menu">
-                    <a href="{{ route('student.dashboard') }}" class="nav-item active">
-                        <i class="fas fa-home"></i>
-                        <span>หน้าหลัก</span>
-                    </a>
-                    <a href="{{ route('student.settings') }}" class="nav-item">
-                        <i class="fas fa-user-cog"></i>
-                        <span>ตั้งค่าบัญชี</span>
-                    </a>
-                </div>
-                <div class="navbar-actions">
-                    <div class="user-profile" onclick="toggleUserMenu()">
-                        <div class="avatar">
-                            <i class="fas fa-user"></i>
-                        </div>
-                        <span class="user-name d-none d-md-inline-block">{{ $user->users_first_name }}</span>
-                    </div>
-                    <div class="user-menu" id="userMenu">
-                        <div class="user-menu-header">
-                            <div class="d-flex align-items-center">
-                                <div class="menu-avatar me-3">
-                                    <i class="fas fa-user-graduate"></i>
-                                </div>
-                                <div>
-                                    <div class="fw-bold">{{ $user->users_name_prefix }}{{ $user->users_first_name }} {{ $user->users_last_name }}</div>
-                                    <div class="small text-muted">{{ $user->users_role === 'student' ? 'นักเรียน' : 'ผู้ใช้งาน' }}</div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="user-menu-body">
-                            <a href="{{ route('student.settings') }}" class="user-menu-item">
-                                <i class="fas fa-user-cog"></i>
-                                <span>ตั้งค่าบัญชี</span>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-light fixed-top">
+        <div class="container">
+            <a class="navbar-brand fw-bold text-primary-app" href="{{ route('student.dashboard') }}">
+                <i class="fas fa-graduation-cap me-2"></i>
+                ระบบจัดการคะแนนพฤติกรรม
+            </a>
+            
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    @auth
+                        @if(Auth::user()->users_role === 'student')
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ route('student.dashboard') }}">
+                                    <i class="fas fa-home me-1"></i>แดชบอร์ด
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ route('student.settings') }}">
+                                    <i class="fas fa-user-cog me-1"></i>ตั้งค่าบัญชี
+                                </a>
+                            </li>
+                        @endif
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                                <i class="fas fa-user me-1"></i>
+                                {{ Auth::user()->users_first_name }}
                             </a>
-                            <a href="javascript:void(0);" class="user-menu-item">
-                                <i class="fas fa-bell"></i>
-                                <span>การแจ้งเตือน</span>
-                            </a>
-                            <div class="divider"></div>
-                            <a href="javascript:void(0);" onclick="document.getElementById('logout-form').submit();" class="user-menu-item text-danger">
-                                <i class="fas fa-sign-out-alt"></i>
-                                <span>ออกจากระบบ</span>
-                            </a>
-                        </div>
-                    </div>
-                    <form id="logout-form" action="{{ route('logout') }}" method="POST" class="d-none">
-                        @csrf
-                    </form>
-                </div>
+                            <ul class="dropdown-menu">
+                                <li>
+                                    <form action="{{ route('logout') }}" method="POST" class="d-inline">
+                                        @csrf
+                                        <button type="submit" class="dropdown-item text-danger">
+                                            <i class="fas fa-sign-out-alt me-1"></i>ออกจากระบบ
+                                        </button>
+                                    </form>
+                                </li>
+                            </ul>
+                        </li>
+                    @endauth
+                </ul>
             </div>
-        </nav>
-        
+        </div>
+    </nav>
+
+    <div class="app-container" style="margin-top: 80px;">
         <!-- Header (Mobile only) -->
         <header class="dashboard-header text-white py-3 d-lg-none">
             <div class="container">
