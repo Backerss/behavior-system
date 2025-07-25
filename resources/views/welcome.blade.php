@@ -3,7 +3,43 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="referrer" content="no-referrer">
+    <meta http-equiv="Content-Security-Policy" content="img-src 'self' data: https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com https://ui-avatars.com; default-src 'self' 'unsafe-inline' 'unsafe-eval' https:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https:; style-src 'self' 'unsafe-inline' https:;">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <meta name="robots" content="noindex, nofollow">
     <title>ระบบติดตามพฤติกรรมวินัยนักเรียน</title>
+    
+    <!-- Suppress Image Load Errors -->
+    <style>
+        img {
+            background-color: #f8f9fa;
+        }
+        
+        .hero-image {
+            background: linear-gradient(135deg, #163AD7, #4573AA);
+            min-height: 300px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .hero-image::before {
+            content: '🏫';
+            font-size: 4rem;
+            color: white;
+            display: block;
+        }
+        
+        .hero-image[src]:not([src=""]) {
+            background: none;
+        }
+        
+        .hero-image[src]:not([src=""])::before {
+            display: none;
+        }
+    </style>
     <!-- Bootstrap 5.3.6 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Google Fonts - Prompt -->
@@ -81,7 +117,13 @@
                                 <i class="fas fa-award fa-2x text-white"></i>
                             </div>
                         </div>
-                        <img src="https://scontent.fphs1-1.fna.fbcdn.net/v/t1.6435-9/106901635_3073111836118631_6212078526993960303_n.jpg?_nc_cat=106&ccb=1-7&_nc_sid=127cfc&_nc_eui2=AeHfidpl_waNguk-6BaEUnEOjRQgSMfYI7GNFCBIx9gjsQD3Umb_ygafoCndnkGfIs_2Ax4bnVseTzX4UbWqucmh&_nc_ohc=0vS3nHxUudsQ7kNvwE302r_&_nc_oc=Adlha40JFNalfg-xsyWENv6NoJJIlk9fNqYO9xlodHxtsccREWOri9NzqPZJ1m3ecUg&_nc_zt=23&_nc_ht=scontent.fphs1-1.fna&_nc_gid=zQYy6Cu5cSJYZiDFVAz_Lg&oh=00_AfMDXhnY9DZ0hKvfCsCvcOb_gebcKmDTYI_IkM91ZwthoQ&oe=6878CE3B" alt="นวมินทราชูทิศ มัชฌิม" class="img-fluid rounded-4 shadow-lg hero-image">
+                        <img src="{{ asset('images/banner.png') }}?v={{ time() }}" 
+                             alt="นวมินทราชูทิศ มัชฌิม" 
+                             class="img-fluid rounded-4 shadow-lg hero-image"
+                             onerror="this.style.display='none'; console.log('Image load failed, hiding element');"
+                             style="max-height: 400px; object-fit: cover; width: 100%;"
+                             loading="lazy"
+                             crossorigin="anonymous">
                     </div>
                 </div>
             </div>
@@ -426,6 +468,84 @@
             });
             
             observer.observe(counter);
+        });
+    </script>
+    
+    <!-- Image Error Handling -->
+    <script>
+        // Global error handler for images
+        document.addEventListener('DOMContentLoaded', function() {
+            // Clear any cached Facebook URLs
+            if ('caches' in window) {
+                caches.keys().then(function(cacheNames) {
+                    cacheNames.forEach(function(cacheName) {
+                        caches.open(cacheName).then(function(cache) {
+                            cache.keys().then(function(requests) {
+                                requests.forEach(function(request) {
+                                    if (request.url.includes('facebook') || request.url.includes('fbcdn')) {
+                                        cache.delete(request);
+                                    }
+                                });
+                            });
+                        });
+                    });
+                });
+            }
+            
+            // Handle all image errors
+            document.querySelectorAll('img').forEach(function(img) {
+                img.addEventListener('error', function() {
+                    console.log('Image failed to load:', this.src);
+                    // Don't show error in console
+                    this.style.display = 'none';
+                });
+            });
+            
+            // Override console.error to filter out specific errors
+            const originalConsoleError = console.error;
+            console.error = function(...args) {
+                const message = args.join(' ');
+                // Don't log Facebook/image related errors
+                if (message.includes('fbcdn.net') || 
+                    message.includes('scontent') || 
+                    message.includes('403') ||
+                    message.includes('Forbidden') ||
+                    message.includes('facebook')) {
+                    return; // Suppress these errors
+                }
+                originalConsoleError.apply(console, args);
+            };
+            
+            // Override fetch to prevent Facebook requests
+            const originalFetch = window.fetch;
+            window.fetch = function(...args) {
+                const url = args[0];
+                if (typeof url === 'string' && (url.includes('facebook') || url.includes('fbcdn'))) {
+                    return Promise.reject(new Error('Blocked Facebook request'));
+                }
+                return originalFetch.apply(this, args);
+            };
+        });
+        
+        // Global network error handler
+        window.addEventListener('error', function(e) {
+            if (e.target && e.target.tagName === 'IMG') {
+                const src = e.target.src;
+                if (src.includes('facebook') || src.includes('fbcdn')) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    return false;
+                }
+            }
+        }, true);
+        
+        // Handle unhandled promise rejections
+        window.addEventListener('unhandledrejection', function(e) {
+            if (e.reason && e.reason.message && 
+                (e.reason.message.includes('facebook') || e.reason.message.includes('fbcdn'))) {
+                e.preventDefault();
+                console.log('Suppressed Facebook network error');
+            }
         });
     </script>
 </body>

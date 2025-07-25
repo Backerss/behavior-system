@@ -9,6 +9,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ParentController;
 use App\Http\Controllers\WelcomeController;
 use App\Http\Controllers\NotificationController; // เพิ่มบรรทัดนี้
+use App\Http\Controllers\GoogleSheetsImportController;
 
 // หน้าหลัก
 Route::get('/', [WelcomeController::class, 'index'])->name('welcome');
@@ -142,6 +143,14 @@ Route::put('/teacher/profile/update', [App\Http\Controllers\TeacherController::c
 Route::match(['get','post'], '/notifications/parent', [NotificationController::class, 'sendParentNotification'])
     ->middleware('auth')
     ->name('notifications.parent');
+
+// Google Sheets Import Routes (Admin Only)
+Route::prefix('admin')->middleware(['auth'])->group(function () {
+    Route::get('/google-sheets', [GoogleSheetsImportController::class, 'index'])->name('admin.google-sheets');
+    Route::get('/google-sheets/sheets', [GoogleSheetsImportController::class, 'getAvailableSheets'])->name('admin.google-sheets.sheets');
+    Route::get('/google-sheets/preview', [GoogleSheetsImportController::class, 'preview'])->name('admin.google-sheets.preview');
+    Route::post('/google-sheets/import', [GoogleSheetsImportController::class, 'import'])->name('admin.google-sheets.import');
+});
 
 // Parent notification API routes
 Route::prefix('api/parent')->middleware('auth')->group(function () {

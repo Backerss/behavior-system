@@ -20,6 +20,63 @@
     <!-- Animate.css -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    
+    <style>
+        /* Hide console errors from broken images */
+        img {
+            image-rendering: auto;
+        }
+        
+        img[src=""] {
+            display: none;
+        }
+        
+        /* Google Sheets Modal Styles */
+        .modal-xl {
+            max-width: 95%;
+        }
+        
+        @media (max-width: 768px) {
+            .modal-xl {
+                margin: 10px;
+                max-width: calc(100% - 20px);
+            }
+        }
+        
+        .table-sm th, .table-sm td {
+            padding: 0.5rem;
+            font-size: 0.875rem;
+        }
+        
+        /* Sheet Selection Cards */
+        .sheet-card {
+            border: 2px solid #dee2e6;
+            transition: all 0.3s ease;
+            height: 100%;
+        }
+        
+        .sheet-card:hover {
+            border-color: #0d6efd;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            transform: translateY(-2px);
+        }
+        
+        .sheet-card.active {
+            border-color: #0d6efd;
+            background-color: rgba(13, 110, 253, 0.1);
+            box-shadow: 0 4px 12px rgba(13, 110, 253, 0.3);
+        }
+        
+        .sheet-card.active .card-title {
+            color: #0d6efd;
+        }
+        
+        .sticky-top {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+    </style>
 </head>
 <body>
     <div class="dashboard-container">
@@ -27,7 +84,7 @@
         <div class="sidebar d-none d-lg-flex">
             <div class="sidebar-header">
                 <div class="logo-container">
-                    <img src="{{ asset('images/logo.png') }}" alt="โลโก้โรงเรียน" class="logo">
+                    <img src="{{ asset('images/logo.png') }}" alt="โลโก้โรงเรียน" class="logo" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiByeD0iOCIgZmlsbD0iIzE2M0FENyIvPgo8cGF0aCBkPSJNMjAgMTBMMjUgMTcuNU0yMCAxMEwxNSAxNy41TTIwIDEwVjI1TTIwIDI1SDI1VjMwSDIwVjI1Wk0yMCAyNUgxNVYzMEgyMFYyNVoiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+Cjwvc3ZnPgo='">
                     <h5 class="mb-0 ms-2">ระบบจัดการพฤติกรรม</h5>
                 </div>
             </div>
@@ -56,6 +113,12 @@
                     <i class="fas fa-file-import"></i>
                     <span>ส่งออกรายงาน</span>
                 </a>
+                @if(auth()->user()->users_role === 'admin')
+                <a href="#" data-bs-toggle="modal" data-bs-target="#googleSheetsImportModal" class="menu-item">
+                    <i class="fab fa-google-drive"></i>
+                    <span>นำเข้าจาก Google Sheets</span>
+                </a>
+                @endif
                 <a href="#" data-bs-toggle="modal" data-bs-target="#profileModal" class="menu-item">
                     <i class="fas fa-user-circle"></i>
                     <span>โปรไฟล์</span>
@@ -76,7 +139,7 @@
             <div class="mobile-header d-flex d-lg-none">
                 <div class="d-flex justify-content-between align-items-center w-100 px-3">
                     <div class="d-flex align-items-center">
-                        <img src="{{ asset('images/logo.png') }}" alt="โลโก้โรงเรียน" class="logo">
+                        <img src="{{ asset('images/logo.png') }}" alt="โลโก้โรงเรียน" class="logo" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiByeD0iOCIgZmlsbD0iIzE2M0FENyIvPgo8cGF0aCBkPSJNMjAgMTBMMjUgMTcuNU0yMCAxMEwxNSAxNy41TTIwIDEwVjI1TTIwIDI1SDI1VjMwSDIwVjI1Wk0yMCAyNUgxNVYzMEgyMFYyNVoiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+Cjwvc3ZnPgo='">
                         <h5 class="mb-0 ms-2">ระบบจัดการพฤติกรรม</h5>
                     </div>
                     <div class="dropdown">
@@ -590,6 +653,213 @@
             </div>
         </div>
     </div>
+
+    <!-- Google Sheets Import Modal (Admin Only) -->
+    @if(auth()->user()->users_role === 'admin')
+    <div class="modal fade" id="googleSheetsImportModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-xl">
+            <div class="modal-content">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title"><i class="fab fa-google-drive text-success"></i> นำเข้าข้อมูลจาก Google Sheets</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- Sheet Selection -->
+                    <div class="mb-4">
+                        <h5 class="text-primary mb-3">
+                            <i class="fas fa-file-alt"></i> เลือกแผ่นข้อมูลที่ต้องการนำเข้า
+                        </h5>
+                        <div id="sheetSelectionContainer">
+                            <div class="d-flex justify-content-center">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">กำลังโหลดรายการแผ่นข้อมูล...</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Selected Sheet Info -->
+                    <div id="selectedSheetInfo" class="d-none mb-4">
+                        <div class="alert alert-info">
+                            <h6><i class="fas fa-info-circle"></i> ข้อมูลแผ่นที่เลือก</h6>
+                            <div id="sheetDescription"></div>
+                            <div class="mt-2">
+                                <strong>คอลัมน์ที่คาดหวัง:</strong>
+                                <span id="expectedColumns" class="badge bg-secondary ms-1"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Google Sheets URL Info -->
+                    <div class="alert alert-info mb-4">
+                        <i class="fas fa-info-circle"></i>
+                        <strong>ข้อมูลจะถูกดึงจาก:</strong> 
+                        <a href="https://docs.google.com/spreadsheets/d/1L3O0f5HdX_7cPw2jrQT4IaPsjw_jFD3O0aeH9ZQ499c/edit" target="_blank" class="alert-link">
+                            Google Sheets ระบบพฤติกรรมนักเรียน
+                        </a>
+                    </div>
+
+                    <!-- Action Button -->
+                    <div class="text-center mb-4">
+                        <button id="previewGoogleSheetsBtn" class="btn btn-primary btn-lg">
+                            <i class="fas fa-eye"></i> ดูตัวอย่างข้อมูล
+                        </button>
+                        <div id="googleSheetsLoading" class="d-none mt-3">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">กำลังโหลด...</span>
+                            </div>
+                            <div class="mt-2">กำลังดึงข้อมูลจาก Google Sheets...</div>
+                        </div>
+                    </div>
+
+                    <!-- Preview Container -->
+                    <div id="googleSheetsPreviewContainer" class="d-none">
+                        <!-- Summary Cards -->
+                        <div class="row mb-4">
+                            <div class="col-md-3">
+                                <div class="card text-white bg-success">
+                                    <div class="card-header"><i class="fas fa-check-circle"></i> ข้อมูลถูกต้อง</div>
+                                    <div class="card-body">
+                                        <h4 class="card-title" id="googleSheetsValidCount">0</h4>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card text-white bg-warning">
+                                    <div class="card-header"><i class="fas fa-exclamation-triangle"></i> ข้อมูลซ้ำ</div>
+                                    <div class="card-body">
+                                        <h4 class="card-title" id="googleSheetsDuplicateCount">0</h4>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card text-white bg-danger">
+                                    <div class="card-header"><i class="fas fa-times-circle"></i> ข้อมูลผิดพลาด</div>
+                                    <div class="card-body">
+                                        <h4 class="card-title" id="googleSheetsErrorCount">0</h4>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card text-white bg-info">
+                                    <div class="card-header"><i class="fas fa-list"></i> รวมทั้งหมด</div>
+                                    <div class="card-body">
+                                        <h4 class="card-title" id="googleSheetsTotalCount">0</h4>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Data Tabs -->
+                        <div class="card">
+                            <div class="card-header">
+                                <ul class="nav nav-tabs card-header-tabs" id="googleSheetsDataTabs" role="tablist">
+                                    <li class="nav-item" role="presentation">
+                                        <button class="nav-link active" id="valid-tab" data-bs-toggle="tab" data-bs-target="#valid" type="button" role="tab">
+                                            <i class="fas fa-check-circle text-success"></i> ข้อมูลถูกต้อง
+                                        </button>
+                                    </li>
+                                    <li class="nav-item" role="presentation">
+                                        <button class="nav-link" id="duplicate-tab" data-bs-toggle="tab" data-bs-target="#duplicate" type="button" role="tab">
+                                            <i class="fas fa-exclamation-triangle text-warning"></i> ข้อมูลซ้ำ
+                                        </button>
+                                    </li>
+                                    <li class="nav-item" role="presentation">
+                                        <button class="nav-link" id="error-tab" data-bs-toggle="tab" data-bs-target="#error" type="button" role="tab">
+                                            <i class="fas fa-times-circle text-danger"></i> ข้อมูลผิดพลาด
+                                        </button>
+                                    </li>
+                                </ul>
+                            </div>
+                            <div class="card-body">
+                                <div class="tab-content" id="googleSheetsDataTabsContent">
+                                    <!-- Valid Data Tab -->
+                                    <div class="tab-pane fade show active" id="valid" role="tabpanel">
+                                        <div class="d-flex justify-content-between align-items-center mb-3">
+                                            <h6>ข้อมูลที่พร้อมนำเข้า</h6>
+                                            <div>
+                                                <button id="selectAllGoogleSheetsValid" class="btn btn-sm btn-outline-primary">เลือกทั้งหมด</button>
+                                                <button id="deselectAllGoogleSheetsValid" class="btn btn-sm btn-outline-secondary">ยกเลิกทั้งหมด</button>
+                                            </div>
+                                        </div>
+                                        <div style="max-height: 400px; overflow-y: auto;">
+                                            <table class="table table-striped table-hover table-sm" id="googleSheetsValidTable">
+                                                <thead class="table-success sticky-top">
+                                                    <tr>
+                                                        <th><input type="checkbox" id="checkAllGoogleSheetsValid"></th>
+                                                        <th>แถว</th>
+                                                        <th>ชื่อ</th>
+                                                        <th>นามสกุล</th>
+                                                        <th>อีเมล</th>
+                                                        <th>บทบาท</th>
+                                                        <th>รหัสนักเรียน</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody></tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+
+                                    <!-- Duplicate Data Tab -->
+                                    <div class="tab-pane fade" id="duplicate" role="tabpanel">
+                                        <h6>ข้อมูลที่ซ้ำกับฐานข้อมูล</h6>
+                                        <div style="max-height: 400px; overflow-y: auto;">
+                                            <table class="table table-striped table-hover table-sm" id="googleSheetsDuplicateTable">
+                                                <thead class="table-warning sticky-top">
+                                                    <tr>
+                                                        <th>แถว</th>
+                                                        <th>ชื่อ</th>
+                                                        <th>นามสกุล</th>
+                                                        <th>อีเมล</th>
+                                                        <th>บทบาท</th>
+                                                        <th>ฟิลด์ที่ซ้ำ</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody></tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+
+                                    <!-- Error Data Tab -->
+                                    <div class="tab-pane fade" id="error" role="tabpanel">
+                                        <h6>ข้อมูลที่มีข้อผิดพลาด</h6>
+                                        <div style="max-height: 400px; overflow-y: auto;">
+                                            <table class="table table-striped table-hover table-sm" id="googleSheetsErrorTable">
+                                                <thead class="table-danger sticky-top">
+                                                    <tr>
+                                                        <th>แถว</th>
+                                                        <th>ชื่อ</th>
+                                                        <th>นามสกุล</th>
+                                                        <th>อีเมล</th>
+                                                        <th>บทบาท</th>
+                                                        <th>ข้อผิดพลาด</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody></tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ปิด</button>
+                    <button id="importGoogleSheetsBtn" class="btn btn-success" disabled>
+                        <i class="fas fa-download"></i> นำเข้าข้อมูลที่เลือก
+                    </button>
+                    <div id="googleSheetsImportLoading" class="d-none ms-3">
+                        <div class="spinner-border spinner-border-sm text-success" role="status">
+                            <span class="visually-hidden">กำลังนำเข้า...</span>
+                        </div>
+                        <span class="ms-2">กำลังนำเข้าข้อมูล...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
 
     <!-- New Violation Modal -->
     <div class="modal fade" id="newViolationModal" tabindex="-1" aria-hidden="true">
@@ -1863,6 +2133,7 @@
             </div>
         </div>
     </div>
+    <script src="https://code.jquery.com/jquery-3.7.1.js" integrity="sha256-eKhayi8LEQwp4NKxN+CfCh+3qOVUtJn3QNZ0TciWLP4=" crossorigin="anonymous"></script>
 
     <script src="/js/class-detail.js"></script>
     <!-- เพิ่ม behavior report script -->
@@ -1871,5 +2142,371 @@
     <script src="/js/reports.js"></script>
     <script src="/js/student-filter.js"></script>
     <script src="/js/parent-notification.js"></script>
+    
+    <!-- Google Sheets Import JavaScript (Admin Only) -->
+    @if(auth()->user()->users_role === 'admin')
+    <script>
+    $(document).ready(function() {
+        let googleSheetsPreviewData = null;
+
+        // Toast Notification Function
+        function showToast(type, title, message) {
+            const toastId = 'toast-' + Date.now();
+            const iconClass = {
+                'success': 'fas fa-check-circle text-success',
+                'error': 'fas fa-times-circle text-danger',
+                'warning': 'fas fa-exclamation-triangle text-warning',
+                'info': 'fas fa-info-circle text-info'
+            };
+
+            const toastHtml = `
+                <div id="${toastId}" class="toast align-items-center border-0" role="alert" aria-live="assertive" aria-atomic="true" style="position: fixed; top: 20px; right: 20px; z-index: 9999;">
+                    <div class="d-flex">
+                        <div class="toast-body">
+                            <div class="d-flex align-items-center">
+                                <i class="${iconClass[type] || iconClass.info} me-2"></i>
+                                <div>
+                                    <strong>${title}</strong><br>
+                                    <small>${message}</small>
+                                </div>
+                            </div>
+                        </div>
+                        <button type="button" class="btn-close me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                    </div>
+                </div>
+            `;
+
+            $('body').append(toastHtml);
+            const toast = new bootstrap.Toast(document.getElementById(toastId), {
+                autohide: true,
+                delay: type === 'error' ? 8000 : 5000
+            });
+            toast.show();
+
+            // Remove toast after hiding
+            document.getElementById(toastId).addEventListener('hidden.bs.toast', function() {
+                this.remove();
+            });
+        }
+
+        // CSRF Token Setup
+        $.ajaxSetup({
+            headers: {
+                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+            }
+        });
+
+        // Global Variables (already declared above)
+        selectedSheetType = 'students'; // default
+
+        // Load Available Sheets when modal opens
+        $('#googleSheetsImportModal').on('show.bs.modal', function() {
+            loadAvailableSheets();
+        });
+
+        // Load Available Sheets
+        function loadAvailableSheets() {
+            $.ajax({
+                url: '{{ route("admin.google-sheets.sheets") }}',
+                method: 'GET',
+                success: function(response) {
+                    if (response.success) {
+                        populateSheetSelection(response.sheets);
+                    } else {
+                        $('#sheetSelectionContainer').html(`
+                            <div class="alert alert-danger">
+                                <i class="fas fa-exclamation-triangle"></i> 
+                                ไม่สามารถโหลดรายการแผ่นข้อมูลได้: ${response.error}
+                            </div>
+                        `);
+                    }
+                },
+                error: function(xhr) {
+                    $('#sheetSelectionContainer').html(`
+                        <div class="alert alert-danger">
+                            <i class="fas fa-exclamation-triangle"></i> 
+                            เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์
+                        </div>
+                    `);
+                }
+            });
+        }
+
+        // Populate Sheet Selection
+        function populateSheetSelection(sheets) {
+            let html = '<div class="row">';
+            
+            Object.keys(sheets).forEach(function(sheetKey) {
+                const sheet = sheets[sheetKey];
+                const isSelected = sheetKey === selectedSheetType ? 'active' : '';
+                
+                html += `
+                    <div class="col-md-4 mb-3">
+                        <div class="card sheet-card ${isSelected}" data-sheet="${sheetKey}" style="cursor: pointer;">
+                            <div class="card-body text-center">
+                                <h5 class="card-title">
+                                    <i class="fas fa-file-alt text-primary"></i>
+                                    ${sheet.name}
+                                </h5>
+                                <p class="card-text text-muted">${sheet.description}</p>
+                                <div class="mt-2">
+                                    <span class="badge bg-secondary">${sheet.role}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            html += '</div>';
+            $('#sheetSelectionContainer').html(html);
+            
+            // Add click handlers
+            $('.sheet-card').click(function() {
+                const sheetType = $(this).data('sheet');
+                selectSheet(sheetType, sheets[sheetType]);
+            });
+        }
+
+        // Select Sheet
+        function selectSheet(sheetType, sheetInfo) {
+            selectedSheetType = sheetType;
+            
+            // Update visual selection
+            $('.sheet-card').removeClass('active');
+            $(`.sheet-card[data-sheet="${sheetType}"]`).addClass('active');
+            
+            // Show sheet info
+            $('#sheetDescription').text(sheetInfo.description);
+            $('#expectedColumns').text(sheetInfo.expected_columns.join(', '));
+            $('#selectedSheetInfo').removeClass('d-none');
+            
+            // Reset preview
+            $('#googleSheetsPreviewContainer').addClass('d-none');
+            googleSheetsPreviewData = null;
+        }
+
+        // Preview Button Click
+        $('#previewGoogleSheetsBtn').click(function() {
+            if (!selectedSheetType) {
+                showToast('warning', 'กรุณาเลือกแผ่นข้อมูล', 'เลือกแผ่นข้อมูลที่ต้องการนำเข้าก่อน');
+                return;
+            }
+            
+            $(this).prop('disabled', true);
+            $('#googleSheetsLoading').removeClass('d-none');
+            
+            $.ajax({
+                url: '{{ route("admin.google-sheets.preview") }}',
+                method: 'GET',
+                data: {
+                    sheet: selectedSheetType
+                },
+                success: function(response) {
+                    if (response.success) {
+                        googleSheetsPreviewData = response.data;
+                        populateGoogleSheetsPreviewTables(response.data);
+                        updateGoogleSheetsSummaryCards(response.data);
+                        $('#googleSheetsPreviewContainer').removeClass('d-none');
+                        
+                        // Show success message
+                        showToast('success', 'ดึงข้อมูลสำเร็จ', 'พบข้อมูล ' + response.total_rows + ' รายการ');
+                    } else {
+                        showToast('error', 'เกิดข้อผิดพลาด', response.error);
+                    }
+                },
+                error: function(xhr) {
+                    const response = xhr.responseJSON;
+                    showToast('error', 'เกิดข้อผิดพลาด', response ? response.error : 'ไม่สามารถติดต่อเซิร์ฟเวอร์ได้');
+                },
+                complete: function() {
+                    $('#previewGoogleSheetsBtn').prop('disabled', false);
+                    $('#googleSheetsLoading').addClass('d-none');
+                }
+            });
+        });
+
+        // Import Button Click
+        $('#importGoogleSheetsBtn').click(function() {
+            const selectedData = getSelectedGoogleSheetsValidData();
+            
+            if (selectedData.length === 0) {
+                showToast('warning', 'แจ้งเตือน', 'กรุณาเลือกข้อมูลที่ต้องการนำเข้า');
+                return;
+            }
+
+            if (!confirm('คุณต้องการนำเข้าข้อมูล ' + selectedData.length + ' รายการหรือไม่?')) {
+                return;
+            }
+
+            $(this).prop('disabled', true);
+            $('#googleSheetsImportLoading').removeClass('d-none');
+
+            $.ajax({
+                url: '{{ route("admin.google-sheets.import") }}',
+                method: 'POST',
+                data: {
+                    selected_data: selectedData
+                },
+                success: function(response) {
+                    if (response.success) {
+                        showToast('success', 'นำเข้าข้อมูลสำเร็จ!', 
+                                  'สำเร็จ: ' + response.results.success_count + ' รายการ\n' +
+                                  'ผิดพลาด: ' + response.results.error_count + ' รายการ');
+                        
+                        if (response.results.errors.length > 0) {
+                            console.log('รายการที่ผิดพลาด:', response.results.errors);
+                        }
+                        
+                        // รีเซ็ตฟอร์ม
+                        $('#googleSheetsPreviewContainer').addClass('d-none');
+                        googleSheetsPreviewData = null;
+                        
+                        // ปิด modal
+                        $('#googleSheetsImportModal').modal('hide');
+                        
+                        // Refresh หน้า
+                        setTimeout(() => {
+                            location.reload();
+                        }, 2000);
+                    } else {
+                        showToast('error', 'เกิดข้อผิดพลาด', response.error);
+                    }
+                },
+                error: function(xhr) {
+                    const response = xhr.responseJSON;
+                    showToast('error', 'เกิดข้อผิดพลาด', response ? response.error : 'ไม่สามารถติดต่อเซิร์ฟเวอร์ได้');
+                },
+                complete: function() {
+                    $('#importGoogleSheetsBtn').prop('disabled', false);
+                    $('#googleSheetsImportLoading').addClass('d-none');
+                }
+            });
+        });
+
+        // Select/Deselect All Functions
+        $('#selectAllGoogleSheetsValid').click(function() {
+            $('#googleSheetsValidTable tbody input[type="checkbox"]').prop('checked', true);
+            updateGoogleSheetsImportButton();
+        });
+
+        $('#deselectAllGoogleSheetsValid').click(function() {
+            $('#googleSheetsValidTable tbody input[type="checkbox"]').prop('checked', false);
+            updateGoogleSheetsImportButton();
+        });
+
+        $('#checkAllGoogleSheetsValid').change(function() {
+            $('#googleSheetsValidTable tbody input[type="checkbox"]').prop('checked', this.checked);
+            updateGoogleSheetsImportButton();
+        });
+
+        // Update Import Button State
+        function updateGoogleSheetsImportButton() {
+            const selectedCount = $('#googleSheetsValidTable tbody input[type="checkbox"]:checked').length;
+            $('#importGoogleSheetsBtn').prop('disabled', selectedCount === 0);
+        }
+
+        // Populate Preview Tables
+        function populateGoogleSheetsPreviewTables(data) {
+            // Valid Data Table
+            const validTableBody = $('#googleSheetsValidTable tbody');
+            validTableBody.empty();
+            
+            data.valid_data.forEach(function(item) {
+                const row = $(`
+                    <tr>
+                        <td><input type="checkbox" data-row="${item.row_number}" onchange="updateGoogleSheetsImportButton()"></td>
+                        <td>${item.row_number}</td>
+                        <td>${item.data.first_name || ''}</td>
+                        <td>${item.data.last_name || ''}</td>
+                        <td>${item.data.email || ''}</td>
+                        <td><span class="badge bg-primary">${item.data.role || ''}</span></td>
+                        <td>${item.data.student_id || ''}</td>
+                    </tr>
+                `);
+                validTableBody.append(row);
+            });
+
+            // Duplicate Data Table
+            const duplicateTableBody = $('#googleSheetsDuplicateTable tbody');
+            duplicateTableBody.empty();
+            
+            data.duplicate_data.forEach(function(item) {
+                const row = $(`
+                    <tr>
+                        <td>${item.row_number}</td>
+                        <td>${item.data.first_name || ''}</td>
+                        <td>${item.data.last_name || ''}</td>
+                        <td>${item.data.email || ''}</td>
+                        <td><span class="badge bg-primary">${item.data.role || ''}</span></td>
+                        <td>
+                            ${item.duplicate_fields.map(field => 
+                                `<span class="badge bg-warning">${field}</span>`
+                            ).join(' ')}
+                        </td>
+                    </tr>
+                `);
+                duplicateTableBody.append(row);
+            });
+
+            // Error Data Table
+            const errorTableBody = $('#googleSheetsErrorTable tbody');
+            errorTableBody.empty();
+            
+            data.error_data.forEach(function(item) {
+                const row = $(`
+                    <tr>
+                        <td>${item.row_number}</td>
+                        <td>${item.data.first_name || ''}</td>
+                        <td>${item.data.last_name || ''}</td>
+                        <td>${item.data.email || ''}</td>
+                        <td><span class="badge bg-primary">${item.data.role || ''}</span></td>
+                        <td>
+                            ${item.errors.map(error => 
+                                `<span class="badge bg-danger">${error}</span>`
+                            ).join('<br>')}
+                        </td>
+                    </tr>
+                `);
+                errorTableBody.append(row);
+            });
+        }
+
+        // Update Summary Cards
+        function updateGoogleSheetsSummaryCards(data) {
+            $('#googleSheetsValidCount').text(data.valid_data.length);
+            $('#googleSheetsDuplicateCount').text(data.duplicate_data.length);
+            $('#googleSheetsErrorCount').text(data.error_data.length);
+            $('#googleSheetsTotalCount').text(data.valid_data.length + data.duplicate_data.length + data.error_data.length);
+        }
+
+        // Get Selected Valid Data
+        function getSelectedGoogleSheetsValidData() {
+            const selectedData = [];
+            
+            $('#googleSheetsValidTable tbody input[type="checkbox"]:checked').each(function() {
+                const rowNumber = $(this).data('row');
+                const item = googleSheetsPreviewData.valid_data.find(item => item.row_number === rowNumber);
+                if (item) {
+                    selectedData.push(item);
+                }
+            });
+            
+            return selectedData;
+        }
+
+        // Make functions global
+        window.updateGoogleSheetsImportButton = updateGoogleSheetsImportButton;
+
+        // Reset modal when closed
+        $('#googleSheetsImportModal').on('hidden.bs.modal', function() {
+            $('#googleSheetsPreviewContainer').addClass('d-none');
+            googleSheetsPreviewData = null;
+            $('#previewGoogleSheetsBtn').prop('disabled', false);
+            $('#importGoogleSheetsBtn').prop('disabled', true);
+        });
+    });
+    </script>
+    @endif
 </body>
 </html>

@@ -53,6 +53,7 @@ return new class extends Migration
             $table->enum('users_role', ['admin', 'teacher', 'student', 'guardian'])->nullable();
             $table->string('users_profile_image', 255)->nullable();
             $table->date('users_birthdate')->nullable();
+            $table->enum('users_status', ['active', 'inactive', 'suspended'])->default('active');
             $table->timestamp('users_created_at')->useCurrent();
             $table->timestamp('users_updated_at')->useCurrent()->useCurrentOnUpdate();
         });
