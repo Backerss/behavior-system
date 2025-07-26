@@ -13,16 +13,11 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // สร้างข้อมูลตัวอย่างจากไฟล์ SQL ตามลำดับ foreign key
+        // สร้างข้อมูลพื้นฐานเท่านั้น (Admin user และ Violation types)
+        // ข้อมูลอื่นๆ จะถูกนำเข้าจาก Google Sheets
         $this->call([
-            UserSeeder::class,           // ต้องมาก่อนเพราะ teachers และ students อ้างอิง
-            ViolationSeeder::class,      // ต้องมาก่อน behavior reports
-            ClassroomSeeder::class,      // สร้างห้องเรียนก่อน (ไม่มี teachers_id ก่อน)
-            TeacherSeeder::class,        // สร้างครูหลังจากมี users และ classes
-            StudentSeeder::class,        // สร้างนักเรียนหลังจากมี users และ classes
-            GuardianSeeder::class,       // สร้างผู้ปกครองหลังจากมี users
-            GuardianStudentSeeder::class, // สร้างความเชื่อมโยงผู้ปกครอง-นักเรียน
-            BehaviorReportSeeder::class, // สร้างรายงานพฤติกรรมสุดท้าย
+            UserSeeder::class,           // Admin user สำหรับเข้าถึงระบบ
+            ViolationSeeder::class,      // ประเภทพฤติกรรมต่างๆ
         ]);
     }
 }

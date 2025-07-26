@@ -116,7 +116,7 @@
                 @if(auth()->user()->users_role === 'admin')
                 <a href="#" data-bs-toggle="modal" data-bs-target="#googleSheetsImportModal" class="menu-item">
                     <i class="fab fa-google-drive"></i>
-                    <span>นำเข้าจาก Google Sheets</span>
+                    <span>นำเข้าข้อมูล</span>
                 </a>
                 @endif
                 <a href="#" data-bs-toggle="modal" data-bs-target="#profileModal" class="menu-item">
@@ -1208,6 +1208,9 @@
                                     <div class="d-grid gap-2 mt-3">
                                         <button class="btn btn-primary-app" onclick="openNewViolationModal()">บันทึกพฤติกรรม</button>
                                         <button id="printReportBtn" class="btn btn-outline-secondary" onclick="printStudentReport(event)">พิมพ์รายงาน</button>
+                                        <button id="notifyParentBtn" class="btn btn-warning" style="display: none;">
+                                            <i class="fas fa-bell me-1"></i> แจ้งเตือนผู้ปกครอง
+                                        </button>
                                     </div>
                                 </div>
                             </div>

@@ -65,11 +65,18 @@ function setupEventListeners() {
         });
     }
     
-    // บันทึกข้อมูล
-    if (saveBtn) {
-        saveBtn.addEventListener('click', function() {
+    // บันทึกข้อมูล (ใช้เฉพาะไฟล์นี้เท่านั้น - ไม่ให้ teacher-dashboard.js ทำงานร่วม)
+    if (saveBtn && !saveBtn.hasAttribute('data-listener-attached')) {
+        // ลบ event listener อื่น ๆ ที่อาจมี (จาก teacher-dashboard.js)
+        const newBtn = saveBtn.cloneNode(true);
+        saveBtn.parentNode.replaceChild(newBtn, saveBtn);
+        
+        newBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
             saveBehaviorReport();
         });
+        newBtn.setAttribute('data-listener-attached', 'behavior-report');
     }
     
     // รีเซ็ตฟอร์มเมื่อปิด modal
@@ -300,6 +307,9 @@ function setDefaultDateTime() {
     }
 }
 
+// Global variable เพื่อป้องกันการบันทึกซ้ำ
+let isSubmitting = false;
+
 /**
  * บันทึกรายงานพฤติกรรม
  */
@@ -308,9 +318,21 @@ function saveBehaviorReport() {
         return;
     }
     
+    // ป้องกันการกดซ้ำขณะกำลังประมวลผล
+    if (isSubmitting) {
+        console.log('Already submitting, ignoring duplicate request');
+        return;
+    }
+    
     const saveBtn = document.getElementById('saveViolationBtn');
     if (!saveBtn) return;
     
+    // ป้องกันการกดซ้ำขณะกำลังประมวลผล
+    if (saveBtn.disabled) {
+        return;
+    }
+    
+    isSubmitting = true;
     const originalText = saveBtn.innerHTML;
     
     // แสดง loading
@@ -374,6 +396,7 @@ function saveBehaviorReport() {
         // คืนสถานะปุ่ม
         saveBtn.disabled = false;
         saveBtn.innerHTML = originalText;
+        isSubmitting = false; // รีเซ็ต flag
     });
 }
 
@@ -892,7 +915,7 @@ function populateStudentDetailModal(student) {
                             <i class="fas fa-key me-1"></i> รีเซ็ตรหัสผ่าน
                         </button>
                         ${guardianPhone !== '-' ? 
-                            `<button class="btn ${score < 40 ? 'btn-danger' : 'btn-outline-warning'}" 
+                            `<button class="btn ${score < 40 ? 'btn-danger' : 'btn-outline-warning'}" id="notifyParentBtn"
                                     onclick="openParentNotificationModal(${student.students_id}, '${fullName}', '${classroomText}', ${score}, '${guardianPhone}')">
                                 <i class="fas fa-bell me-1"></i> แจ้งเตือนผู้ปกครอง
                                 ${score < 40 ? '<span class="badge bg-white text-danger ms-1">!</span>' : ''}
