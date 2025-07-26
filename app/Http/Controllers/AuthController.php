@@ -171,6 +171,7 @@ class AuthController extends Controller
 
             // เพิ่มกฎการตรวจสอบตาม role
             switch ($role) {
+                case 'admin':
                 case 'teacher':
                 case 'student':
                     $rules['email'] = 'required|email';
@@ -193,6 +194,7 @@ class AuthController extends Controller
             $credentials = [];
             
             switch ($role) {
+                case 'admin':
                 case 'teacher':
                 case 'student':
                     $credentials = [
@@ -233,17 +235,31 @@ class AuthController extends Controller
                         ->withInput();
             }
             
-            // สำหรับ teacher และ student ใช้การตรวจสอบแบบเดิม
+            // สำหรับ admin, teacher และ student ใช้การตรวจสอบแบบเดิม
             if (!empty($credentials)) {
                 // ตรวจสอบการ login แบบ manual
-                $user = User::where('users_email', $credentials['users_email'])
-                            ->where('users_role', $credentials['users_role'])
-                            ->first();
+                if ($role === 'teacher') {
+                    // สำหรับ teacher form ให้ค้นหาทั้ง admin และ teacher
+                    $user = User::where('users_email', $credentials['users_email'])
+                                ->whereIn('users_role', ['admin', 'teacher'])
+                                ->first();
+                } else {
+                    // สำหรับ role อื่นๆ ค้นหาตาม role ที่ระบุ
+                    $user = User::where('users_email', $credentials['users_email'])
+                                ->where('users_role', $credentials['users_role'])
+                                ->first();
+                }
                 
                 if ($user && Hash::check($request->password, $user->users_password)) {
                     Auth::login($user, $request->has('remember'));
                     $request->session()->regenerate();
-                    return redirect()->intended('dashboard');
+                    
+                    // สำหรับ admin และ teacher ให้ไปหน้า dashboard เดียวกัน
+                    if ($user->users_role === 'admin' || $user->users_role === 'teacher') {
+                        return redirect()->intended('teacher/dashboard');
+                    } else {
+                        return redirect()->intended('dashboard');
+                    }
                 }
             }
             

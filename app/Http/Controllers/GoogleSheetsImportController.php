@@ -48,12 +48,12 @@ class GoogleSheetsImportController extends Controller
     ];
 
     /**
-     * แสดงหน้า import จาก Google Sheets (เฉพาะ Admin)
+     * แสดงหน้า import จาก Google Sheets (เฉพาะ Admin และ Teacher)
      */
     public function index()
     {
-        // ตรวจสอบสิทธิ์ Admin
-        if (auth()->user()->users_role !== 'admin') {
+        // ตรวจสอบสิทธิ์ Admin และ Teacher
+        if (!in_array(auth()->user()->users_role, ['admin', 'teacher'])) {
             return redirect()->back()->with('error', 'คุณไม่มีสิทธิ์ในการเข้าถึงฟังก์ชันนี้');
         }
 
@@ -66,8 +66,8 @@ class GoogleSheetsImportController extends Controller
     public function getAvailableSheets()
     {
         try {
-            // ตรวจสอบสิทธิ์ Admin
-            if (auth()->check() && auth()->user()->users_role !== 'admin') {
+            // ตรวจสอบสิทธิ์ Admin และ Teacher
+            if (auth()->check() && !in_array(auth()->user()->users_role, ['admin', 'teacher'])) {
                 return response()->json([
                     'success' => false,
                     'error' => 'คุณไม่มีสิทธิ์ในการเข้าถึงฟังก์ชันนี้'
@@ -93,8 +93,8 @@ class GoogleSheetsImportController extends Controller
     public function preview()
     {
         try {
-            // ตรวจสอบสิทธิ์ Admin
-            if (auth()->check() && auth()->user()->users_role !== 'admin') {
+            // ตรวจสอบสิทธิ์ Admin และ Teacher
+            if (auth()->check() && !in_array(auth()->user()->users_role, ['admin', 'teacher'])) {
                 return response()->json([
                     'success' => false,
                     'error' => 'คุณไม่มีสิทธิ์ในการเข้าถึงฟังก์ชันนี้'
@@ -168,8 +168,8 @@ class GoogleSheetsImportController extends Controller
     public function import(Request $request)
     {
         try {
-            // ตรวจสอบสิทธิ์ Admin
-            if (auth()->user()->users_role !== 'admin') {
+            // ตรวจสอบสิทธิ์ Admin และ Teacher
+            if (!in_array(auth()->user()->users_role, ['admin', 'teacher'])) {
                 return response()->json(['error' => 'คุณไม่มีสิทธิ์ในการเข้าถึงฟังก์ชันนี้'], 403);
             }
 

@@ -36,6 +36,7 @@ Route::middleware('auth')->group(function () {
         switch ($user->users_role) {
             case 'student':
                 return redirect()->route('student.dashboard');
+            case 'admin':
             case 'teacher':
                 return redirect()->route('teacher.dashboard');
             case 'guardian':
