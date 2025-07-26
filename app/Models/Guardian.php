@@ -12,6 +12,9 @@ class Guardian extends Model
     protected $table = 'tb_guardians';
     protected $primaryKey = 'guardians_id';
     
+    // ปิดการใช้งาน Laravel timestamps เพราะใช้ custom timestamp columns
+    public $timestamps = false;
+    
     protected $fillable = [
         'user_id',
         'guardians_relationship_to_student',

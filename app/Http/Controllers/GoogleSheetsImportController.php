@@ -11,6 +11,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Exception;
 use DateTime;
 use DateInterval;
@@ -519,11 +520,12 @@ class GoogleSheetsImportController extends Controller
 
             case 'guardians':
                 return array_merge($baseMapping, [
+                    'title' => ['คำนำหน้า', 'คำนำหน้าชื่อ', 'title', 'prefix', 'นาย', 'นาง', 'นางสาว'],
                     'guardian_id' => ['รหัสผู้ปกครอง', 'guardian_id', 'รหัส', 'id', 'รหัสประจำตัว'],
                     'relationship' => ['ความสัมพันธ์', 'relationship', 'relation'],
-                    'line_id' => ['ไอดีไลน์', 'line_id', 'line', 'ไลน์'],
-                    'contact_method' => ['ช่องทางติดต่อที่ใช้บ่อยที่สุด', 'ช่องทางติดต่อที่ง่ายที่สุด', 'contact_method', 'preferred_contact'],
-                    'student_id' => ['รหัสนักเรียนที่ดูแล', 'รหัสนักเรียน', 'student_id', 'รหัสลูก', 'รหัสบุตร']
+                    'line_id' => ['ไอดีไลน์', 'line_id', 'line', 'ไลน์', 'ID Line'],
+                    'contact_method' => ['ช่องทางติดต่อที่ใช้บ่อยที่สุด', 'ช่องทางติดต่อที่ง่ายที่สุด', 'contact_method', 'preferred_contact', 'ช่องทางติดต่อ'],
+                    'student_codes' => ['รหัสนักเรียนที่ดูแล', 'รหัสนักเรียน', 'student_codes', 'student_id', 'รหัสลูก', 'รหัสบุตร', 'รหัสนักเรียนภายใต้ความดูแล']
                 ]);
 
             default:
@@ -718,38 +720,51 @@ class GoogleSheetsImportController extends Controller
                     $rowData['role'] = 'guardian';
                 }
                 
-                // กำหนด title เริ่มต้น
-                if (!isset($rowData['title']) || empty($rowData['title'])) {
-                    $rowData['title'] = 'คุณ';
-                }
+                // ใช้คำนำหน้าที่มีอยู่ในข้อมูล (นาย, นาง, นางสาว)
+                // ไม่ต้องแก้ไข title ถ้ามีอยู่แล้ว
                 
-                // สร้าง email สำหรับผู้ปกครอง
+                // สร้าง email สำหรับผู้ปกครอง (ถ้าไม่มี)
                 if (!isset($rowData['email']) || empty($rowData['email'])) {
-                    if (isset($rowData['guardian_id']) && !empty($rowData['guardian_id'])) {
-                        $rowData['email'] = strtolower($rowData['guardian_id']) . '@guardian.school.ac.th';
-                    } else {
-                        $firstName = $rowData['first_name'] ?? '';
-                        $lastName = $rowData['last_name'] ?? '';
-                        if (!empty($firstName) && !empty($lastName)) {
-                            $email = strtolower(preg_replace('/[^a-zA-Z0-9]/', '', $firstName . $lastName));
-                            $rowData['email'] = $email . ($index + 2) . '@guardian.school.ac.th';
-                        }
+                    $firstName = $rowData['first_name'] ?? '';
+                    $lastName = $rowData['last_name'] ?? '';
+                    if (!empty($firstName) && !empty($lastName)) {
+                        $email = strtolower(preg_replace('/[^a-zA-Z0-9]/', '', $firstName . $lastName));
+                        $rowData['email'] = $email . ($index + 2) . '@guardian.school.ac.th';
                     }
                 }
                 
-                // จัดการข้อมูลติดต่อ
+                // กำหนด users_birthdate เป็น null
+                $rowData['date_of_birth'] = null;
+                
+                // จัดการเบอร์โทรศัพท์ (ใช้จากข้อมูลที่มี)
+                if (!isset($rowData['phone']) || empty($rowData['phone'])) {
+                    $rowData['phone'] = null;
+                }
+                
+                // จัดการข้อมูล Line ID
                 if (!isset($rowData['line_id']) || empty($rowData['line_id'])) {
                     $rowData['line_id'] = null;
                 }
                 
-                // จัดการช่องทางติดต่อ
+                // จัดการช่องทางติดต่อที่ต้องการ (line, email, phone)
                 if (!isset($rowData['contact_method']) || empty($rowData['contact_method'])) {
                     $rowData['contact_method'] = 'phone'; // ค่าเริ่มต้น
+                } else {
+                    // ตรวจสอบว่าค่าที่ได้รับถูกต้องหรือไม่
+                    $validMethods = ['line', 'email', 'phone'];
+                    $method = strtolower(trim($rowData['contact_method']));
+                    if (!in_array($method, $validMethods)) {
+                        $rowData['contact_method'] = 'phone';
+                    } else {
+                        $rowData['contact_method'] = $method;
+                    }
                 }
                 
-                // จัดการความสัมพันธ์
-                if (!isset($rowData['relationship']) || empty($rowData['relationship'])) {
-                    $rowData['relationship'] = 'ผู้ปกครอง'; // ค่าเริ่มต้น
+                // จัดการรหัสนักเรียนที่ดูแล (เก็บไว้สำหรับการเชื่อมโยงภายหลัง)
+                if (isset($rowData['student_codes']) && !empty($rowData['student_codes'])) {
+                    // เก็บข้อมูลรหัสนักเรียนไว้สำหรับการประมวลผลต่อไป
+                    // ข้อมูลอาจเป็น format: "650003, 650004" หรือ "650003,650004"
+                    $rowData['student_codes'] = trim($rowData['student_codes']);
                 }
                 
                 break;
@@ -1107,9 +1122,6 @@ class GoogleSheetsImportController extends Controller
             $validRelationships = ['พ่อ', 'แม่', 'ปู่', 'ย่า', 'ตา', 'ยาย', 'ลุง', 'ป้า', 'น้า', 'อา', 'ผู้ปกครอง', 'father', 'mother', 'parent'];
             $relationship = trim($data['relationship']);
             
-            if (!in_array($relationship, $validRelationships)) {
-                $errors[] = 'ความสัมพันธ์ไม่ถูกต้อง';
-            }
         }
 
         return [
@@ -1137,7 +1149,9 @@ class GoogleSheetsImportController extends Controller
                     
                     // สร้าง User
                     $userBirthdate = null;
-                    if (isset($userData['date_of_birth']) && !empty($userData['date_of_birth']) && $userData['date_of_birth'] !== null) {
+                    
+                    // สำหรับผู้ปกครอง ให้ users_birthdate = null ตามที่กำหนด
+                    if ($userData['role'] !== 'guardian' && isset($userData['date_of_birth']) && !empty($userData['date_of_birth']) && $userData['date_of_birth'] !== null) {
                         // ตรวจสอบว่าเป็นวันที่จริงๆ ไม่ใช่อีเมลหรือข้อความอื่น
                         $dateValue = $userData['date_of_birth'];
                         if (!filter_var($dateValue, FILTER_VALIDATE_EMAIL) && 
@@ -1245,42 +1259,71 @@ class GoogleSheetsImportController extends Controller
                 break;
 
             case 'guardian':
-                $guardian = Guardian::create([
-                    'user_id' => $user->users_id,
-                    'guardians_relationship_to_student' => $userData['relationship'] ?? 'ผู้ปกครอง',
-                    'guardians_phone' => $userData['phone'] ?? null,
-                    'guardians_email' => $userData['email'] ?? null,
-                    'guardians_line_id' => $userData['line_id'] ?? null,
-                    'guardians_preferred_contact_method' => $userData['contact_method'] ?? 'phone',
-                    'guardians_created_at' => now()
-                ]);
+                try {
+                    // Log ข้อมูลสำหรับ debugging
+                    \Log::info('Creating Guardian with data:', [
+                        'user_id' => $user->users_id,
+                        'userData' => $userData
+                    ]);
+                    
+                    $guardian = Guardian::create([
+                        'user_id' => $user->users_id,
+                        'guardians_relationship_to_student' => 'ผู้ปกครอง',
+                        'guardians_phone' => $userData['phone'] ?? null,
+                        'guardians_email' => $userData['email'] ?? null,
+                        'guardians_line_id' => $userData['line_id'] ?? null,
+                        'guardians_preferred_contact_method' => $userData['contact_method'] ?? 'phone',
+                        'guardians_created_at' => now(),
+                        'updated_at' => now()
+                    ]);
 
-                // Link guardian to students using the pivot table
-                if (!empty($userData['student_id'])) {
-                    // Clean up the string: remove all non-digit characters
-                    $studentIdString = preg_replace('/[^\d]/', '', (string) $userData['student_id']);
-                    $studentCodes = [];
+                    \Log::info('Guardian created successfully with ID: ' . $guardian->guardians_id);
 
-                    // Check if the cleaned string can be split into 7-digit student codes
-                    if (strlen($studentIdString) > 0 && strlen($studentIdString) % 7 === 0) {
-                        $studentCodes = str_split($studentIdString, 7);
-                    } elseif (!empty($studentIdString)) {
-                        // If not, treat it as a single code (might be malformed or a single valid code)
-                        $studentCodes = [$studentIdString];
-                    }
-
-                    if (!empty($studentCodes)) {
-                        $students = Student::whereIn('students_student_code', $studentCodes)->get();
-
-                        foreach ($students as $student) {
-                            // Insert into guardian_student pivot table directly
-                            DB::table('tb_guardian_student')->insert([
-                                'guardian_id' => $guardian->guardians_id,
-                                'student_id' => $student->students_id,
-                                'guardian_student_created_at' => now()
-                            ]);
+                    // เชื่อมโยงผู้ปกครองกับนักเรียนผ่านตาราง tb_guardian_student
+                    if (!empty($userData['student_codes'])) {
+                        \Log::info('Processing student codes: ' . $userData['student_codes']);
+                        
+                        // แยกรหัสนักเรียนที่คั่นด้วย comma
+                        $studentCodesArray = array_map('trim', explode(',', $userData['student_codes']));
+                        \Log::info('Student codes array:', $studentCodesArray);
+                        
+                        foreach ($studentCodesArray as $studentCode) {
+                            if (!empty($studentCode)) {
+                                // ค้นหานักเรียนในฐานข้อมูล
+                                $student = Student::where('students_student_code', $studentCode)->first();
+                                
+                                if ($student) {
+                                    \Log::info('Found student with code ' . $studentCode . ', ID: ' . $student->students_id);
+                                    
+                                    // ตรวจสอบว่ามีความสัมพันธ์อยู่แล้วหรือไม่
+                                    $existingRelation = DB::table('tb_guardian_student')
+                                        ->where('guardian_id', $guardian->guardians_id)
+                                        ->where('student_id', $student->students_id)
+                                        ->exists();
+                                    
+                                    // ถ้าไม่มีข้อมูลซ้ำให้ insert
+                                    if (!$existingRelation) {
+                                        DB::table('tb_guardian_student')->insert([
+                                            'guardian_id' => $guardian->guardians_id,
+                                            'student_id' => $student->students_id,
+                                            'guardian_student_created_at' => now()
+                                        ]);
+                                        \Log::info('Guardian-Student relationship created: Guardian ' . $guardian->guardians_id . ' -> Student ' . $student->students_id);
+                                    } else {
+                                        \Log::info('Guardian-Student relationship already exists');
+                                    }
+                                } else {
+                                    \Log::warning('Student not found with code: ' . $studentCode);
+                                }
+                                // หากรหัสนักเรียนไม่พบในฐานข้อมูล ไม่ต้องทำอะไร (ตามที่ระบุไว้)
+                            }
                         }
+                    } else {
+                        \Log::info('No student codes provided for guardian');
                     }
+                } catch (Exception $e) {
+                    \Log::error('Error creating guardian: ' . $e->getMessage());
+                    throw new Exception("ไม่สามารถสร้างข้อมูลผู้ปกครองได้: " . $e->getMessage());
                 }
                 break;
         }
