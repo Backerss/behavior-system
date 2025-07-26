@@ -657,142 +657,180 @@
     <!-- Google Sheets Import Modal (Admin Only) -->
     @if(auth()->user()->users_role === 'admin')
     <div class="modal fade" id="googleSheetsImportModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered modal-xl">
-            <div class="modal-content">
-                <div class="modal-header border-0 pb-0">
-                    <h5 class="modal-title"><i class="fab fa-google-drive text-success"></i> นำเข้าข้อมูลจาก Google Sheets</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content border-0 shadow-lg" style="border-radius: 16px; background: linear-gradient(135deg, #f8fafb 0%, #ffffff 100%);">
+                <div class="modal-header border-0 pb-2" style="background: #fff; border-radius: 16px 16px 0 0;">
+                    <h5 class="modal-title text-dark fw-bold">
+                        <i class="fab fa-google-drive me-2"></i> นำเข้าข้อมูลจาก Google Sheets
+                    </h5>
+                    <button type="button" class="btn-close btn-close-dark" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <div class="modal-body">
-                    <!-- Sheet Selection -->
-                    <div class="mb-4">
-                        <h5 class="text-primary mb-3">
-                            <i class="fas fa-file-alt"></i> เลือกแผ่นข้อมูลที่ต้องการนำเข้า
-                        </h5>
-                        <div id="sheetSelectionContainer">
-                            <div class="d-flex justify-content-center">
-                                <div class="spinner-border text-primary" role="status">
-                                    <span class="visually-hidden">กำลังโหลดรายการแผ่นข้อมูล...</span>
+                <div class="modal-body px-4 py-4">
+                    <!-- Sheet Selection - Compact Design -->
+                    <div class="mb-3">
+                        <div class="d-flex align-items-center mb-2">
+                            <div class="bg-primary bg-opacity-10 rounded-circle p-2 me-2" style="width: 32px; height: 32px;">
+                                <i class="fas fa-file-alt text-primary" style="font-size: 14px;"></i>
+                            </div>
+                            <h6 class="mb-0 text-dark">เลือกแผ่นข้อมูล</h6>
+                        </div>
+                        <div id="sheetSelectionContainer" class="ms-4">
+                            <div class="d-flex justify-content-center py-3">
+                                <div class="spinner-border text-primary" role="status" style="width: 1.5rem; height: 1.5rem;">
+                                    <span class="visually-hidden">กำลังโหลด...</span>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Selected Sheet Info -->
-                    <div id="selectedSheetInfo" class="d-none mb-4">
-                        <div class="alert alert-info">
-                            <h6><i class="fas fa-info-circle"></i> ข้อมูลแผ่นที่เลือก</h6>
-                            <div id="sheetDescription"></div>
-                            <div class="mt-2">
-                                <strong>คอลัมน์ที่คาดหวัง:</strong>
-                                <span id="expectedColumns" class="badge bg-secondary ms-1"></span>
+                    <!-- Selected Sheet Info - Minimalist -->
+                    <div id="selectedSheetInfo" class="d-none mb-3">
+                        <div class="card border-0 bg-light bg-opacity-50" style="border-radius: 12px;">
+                            <div class="card-body p-3">
+                                <div class="d-flex align-items-center">
+                                    <i class="fas fa-info-circle text-info me-2"></i>
+                                    <div class="flex-grow-1">
+                                        <div id="sheetDescription" class="text-dark mb-1"></div>
+                                        <div class="d-flex align-items-center">
+                                            <small class="text-muted me-2">คอลัมน์ที่คาดหวัง:</small>
+                                            <span id="expectedColumns" class="badge bg-secondary bg-opacity-75 text-dark" style="font-size: 10px;"></span>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Google Sheets URL Info -->
-                    <div class="alert alert-info mb-4">
-                        <i class="fas fa-info-circle"></i>
-                        <strong>ข้อมูลจะถูกดึงจาก:</strong> 
-                        <a href="https://docs.google.com/spreadsheets/d/1L3O0f5HdX_7cPw2jrQT4IaPsjw_jFD3O0aeH9ZQ499c/edit" target="_blank" class="alert-link">
-                            Google Sheets ระบบพฤติกรรมนักเรียน
-                        </a>
+                    <!-- Google Sheets URL Info - Compact -->
+                    <div class="card border-0 bg-gradient mb-3" style="background: linear-gradient(135deg, #e0f2fe 0%, #f3e5f5 100%); border-radius: 12px;">
+                        <div class="card-body p-3">
+                            <div class="d-flex align-items-center">
+                                <i class="fab fa-google text-success me-2"></i>
+                                <div>
+                                    <small class="text-dark d-block">ข้อมูลจาก:</small>
+                                    <a href="https://docs.google.com/spreadsheets/d/1L3O0f5HdX_7cPw2jrQT4IaPsjw_jFD3O0aeH9ZQ499c/edit" 
+                                       target="_blank" class="text-primary text-decoration-none fw-medium" style="font-size: 13px;">
+                                        Google Sheets ระบบพฤติกรรมนักเรียน
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
-                    <!-- Action Button -->
-                    <div class="text-center mb-4">
-                        <button id="previewGoogleSheetsBtn" class="btn btn-primary btn-lg">
-                            <i class="fas fa-eye"></i> ดูตัวอย่างข้อมูล
+                    <!-- Action Button - Modern Style -->
+                    <div class="text-center mb-3">
+                        <button id="previewGoogleSheetsBtn" class="btn btn-primary px-4 py-2 fw-medium" 
+                                style="border-radius: 10px; background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); border: none;">
+                            <i class="fas fa-eye me-2"></i> ดูตัวอย่างข้อมูล
                         </button>
                         <div id="googleSheetsLoading" class="d-none mt-3">
-                            <div class="spinner-border text-primary" role="status">
-                                <span class="visually-hidden">กำลังโหลด...</span>
+                            <div class="d-flex align-items-center justify-content-center">
+                                <div class="spinner-border text-primary me-2" role="status" style="width: 1.25rem; height: 1.25rem;">
+                                    <span class="visually-hidden">กำลังโหลด...</span>
+                                </div>
+                                <small class="text-muted">กำลังดึงข้อมูลจาก Google Sheets...</small>
                             </div>
-                            <div class="mt-2">กำลังดึงข้อมูลจาก Google Sheets...</div>
                         </div>
                     </div>
 
-                    <!-- Preview Container -->
+                    <!-- Preview Container - Compact Design -->
                     <div id="googleSheetsPreviewContainer" class="d-none">
-                        <!-- Summary Cards -->
-                        <div class="row mb-4">
-                            <div class="col-md-3">
-                                <div class="card text-white bg-success">
-                                    <div class="card-header"><i class="fas fa-check-circle"></i> ข้อมูลถูกต้อง</div>
-                                    <div class="card-body">
-                                        <h4 class="card-title" id="googleSheetsValidCount">0</h4>
+                        <!-- Summary Cards - Minimalist Grid -->
+                        <div class="row g-2 mb-3">
+                            <div class="col-6 col-md-3">
+                                <div class="card border-0 h-100" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); border-radius: 12px;">
+                                    <div class="card-body p-3 text-white text-center">
+                                        <i class="fas fa-check-circle mb-2" style="font-size: 1.25rem;"></i>
+                                        <div class="h5 mb-1" id="googleSheetsValidCount">0</div>
+                                        <small style="font-size: 11px;">ข้อมูลถูกต้อง</small>
                                     </div>
                                 </div>
                             </div>
-                            <div class="col-md-3">
-                                <div class="card text-white bg-warning">
-                                    <div class="card-header"><i class="fas fa-exclamation-triangle"></i> ข้อมูลซ้ำ</div>
-                                    <div class="card-body">
-                                        <h4 class="card-title" id="googleSheetsDuplicateCount">0</h4>
+                            <div class="col-6 col-md-3">
+                                <div class="card border-0 h-100" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); border-radius: 12px;">
+                                    <div class="card-body p-3 text-white text-center">
+                                        <i class="fas fa-exclamation-triangle mb-2" style="font-size: 1.25rem;"></i>
+                                        <div class="h5 mb-1" id="googleSheetsDuplicateCount">0</div>
+                                        <small style="font-size: 11px;">ข้อมูลซ้ำ</small>
                                     </div>
                                 </div>
                             </div>
-                            <div class="col-md-3">
-                                <div class="card text-white bg-danger">
-                                    <div class="card-header"><i class="fas fa-times-circle"></i> ข้อมูลผิดพลาด</div>
-                                    <div class="card-body">
-                                        <h4 class="card-title" id="googleSheetsErrorCount">0</h4>
+                            <div class="col-6 col-md-3">
+                                <div class="card border-0 h-100" style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); border-radius: 12px;">
+                                    <div class="card-body p-3 text-white text-center">
+                                        <i class="fas fa-times-circle mb-2" style="font-size: 1.25rem;"></i>
+                                        <div class="h5 mb-1" id="googleSheetsErrorCount">0</div>
+                                        <small style="font-size: 11px;">ข้อมูลผิดพลาด</small>
                                     </div>
                                 </div>
                             </div>
-                            <div class="col-md-3">
-                                <div class="card text-white bg-info">
-                                    <div class="card-header"><i class="fas fa-list"></i> รวมทั้งหมด</div>
-                                    <div class="card-body">
-                                        <h4 class="card-title" id="googleSheetsTotalCount">0</h4>
+                            <div class="col-6 col-md-3">
+                                <div class="card border-0 h-100" style="background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); border-radius: 12px;">
+                                    <div class="card-body p-3 text-white text-center">
+                                        <i class="fas fa-list mb-2" style="font-size: 1.25rem;"></i>
+                                        <div class="h5 mb-1" id="googleSheetsTotalCount">0</div>
+                                        <small style="font-size: 11px;">รวมทั้งหมด</small>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Data Tabs -->
-                        <div class="card">
-                            <div class="card-header">
-                                <ul class="nav nav-tabs card-header-tabs" id="googleSheetsDataTabs" role="tablist">
+                        <!-- Data Tabs - Modern Design -->
+                        <div class="card border-0 shadow-sm" style="border-radius: 16px;">
+                            <div class="card-header bg-white border-0 pt-3" style="border-radius: 16px 16px 0 0;">
+                                <ul class="nav nav-pills nav-fill" id="googleSheetsDataTabs" role="tablist" style="background: #f8fafc; border-radius: 10px; padding: 4px;">
                                     <li class="nav-item" role="presentation">
-                                        <button class="nav-link active" id="valid-tab" data-bs-toggle="tab" data-bs-target="#valid" type="button" role="tab">
-                                            <i class="fas fa-check-circle text-success"></i> ข้อมูลถูกต้อง
+                                        <button class="nav-link active" id="valid-tab" data-bs-toggle="tab" data-bs-target="#valid" type="button" role="tab" 
+                                                style="border-radius: 8px; font-size: 13px; padding: 8px 12px; border: none; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white;">
+                                            <i class="fas fa-check-circle me-1"></i> ข้อมูลถูกต้อง
                                         </button>
                                     </li>
                                     <li class="nav-item" role="presentation">
-                                        <button class="nav-link" id="duplicate-tab" data-bs-toggle="tab" data-bs-target="#duplicate" type="button" role="tab">
-                                            <i class="fas fa-exclamation-triangle text-warning"></i> ข้อมูลซ้ำ
+                                        <button class="nav-link" id="duplicate-tab" data-bs-toggle="tab" data-bs-target="#duplicate" type="button" role="tab"
+                                                style="border-radius: 8px; font-size: 13px; padding: 8px 12px; border: none; color: #6b7280; background: transparent;">
+                                            <i class="fas fa-exclamation-triangle me-1"></i> ข้อมูลซ้ำ
                                         </button>
                                     </li>
                                     <li class="nav-item" role="presentation">
-                                        <button class="nav-link" id="error-tab" data-bs-toggle="tab" data-bs-target="#error" type="button" role="tab">
-                                            <i class="fas fa-times-circle text-danger"></i> ข้อมูลผิดพลาด
+                                        <button class="nav-link" id="error-tab" data-bs-toggle="tab" data-bs-target="#error" type="button" role="tab"
+                                                style="border-radius: 8px; font-size: 13px; padding: 8px 12px; border: none; color: #6b7280; background: transparent;">
+                                            <i class="fas fa-times-circle me-1"></i> ข้อมูลผิดพลาด
                                         </button>
                                     </li>
                                 </ul>
+                                <style>
+                                    #googleSheetsDataTabs .nav-link:not(.active):hover {
+                                        background: rgba(16, 185, 129, 0.1) !important;
+                                        color: #059669 !important;
+                                    }
+                                    #googleSheetsDataTabs .nav-link.active {
+                                        background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+                                        color: white !important;
+                                    }
+                                </style>
                             </div>
-                            <div class="card-body">
+                            <div class="card-body p-3">
                                 <div class="tab-content" id="googleSheetsDataTabsContent">
                                     <!-- Valid Data Tab -->
                                     <div class="tab-pane fade show active" id="valid" role="tabpanel">
-                                        <div class="d-flex justify-content-between align-items-center mb-3">
-                                            <h6>ข้อมูลที่พร้อมนำเข้า</h6>
+                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                            <h6 class="mb-0 text-dark" style="font-size: 14px;">ข้อมูลที่พร้อมนำเข้า</h6>
                                             <div>
-                                                <button id="selectAllGoogleSheetsValid" class="btn btn-sm btn-outline-primary">เลือกทั้งหมด</button>
-                                                <button id="deselectAllGoogleSheetsValid" class="btn btn-sm btn-outline-secondary">ยกเลิกทั้งหมด</button>
+                                                <button id="selectAllGoogleSheetsValid" class="btn btn-sm btn-outline-primary" style="font-size: 11px; padding: 4px 8px; border-radius: 6px;">เลือกทั้งหมด</button>
+                                                <button id="deselectAllGoogleSheetsValid" class="btn btn-sm btn-outline-secondary" style="font-size: 11px; padding: 4px 8px; border-radius: 6px;">ยกเลิกทั้งหมด</button>
                                             </div>
                                         </div>
-                                        <div style="max-height: 400px; overflow-y: auto;">
-                                            <table class="table table-striped table-hover table-sm" id="googleSheetsValidTable">
-                                                <thead class="table-success sticky-top">
+                                        <div style="max-height: 300px; overflow-y: auto; border-radius: 8px;">
+                                            <table class="table table-sm mb-0" id="googleSheetsValidTable" style="font-size: 12px;">
+                                                <thead class="sticky-top" style="background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%);">
                                                     <tr>
-                                                        <th><input type="checkbox" id="checkAllGoogleSheetsValid"></th>
-                                                        <th>แถว</th>
-                                                        <th>ชื่อ</th>
-                                                        <th>นามสกุล</th>
-                                                        <th>อีเมล</th>
-                                                        <th>บทบาท</th>
-                                                        <th>รหัสนักเรียน</th>
+                                                        <th style="width: 40px; padding: 8px;"><input type="checkbox" id="checkAllGoogleSheetsValid" style="transform: scale(0.9);"></th>
+                                                        <th style="padding: 8px; color: #374151;">แถว</th>
+                                                        <th style="padding: 8px; color: #374151;">ชื่อ</th>
+                                                        <th style="padding: 8px; color: #374151;">นามสกุล</th>
+                                                        <th style="padding: 8px; color: #374151;">อีเมล</th>
+                                                        <th style="padding: 8px; color: #374151;">บทบาท</th>
+                                                        <th style="padding: 8px; color: #374151;">รหัสนักเรียน</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody></tbody>
@@ -802,17 +840,17 @@
 
                                     <!-- Duplicate Data Tab -->
                                     <div class="tab-pane fade" id="duplicate" role="tabpanel">
-                                        <h6>ข้อมูลที่ซ้ำกับฐานข้อมูล</h6>
-                                        <div style="max-height: 400px; overflow-y: auto;">
-                                            <table class="table table-striped table-hover table-sm" id="googleSheetsDuplicateTable">
-                                                <thead class="table-warning sticky-top">
+                                        <h6 class="mb-2 text-dark" style="font-size: 14px;">ข้อมูลที่ซ้ำกับฐานข้อมูล</h6>
+                                        <div style="max-height: 300px; overflow-y: auto; border-radius: 8px;">
+                                            <table class="table table-sm mb-0" id="googleSheetsDuplicateTable" style="font-size: 12px;">
+                                                <thead class="sticky-top" style="background: linear-gradient(135deg, #fefcbf 0%, #fef3c7 100%);">
                                                     <tr>
-                                                        <th>แถว</th>
-                                                        <th>ชื่อ</th>
-                                                        <th>นามสกุล</th>
-                                                        <th>อีเมล</th>
-                                                        <th>บทบาท</th>
-                                                        <th>ฟิลด์ที่ซ้ำ</th>
+                                                        <th style="padding: 8px; color: #374151;">แถว</th>
+                                                        <th style="padding: 8px; color: #374151;">ชื่อ</th>
+                                                        <th style="padding: 8px; color: #374151;">นามสกุล</th>
+                                                        <th style="padding: 8px; color: #374151;">อีเมล</th>
+                                                        <th style="padding: 8px; color: #374151;">บทบาท</th>
+                                                        <th style="padding: 8px; color: #374151;">ฟิลด์ที่ซ้ำ</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody></tbody>
@@ -822,17 +860,17 @@
 
                                     <!-- Error Data Tab -->
                                     <div class="tab-pane fade" id="error" role="tabpanel">
-                                        <h6>ข้อมูลที่มีข้อผิดพลาด</h6>
-                                        <div style="max-height: 400px; overflow-y: auto;">
-                                            <table class="table table-striped table-hover table-sm" id="googleSheetsErrorTable">
-                                                <thead class="table-danger sticky-top">
+                                        <h6 class="mb-2 text-dark" style="font-size: 14px;">ข้อมูลที่มีข้อผิดพลาด</h6>
+                                        <div style="max-height: 300px; overflow-y: auto; border-radius: 8px;">
+                                            <table class="table table-sm mb-0" id="googleSheetsErrorTable" style="font-size: 12px;">
+                                                <thead class="sticky-top" style="background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);">
                                                     <tr>
-                                                        <th>แถว</th>
-                                                        <th>ชื่อ</th>
-                                                        <th>นามสกุล</th>
-                                                        <th>อีเมล</th>
-                                                        <th>บทบาท</th>
-                                                        <th>ข้อผิดพลาด</th>
+                                                        <th style="padding: 8px; color: #374151;">แถว</th>
+                                                        <th style="padding: 8px; color: #374151;">ชื่อ</th>
+                                                        <th style="padding: 8px; color: #374151;">นามสกุล</th>
+                                                        <th style="padding: 8px; color: #374151;">อีเมล</th>
+                                                        <th style="padding: 8px; color: #374151;">บทบาท</th>
+                                                        <th style="padding: 8px; color: #374151;">ข้อผิดพลาด</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody></tbody>
@@ -844,16 +882,19 @@
                         </div>
                     </div>
                 </div>
-                <div class="modal-footer border-0 pt-0">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ปิด</button>
-                    <button id="importGoogleSheetsBtn" class="btn btn-success" disabled>
-                        <i class="fas fa-download"></i> นำเข้าข้อมูลที่เลือก
+                <div class="modal-footer border-0 pt-2 pb-3" style="background: #f8fafb;">
+                    <button type="button" class="btn btn-light px-3 py-2" data-bs-dismiss="modal" style="border-radius: 8px; color: #6b7280; font-weight: 500;">ปิด</button>
+                    <button id="importGoogleSheetsBtn" class="btn px-4 py-2 fw-medium" disabled
+                            style="border-radius: 8px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); border: none; color: white;">
+                        <i class="fas fa-download me-2"></i> นำเข้าข้อมูลที่เลือก
                     </button>
                     <div id="googleSheetsImportLoading" class="d-none ms-3">
-                        <div class="spinner-border spinner-border-sm text-success" role="status">
-                            <span class="visually-hidden">กำลังนำเข้า...</span>
+                        <div class="d-flex align-items-center">
+                            <div class="spinner-border spinner-border-sm text-success me-2" role="status" style="width: 1rem; height: 1rem;">
+                                <span class="visually-hidden">กำลังนำเข้า...</span>
+                            </div>
+                            <small class="text-muted">กำลังนำเข้าข้อมูล...</small>
                         </div>
-                        <span class="ms-2">กำลังนำเข้าข้อมูล...</span>
                     </div>
                 </div>
             </div>
