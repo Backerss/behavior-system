@@ -569,9 +569,23 @@ class GoogleSheetsImportController extends Controller
                 if (!isset($rowData['title']) || empty($rowData['title'])) {
                     $age = 0;
                     if (!empty($rowData['date_of_birth'])) {
-                        $birthDate = new DateTime($rowData['date_of_birth']);
-                        $today = new DateTime();
-                        $age = $today->diff($birthDate)->y;
+                        try {
+                            $dateValue = trim($rowData['date_of_birth']);
+                            
+                            // ตรวจสอบว่าเป็นข้อมูลที่ไม่ใช่วันที่ก่อน
+                            if (!filter_var($dateValue, FILTER_VALIDATE_EMAIL) && 
+                                strpos($dateValue, '@') === false && 
+                                strlen($dateValue) <= 20 &&
+                                !preg_match('/[a-zA-Z]{3,}/', $dateValue)) {
+                                
+                                $birthDate = new DateTime($dateValue);
+                                $today = new DateTime();
+                                $age = $today->diff($birthDate)->y;
+                            }
+                        } catch (Exception $e) {
+                            // ถ้าแปลงวันที่ไม่ได้ให้ใช้อายุ 0
+                            $age = 0;
+                        }
                     }
                     
                     if (isset($rowData['gender'])) {
@@ -634,14 +648,37 @@ class GoogleSheetsImportController extends Controller
                 break;
 
             case 'teachers':
-                // กำหนด role เป็น teacher
+                // กำหนด status เริ่มต้น
+                if (!isset($rowData['status']) || empty($rowData['status'])) {
+                    $rowData['status'] = 'active';
+                }
+
+                // จัดการ role ตามตำแหน่ง
                 if (!isset($rowData['role']) || empty($rowData['role'])) {
-                    $rowData['role'] = 'teacher';
+                    // ถ้าตำแหน่งเป็น "ผู้ดูแลระบบ" ให้เป็น admin ไม่อย่างนั้นเป็น teacher
+                    if (isset($rowData['position']) && $rowData['position'] === 'ผู้ดูแลระบบ') {
+                        $rowData['role'] = 'admin';
+                    } else {
+                        $rowData['role'] = 'teacher';
+                    }
                 }
                 
-                // กำหนด title เริ่มต้น
+                // กำหนดคำนำหน้าชื่อสำหรับครู (เฉพาะ นาย นางสาว)
                 if (!isset($rowData['title']) || empty($rowData['title'])) {
-                    $rowData['title'] = 'อาจารย์';
+                    // ถ้าไม่มีข้อมูลคำนำหน้า ให้ใช้ค่าเริ่มต้น
+                    $rowData['title'] = 'นาย'; // ค่าเริ่มต้น
+                } else {
+                    // ตรวจสอบและปรับปรุงคำนำหน้าให้ถูกต้อง
+                    $title = trim($rowData['title']);
+                    // รองรับรูปแบบต่างๆ เช่น "นาย", "นางสาว", "Mr.", "Ms." เป็นต้น
+                    if (in_array($title, ['นาย', 'Mr.', 'Mr', 'มร.'])) {
+                        $rowData['title'] = 'นาย';
+                    } elseif (in_array($title, ['นางสาว', 'Ms.', 'Ms', 'Miss', 'นส.'])) {
+                        $rowData['title'] = 'นางสาว';
+                    } else {
+                        // ถ้าไม่ตรงกับรูปแบบที่กำหนด ให้ใช้ค่าเริ่มต้น
+                        $rowData['title'] = 'นาย';
+                    }
                 }
                 
                 // สร้าง email สำหรับครู
@@ -658,9 +695,19 @@ class GoogleSheetsImportController extends Controller
                     }
                 }
                 
-                // จัดการตำแหน่ง
+                // จัดการตำแหน่ง - เก็บตำแหน่งตรงตาม Google Sheets
                 if (!isset($rowData['position']) || empty($rowData['position'])) {
                     $rowData['position'] = 'ครู'; // ค่าเริ่มต้น
+                }
+                
+                // จัดการกลุ่มสาระการเรียนรู้
+                if (!isset($rowData['subject_group']) || empty($rowData['subject_group'])) {
+                    $rowData['subject_group'] = null;
+                }
+                
+                // จัดการวิชาที่สอน
+                if (!isset($rowData['subjects']) || empty($rowData['subjects'])) {
+                    $rowData['subjects'] = null;
                 }
                 
                 break;
@@ -807,6 +854,18 @@ class GoogleSheetsImportController extends Controller
                 $rowData = [];
                 foreach ($mappedHeaders as $standardName => $originalHeader) {
                     $value = isset($originalRowData[$originalHeader]) ? trim($originalRowData[$originalHeader]) : '';
+                    
+                    // ตรวจสอบเฉพาะสำหรับ date_of_birth
+                    if ($standardName === 'date_of_birth' && !empty($value)) {
+                        // ถ้าเป็นอีเมลหรือข้อความที่ไม่ใช่วันที่ ให้ตั้งเป็น null
+                        if (filter_var($value, FILTER_VALIDATE_EMAIL) || 
+                            strpos($value, '@') !== false || 
+                            strlen($value) > 20 ||
+                            preg_match('/[a-zA-Z]{3,}/', $value)) {
+                            $value = null;
+                        }
+                    }
+                    
                     $rowData[$standardName] = $value === '' ? null : $value;
                 }
                 
@@ -953,33 +1012,53 @@ class GoogleSheetsImportController extends Controller
 
             // ตรวจสอบวันเกิด (ถ้ามี)
             if (isset($data['date_of_birth']) && !empty($data['date_of_birth'])) {
-                $dateFormats = ['Y-m-d', 'Y/m/d', 'd/m/Y', 'd-m-Y', 'Y-n-j', 'j/n/Y'];
-                $validDate = false;
-                $originalDate = $data['date_of_birth'];
+                $originalDate = trim($data['date_of_birth']);
                 
-                foreach ($dateFormats as $format) {
-                    $dateObj = DateTime::createFromFormat($format, $originalDate);
-                    if ($dateObj && $dateObj->format($format) === $originalDate) {
-                        $data['date_of_birth'] = $dateObj->format('Y-m-d');
-                        $validDate = true;
-                        break;
+                // ตรวจสอบว่าเป็นข้อมูลที่ไม่ใช่วันที่ (เช่น อีเมล, ชื่อ)
+                if (filter_var($originalDate, FILTER_VALIDATE_EMAIL) || 
+                    strpos($originalDate, '@') !== false || 
+                    strlen($originalDate) > 20 ||
+                    preg_match('/[a-zA-Z]{3,}/', $originalDate)) {
+                    // ถ้าเป็นอีเมลหรือข้อความที่ไม่ใช่วันที่ ให้ตั้งเป็น null
+                    $data['date_of_birth'] = null;
+                } else {
+                    $dateFormats = ['Y-m-d', 'Y/m/d', 'd/m/Y', 'd-m-Y', 'Y-n-j', 'j/n/Y', 'd/m/y', 'j/n/y'];
+                    $validDate = false;
+                    
+                    foreach ($dateFormats as $format) {
+                        try {
+                            $dateObj = DateTime::createFromFormat($format, $originalDate);
+                            if ($dateObj && $dateObj->format($format) === $originalDate) {
+                                $data['date_of_birth'] = $dateObj->format('Y-m-d');
+                                $validDate = true;
+                                break;
+                            }
+                        } catch (Exception $e) {
+                            // ข้ามถ้าแปลงไม่ได้
+                            continue;
+                        }
                     }
-                }
-                
-                // ลองแปลงรูปแบบพิเศษเพิ่มเติม
-                if (!$validDate) {
-                    // ลองแปลงจากรูปแบบ Excel date
-                    if (is_numeric($originalDate)) {
-                        // Excel stores dates as number of days since 1900-01-01
-                        $excelEpoch = new DateTime('1900-01-01');
-                        $excelEpoch->add(new DateInterval('P' . intval($originalDate - 2) . 'D')); // -2 for Excel leap year bug
-                        $data['date_of_birth'] = $excelEpoch->format('Y-m-d');
-                        $validDate = true;
+                    
+                    // ลองแปลงรูปแบบพิเศษเพิ่มเติม
+                    if (!$validDate) {
+                        try {
+                            // ลองแปลงจากรูปแบบ Excel date
+                            if (is_numeric($originalDate) && $originalDate > 0 && $originalDate < 100000) {
+                                // Excel stores dates as number of days since 1900-01-01
+                                $excelEpoch = new DateTime('1900-01-01');
+                                $excelEpoch->add(new DateInterval('P' . intval($originalDate - 2) . 'D')); // -2 for Excel leap year bug
+                                $data['date_of_birth'] = $excelEpoch->format('Y-m-d');
+                                $validDate = true;
+                            }
+                        } catch (Exception $e) {
+                            // ถ้าแปลงไม่ได้ให้ผ่านไป
+                        }
                     }
-                }
-                
-                if (!$validDate) {
-                    $errors[] = 'รูปแบบวันเกิดไม่ถูกต้อง (ใช้รูปแบบ YYYY-MM-DD หรือ DD/MM/YYYY): ' . $originalDate;
+                    
+                    if (!$validDate) {
+                        // ถ้าแปลงไม่ได้ให้ตั้งเป็น null แทนการแสดง error
+                        $data['date_of_birth'] = null;
+                    }
                 }
             }
 
@@ -1057,6 +1136,18 @@ class GoogleSheetsImportController extends Controller
                     $userData = $item['data'];
                     
                     // สร้าง User
+                    $userBirthdate = null;
+                    if (isset($userData['date_of_birth']) && !empty($userData['date_of_birth']) && $userData['date_of_birth'] !== null) {
+                        // ตรวจสอบว่าเป็นวันที่จริงๆ ไม่ใช่อีเมลหรือข้อความอื่น
+                        $dateValue = $userData['date_of_birth'];
+                        if (!filter_var($dateValue, FILTER_VALIDATE_EMAIL) && 
+                            strpos($dateValue, '@') === false && 
+                            strlen($dateValue) <= 20 &&
+                            !preg_match('/[a-zA-Z]{3,}/', $dateValue)) {
+                            $userBirthdate = $dateValue;
+                        }
+                    }
+                    
                     $user = User::create([
                         'users_name_prefix' => $userData['title'] ?? null,
                         'users_first_name' => $userData['first_name'],
@@ -1065,7 +1156,7 @@ class GoogleSheetsImportController extends Controller
                         'users_phone_number' => $userData['phone'] ?? null,
                         'users_password' => self::DEFAULT_PASSWORD,
                         'users_role' => $userData['role'],
-                        'users_birthdate' => !empty($userData['date_of_birth']) ? $userData['date_of_birth'] : null,
+                        'users_birthdate' => $userBirthdate,
                         'users_created_at' => now(),
                         'users_updated_at' => now(),
                         'users_status' => $userData['status'] ?? 'active'
@@ -1139,6 +1230,9 @@ class GoogleSheetsImportController extends Controller
                 break;
 
             case 'teacher':
+            case 'admin':
+                // สำหรับทั้ง teacher และ admin ให้สร้างข้อมูลใน tb_teachers เหมือนกัน
+                // เพียงแต่ role ใน tb_users จะต่างกัน
                 Teacher::create([
                     'users_id' => $user->users_id,
                     'teachers_employee_code' => $userData['teacher_id'] ?? null,
