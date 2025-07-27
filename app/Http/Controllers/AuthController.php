@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use App\Models\BehaviorReport;
 use App\Models\Violation;
+use App\Services\AcademicYearService;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
@@ -326,8 +327,9 @@ class AuthController extends Controller
             ->orderBy('classes_room_number')
             ->get();
             
-        // ดึงข้อมูลรายชื่อนักเรียน
+        // ดึงข้อมูลรายชื่อนักเรียน (กรองเฉพาะสถานะ active)
         $students = Student::with(['user', 'classroom'])
+            ->where('students_status', 'active') // กรองเฉพาะนักเรียนที่ยังคงเรียนอยู่
             ->when(request('search'), function($query) {
                 $search = request('search');
                 return $query->whereHas('user', function($subquery) use ($search) {
@@ -339,12 +341,30 @@ class AuthController extends Controller
                 return $query->where('class_id', request('class'));
             })
             ->paginate(15);
+            
+        // ดึงข้อมูลนักเรียนที่จบการศึกษา (สำหรับแฟ้มประวัติ)
+        $graduatedStudents = Student::with(['user', 'classroom'])
+            ->where('students_status', 'graduated')
+            ->when(request('graduated_search'), function($query) {
+                $search = request('graduated_search');
+                return $query->whereHas('user', function($subquery) use ($search) {
+                    $subquery->where('users_first_name', 'like', "%{$search}%")
+                        ->orWhere('users_last_name', 'like', "%{$search}%");
+                })->orWhere('students_student_code', 'like', "%{$search}%");
+            })
+            ->orderBy('updated_at', 'desc')
+            ->paginate(10, ['*'], 'graduated_page');
         
         // ข้อมูลสำหรับกราฟแนวโน้ม 6 เดือน
         $trendData = $this->getViolationTrend();
         
         // ข้อมูลสำหรับกราฟประเภทพฤติกรรม
         $typesData = $this->getViolationTypes();
+        
+        // ข้อมูลปีการศึกษาและการแจ้งเตือน
+        $academicService = app(AcademicYearService::class);
+        $academicStatus = $academicService->getCachedAcademicStatus();
+        $academicNotifications = $academicService->getCachedNotifications();
         
         return view('teacher.dashboard', compact(
             'user',
@@ -354,8 +374,11 @@ class AuthController extends Controller
             'recentViolations',
             'classes',
             'students',
+            'graduatedStudents',
             'trendData',
-            'typesData'
+            'typesData',
+            'academicStatus',
+            'academicNotifications'
         ));
     }
     

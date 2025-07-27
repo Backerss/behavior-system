@@ -42,7 +42,6 @@ return new class extends Migration
         // Add indexes to tb_classes table
         Schema::table('tb_classes', function (Blueprint $table) {
             $table->index('teachers_id', 'idx_classes_teacher_id');
-            $table->index('classes_academic_year', 'idx_classes_academic_year');
             $table->index(['classes_level', 'classes_room_number'], 'idx_classes_level_room');
             $table->index(['classes_academic_year', 'classes_level'], 'idx_classes_year_level');
         });

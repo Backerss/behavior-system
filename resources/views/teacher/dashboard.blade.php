@@ -97,6 +97,10 @@
                     <i class="fas fa-users"></i>
                     <span>รายชื่อนักเรียน</span>
                 </a>
+                <a href="#graduated" class="menu-item">
+                    <i class="fas fa-graduation-cap"></i>
+                    <span>แฟ้มประวัติ (จบการศึกษา)</span>
+                </a>
                 <a href="#" data-bs-toggle="modal" data-bs-target="#newViolationModal" class="menu-item">
                     <i class="fas fa-exclamation-triangle"></i>
                     <span>บันทึกพฤติกรรม</span>
@@ -155,6 +159,45 @@
             <!-- Dashboard Content -->
             <div class="content-wrapper">
                 <div class="container-fluid">
+                    <!-- Academic Year Info & Notifications -->
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <div class="academic-info-section">
+                                <!-- ข้อมูลปีการศึกษา -->
+                                <div class="card border-primary mb-3">
+                                    <div class="card-body p-3">
+                                        <div class="d-flex align-items-center justify-content-between">
+                                            <div class="d-flex align-items-center">
+                                                <div class="academic-icon me-3">
+                                                    <i class="fas fa-calendar-alt text-primary fs-4"></i>
+                                                </div>
+                                                <div>
+                                                    <h6 class="mb-1 fw-bold text-primary" id="academic-year-display">
+                                                        ปีการศึกษา 2568 ภาคเรียนที่ 1
+                                                    </h6>
+                                                    <small class="text-muted" id="academic-period-info">
+                                                        ช่วงภาคเรียน: 16 พฤษภาคม - 31 ตุลาคม
+                                                    </small>
+                                                </div>
+                                            </div>
+                                            <div class="academic-status">
+                                                <span class="badge bg-success" id="academic-status-badge">
+                                                    <i class="fas fa-check-circle me-1"></i>
+                                                    ปกติ
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- การแจ้งเตือน -->
+                                <div id="academic-notifications" style="display: none;">
+                                    <!-- จะถูกเติมด้วย JavaScript -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Welcome Section -->
                     <div class="welcome-section d-flex justify-content-between align-items-center mb-4">
                         <div>
@@ -431,6 +474,119 @@
                                         {{ $students->links('pagination::bootstrap-4') }}
                                     </nav>
                                 </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Graduated Students Section (แฟ้มประวัติ) -->
+            <div class="content-section d-none" id="graduated">
+                <div class="row">
+                    <div class="col-12">
+                        <div class="card border-0 shadow-sm">
+                            <div class="card-header bg-white border-bottom">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <h5 class="mb-0 d-flex align-items-center">
+                                        <i class="fas fa-graduation-cap me-2 text-success"></i>แฟ้มประวัติ (นักเรียนที่จบการศึกษา)
+                                        <span class="badge bg-success rounded-pill ms-2">{{ $graduatedStudents->total() }}</span>
+                                    </h5>
+                                    <div class="d-flex">
+                                        <div class="input-group input-group-sm me-2" style="width: 250px;">
+                                            <input type="text" class="form-control" id="graduatedSearch" 
+                                                   placeholder="ค้นหานักเรียนที่จบการศึกษา..." 
+                                                   value="{{ request('graduated_search') }}">
+                                            <button class="btn btn-sm btn-success" id="btnSearchGraduated">
+                                                <i class="fas fa-search"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card-body p-0">
+                                <div class="table-responsive">
+                                    <table class="table table-hover align-middle mb-0">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th style="width: 10%">รหัสนักเรียน</th>
+                                                <th style="width: 25%">ชื่อ-สกุล</th>
+                                                <th style="width: 15%">ห้องเรียน</th>
+                                                <th style="width: 15%">วันที่จบการศึกษา</th>
+                                                <th style="width: 15%">คะแนนสุดท้าย</th>
+                                                <th style="width: 20%">ดูประวัติ</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @forelse($graduatedStudents as $student)
+                                            <tr>
+                                                <td>
+                                                    <span class="badge bg-light text-dark">{{ $student->students_student_code }}</span>
+                                                </td>
+                                                <td>
+                                                    <div class="d-flex align-items-center">
+                                                        <img src="https://ui-avatars.com/api/?name={{ urlencode($student->user->users_first_name . ' ' . $student->user->users_last_name) }}&background=28a745&color=fff" 
+                                                             class="rounded-circle me-2" width="32" height="32">
+                                                        <div>
+                                                            <div class="fw-medium">{{ $student->user->users_first_name }} {{ $student->user->users_last_name }}</div>
+                                                            <small class="text-success">
+                                                                <i class="fas fa-graduation-cap me-1"></i>จบการศึกษา
+                                                            </small>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    @if($student->classroom)
+                                                        <span class="badge bg-secondary">{{ $student->classroom->classes_level }}/{{ $student->classroom->classes_room_number }}</span>
+                                                    @else
+                                                        <span class="text-muted">-</span>
+                                                    @endif
+                                                </td>
+                                                <td>
+                                                    <small class="text-muted">
+                                                        {{ $student->updated_at->format('d/m/Y') }}
+                                                    </small>
+                                                </td>
+                                                <td>
+                                                    <span class="badge {{ $student->students_current_score >= 80 ? 'bg-success' : ($student->students_current_score >= 60 ? 'bg-warning' : 'bg-danger') }}">
+                                                        {{ $student->students_current_score ?? 100 }} คะแนน
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <div class="btn-group btn-group-sm">
+                                                        <button class="btn btn-outline-success btn-sm" 
+                                                                onclick="openGraduatedStudentHistory({{ $student->students_id }})"
+                                                                title="ดูประวัติพฤติกรรม">
+                                                            <i class="fas fa-history me-1"></i> ประวัติ
+                                                        </button>
+                                                        <button class="btn btn-outline-info btn-sm" 
+                                                                data-bs-toggle="modal" 
+                                                                data-bs-target="#studentDetailModal"
+                                                                data-student-id="{{ $student->students_id }}"
+                                                                title="ดูข้อมูลส่วนตัว">
+                                                            <i class="fas fa-user me-1"></i> ข้อมูล
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                            @empty
+                                            <tr>
+                                                <td colspan="6" class="text-center py-5">
+                                                    <div class="text-muted">
+                                                        <i class="fas fa-graduation-cap fa-3x mb-3 text-muted"></i>
+                                                        <h6>ยังไม่มีนักเรียนที่จบการศึกษา</h6>
+                                                        <p class="mb-0">นักเรียนที่จบการศึกษาจะแสดงที่นี่</p>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                            @endforelse
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            <div class="card-footer bg-white">
+                                <nav>
+                                    {{ $graduatedStudents->appends(request()->query())->links('pagination::bootstrap-4') }}
+                                </nav>
                             </div>
                         </div>
                     </div>
@@ -1338,6 +1494,138 @@
         </div>
     </div>
 
+    <!-- Graduated Student History Modal -->
+    <div class="modal fade" id="graduatedHistoryModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title">
+                        <i class="fas fa-graduation-cap text-warning me-2"></i>
+                        ประวัติการเรียนของนักเรียนที่จบการศึกษา
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- Loading State -->
+                    <div id="graduatedHistoryLoading" class="text-center py-5">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">กำลังโหลด...</span>
+                        </div>
+                        <p class="mt-2 text-muted">กำลังโหลดประวัติข้อมูล...</p>
+                    </div>
+                    
+                    <!-- Error State -->
+                    <div id="graduatedHistoryError" class="text-center py-5 text-danger" style="display: none;">
+                        <i class="fas fa-exclamation-circle fa-2x mb-3"></i>
+                        <p>เกิดข้อผิดพลาดในการโหลดข้อมูล</p>
+                        <button class="btn btn-outline-primary btn-sm" onclick="retryLoadGraduatedHistory()">ลองใหม่</button>
+                    </div>
+                    
+                    <!-- Content -->
+                    <div id="graduatedHistoryContent" style="display: none;">
+                        <div class="row">
+                            <div class="col-md-4 mb-3 mb-md-0">
+                                <div class="text-center">
+                                    <img id="graduatedProfileImage" class="rounded-circle" width="100" height="100" alt="รูปโปรไฟล์">
+                                    <h5 id="graduatedFullName" class="mt-3 mb-1"></h5>
+                                    <span id="graduatedClassBadge" class="badge bg-warning"></span>
+                                    <div class="mt-3 p-3 bg-light rounded">
+                                        <small class="text-muted d-block">จบการศึกษาเมื่อ</small>
+                                        <strong id="graduationDate" class="text-success"></strong>
+                                    </div>
+                                    <div class="mt-3 p-3 bg-light rounded">
+                                        <small class="text-muted d-block">คะแนนความประพฤติสุดท้าย</small>
+                                        <strong id="finalBehaviorScore" class="text-primary"></strong>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-8">
+                                <div class="row mb-3">
+                                    <div class="col-6">
+                                        <label class="form-label fw-bold">รหัสนักเรียน</label>
+                                        <p id="graduatedStudentCode"></p>
+                                    </div>
+                                    <div class="col-6">
+                                        <label class="form-label fw-bold">ชั้นเรียนสุดท้าย</label>
+                                        <p id="graduatedStudentClass"></p>
+                                    </div>
+                                </div>
+                                <div class="row mb-3">
+                                    <div class="col-6">
+                                        <label class="form-label fw-bold">เลขประจำตัวประชาชน</label>
+                                        <p id="graduatedStudentIdNumber"></p>
+                                    </div>
+                                    <div class="col-6">
+                                        <label class="form-label fw-bold">วันเกิด</label>
+                                        <p id="graduatedStudentBirthdate"></p>
+                                    </div>
+                                </div>
+                                
+                                <h6 class="mt-4">สรุปสถิติการเรียนตลอดหลักสูตร</h6>
+                                <div class="row text-center mb-4">
+                                    <div class="col-4">
+                                        <div class="card border-0 bg-light">
+                                            <div class="card-body py-2">
+                                                <h5 id="totalViolations" class="mb-1 text-danger">0</h5>
+                                                <small class="text-muted">ครั้งที่ฝ่าฝืน</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-4">
+                                        <div class="card border-0 bg-light">
+                                            <div class="card-body py-2">
+                                                <h5 id="totalScoreDeducted" class="mb-1 text-warning">0</h5>
+                                                <small class="text-muted">คะแนนที่หักทั้งหมด</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-4">
+                                        <div class="card border-0 bg-light">
+                                            <div class="card-body py-2">
+                                                <h5 id="averageScorePerYear" class="mb-1 text-info">0</h5>
+                                                <small class="text-muted">คะแนนเฉลี่ยต่อปี</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <h6 class="mt-4">ประวัติการกระทำผิดทั้งหมด</h6>
+                                <div class="table-responsive" style="max-height: 300px; overflow-y: auto;">
+                                    <table class="table table-sm table-hover">
+                                        <thead class="table-light sticky-top">
+                                            <tr>
+                                                <th>วันที่</th>
+                                                <th>ชั้นปี</th>
+                                                <th>ประเภท</th>
+                                                <th>คะแนนที่หัก</th>
+                                                <th>บันทึกโดย</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="graduatedBehaviorHistoryTable">
+                                            <!-- ข้อมูลจะถูกเติมด้วย JavaScript -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                                
+                                <div id="noGraduatedHistoryMessage" class="text-center py-4 text-muted" style="display: none;">
+                                    <i class="fas fa-check-circle fa-2x mb-3 text-success"></i>
+                                    <p>นักเรียนคนนี้ไม่มีประวัติการกระทำผิดตลอดหลักสูตร</p>
+                                    <small class="text-success">เป็นนักเรียนที่มีความประพฤติดีตัวอย่าง</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-outline-primary" onclick="printGraduatedReport()">
+                        <i class="fas fa-print me-1"></i> พิมพ์รายงานสรุป
+                    </button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ปิด</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Class Management Modal -->
     <div class="modal fade" id="classManagementModal" tabindex="-1" aria-labelledby="classManagementModalLabel" role="dialog">
         <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
@@ -2187,6 +2475,123 @@
     <script src="/js/student-filter.js"></script>
     <script src="/js/parent-notification.js"></script>
     
+    <!-- Academic Year Management Script -->
+    <script>
+    $(document).ready(function() {
+        // ข้อมูลปีการศึกษาจาก PHP
+        const academicData = @json($academicStatus ?? []);
+        const academicNotifications = @json($academicNotifications ?? []);
+        
+        // อัปเดตข้อมูลปีการศึกษา
+        function updateAcademicDisplay() {
+            if (academicData.display_text) {
+                $('#academic-year-display').text(academicData.display_text);
+            }
+            
+            // อัปเดตข้อมูลช่วงภาคเรียน
+            updateSemesterPeriodInfo(academicData.semester);
+        }
+        
+        // อัปเดตข้อมูลช่วงภาคเรียน
+        function updateSemesterPeriodInfo(semester) {
+            let periodText = '';
+            if (semester == 1) {
+                periodText = 'ช่วงภาคเรียน: 16 พฤษภาคม - 31 ตุลาคม';
+            } else if (semester == 2) {
+                periodText = 'ช่วงภาคเรียน: 1 พฤศจิกายน - 15 พฤษภาคม (ปีถัดไป)';
+            }
+            $('#academic-period-info').text(periodText);
+        }
+        
+        // แสดงการแจ้งเตือน
+        function displayAcademicNotifications() {
+            const notificationContainer = $('#academic-notifications');
+            
+            if (academicNotifications && academicNotifications.length > 0) {
+                let notificationsHtml = '';
+                
+                academicNotifications.forEach(function(notification) {
+                    const alertClass = notification.type === 'warning' ? 'alert-warning' : 'alert-info';
+                    const icon = notification.type === 'warning' ? 'fas fa-exclamation-triangle' : 'fas fa-info-circle';
+                    
+                    notificationsHtml += `
+                        <div class="alert ${alertClass} alert-dismissible fade show mb-2" role="alert">
+                            <i class="${icon} me-2"></i>
+                            ${notification.message}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    `;
+                });
+                
+                notificationContainer.html(notificationsHtml).show();
+            } else {
+                notificationContainer.hide();
+            }
+        }
+        
+        // อัปเดต status badge
+        function updateStatusBadge() {
+            const statusBadge = $('#academic-status-badge');
+            
+            if (academicNotifications && academicNotifications.length > 0) {
+                const hasWarning = academicNotifications.some(n => n.type === 'warning');
+                if (hasWarning) {
+                    statusBadge.removeClass('bg-success').addClass('bg-warning');
+                    statusBadge.html('<i class="fas fa-exclamation-triangle me-1"></i>ต้องระวัง');
+                } else {
+                    statusBadge.removeClass('bg-success').addClass('bg-info');
+                    statusBadge.html('<i class="fas fa-info-circle me-1"></i>มีข้อมูล');
+                }
+            } else {
+                statusBadge.removeClass('bg-warning bg-info').addClass('bg-success');
+                statusBadge.html('<i class="fas fa-check-circle me-1"></i>ปกติ');
+            }
+        }
+        
+        // เริ่มต้นการทำงาน
+        updateAcademicDisplay();
+        displayAcademicNotifications();
+        updateStatusBadge();
+        
+        // เพิ่ม CSS สำหรับ animation
+        const style = document.createElement('style');
+        style.textContent = `
+            .academic-info-section .card {
+                transition: all 0.3s ease;
+            }
+            
+            .academic-info-section .card:hover {
+                box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+                transform: translateY(-2px);
+            }
+            
+            .academic-icon {
+                padding: 0.5rem;
+                border-radius: 50%;
+                background-color: rgba(13, 110, 253, 0.1);
+            }
+            
+            .academic-status .badge {
+                transition: all 0.3s ease;
+            }
+            
+            #academic-notifications .alert {
+                border-left: 4px solid;
+                border-left-color: inherit;
+            }
+            
+            .alert-warning {
+                border-left-color: #ffc107 !important;
+            }
+            
+            .alert-info {
+                border-left-color: #0dcaf0 !important;
+            }
+        `;
+        document.head.appendChild(style);
+    });
+    </script>
+    
     <!-- Google Sheets Import JavaScript (Admin Only) -->
     @if(auth()->user()->users_role === 'admin')
     <script>
@@ -2552,5 +2957,277 @@
     });
     </script>
     @endif
+
+    <!-- Graduated Students Management JavaScript -->
+    <script>
+    // Function to open graduated student history modal
+    function openGraduatedStudentHistory(studentId) {
+        // Store student ID in modal data
+        $('#graduatedHistoryModal').data('student-id', studentId);
+        
+        // Reset modal state
+        $('#graduatedHistoryLoading').show();
+        $('#graduatedHistoryError').hide();
+        $('#graduatedHistoryContent').hide();
+        
+        // Open modal
+        $('#graduatedHistoryModal').modal('show');
+        
+        // Load graduated student data
+        loadGraduatedStudentHistory(studentId);
+    }
+    
+    // Function to load graduated student history
+    function loadGraduatedStudentHistory(studentId) {
+        $.ajax({
+            url: `/api/students/${studentId}/graduated-history`,
+            method: 'GET',
+            headers: {
+                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+            },
+            success: function(response) {
+                if (response.success) {
+                    populateGraduatedStudentData(response.data);
+                    $('#graduatedHistoryLoading').hide();
+                    $('#graduatedHistoryContent').show();
+                } else {
+                    showGraduatedHistoryError();
+                }
+            },
+            error: function(xhr) {
+                console.error('Error loading graduated student history:', xhr);
+                showGraduatedHistoryError();
+            }
+        });
+    }
+    
+    // Function to populate graduated student data
+    function populateGraduatedStudentData(data) {
+        const student = data.student;
+        const history = data.behavior_history;
+        const stats = data.statistics;
+        
+        // Basic student info
+        $('#graduatedProfileImage').attr('src', student.profile_image || '/images/default-profile.png');
+        $('#graduatedFullName').text(`${student.first_name} ${student.last_name}`);
+        $('#graduatedClassBadge').text(`${student.class_name} (จบแล้ว)`);
+        $('#graduatedStudentCode').text(student.student_id);
+        $('#graduatedStudentClass').text(student.class_name);
+        $('#graduatedStudentIdNumber').text(student.id_card_number || 'ไม่ระบุ');
+        $('#graduatedStudentBirthdate').text(student.birth_date ? new Date(student.birth_date).toLocaleDateString('th-TH') : 'ไม่ระบุ');
+        
+        // Graduation info
+        $('#graduationDate').text(student.updated_at ? new Date(student.updated_at).toLocaleDateString('th-TH') : 'ไม่ระบุ');
+        $('#finalBehaviorScore').text(`${student.behavior_score || 100} คะแนน`);
+        
+        // Statistics
+        $('#totalViolations').text(stats.total_violations);
+        $('#totalScoreDeducted').text(stats.total_score_deducted);
+        $('#averageScorePerYear').text(stats.average_score_per_year);
+        
+        // Behavior history table
+        const historyTable = $('#graduatedBehaviorHistoryTable');
+        historyTable.empty();
+        
+        if (history && history.length > 0) {
+            history.forEach(function(record) {
+                const row = `
+                    <tr>
+                        <td>${new Date(record.created_at).toLocaleDateString('th-TH')}</td>
+                        <td>${record.grade_level || 'ไม่ระบุ'}</td>
+                        <td>
+                            <span class="badge bg-danger">${record.violation_type}</span>
+                        </td>
+                        <td class="text-danger fw-bold">-${record.score_deducted}</td>
+                        <td>${record.teacher_name}</td>
+                    </tr>
+                `;
+                historyTable.append(row);
+            });
+            $('#noGraduatedHistoryMessage').hide();
+        } else {
+            $('#noGraduatedHistoryMessage').show();
+        }
+    }
+    
+    // Function to show error state
+    function showGraduatedHistoryError() {
+        $('#graduatedHistoryLoading').hide();
+        $('#graduatedHistoryContent').hide();
+        $('#graduatedHistoryError').show();
+    }
+    
+    // Function to retry loading graduated student history
+    function retryLoadGraduatedHistory() {
+        // Get student ID from current modal context (could be stored in modal data)
+        const studentId = $('#graduatedHistoryModal').data('student-id');
+        if (studentId) {
+            loadGraduatedStudentHistory(studentId);
+        }
+    }
+    
+    // Function to print graduated student report
+    function printGraduatedReport() {
+        const studentName = $('#graduatedFullName').text();
+        const studentClass = $('#graduatedStudentClass').text();
+        const graduationDate = $('#graduationDate').text();
+        const finalScore = $('#finalBehaviorScore').text();
+        
+        // Create printable content
+        let printContent = `
+            <div style="text-align: center; margin-bottom: 30px;">
+                <h2>รายงานสรุปประวัติความประพฤติ</h2>
+                <h3>นักเรียนที่จบการศึกษา</h3>
+                <hr>
+            </div>
+            
+            <div style="margin-bottom: 20px;">
+                <p><strong>ชื่อ-นามสกุล:</strong> ${studentName}</p>
+                <p><strong>ชั้นเรียนสุดท้าย:</strong> ${studentClass}</p>
+                <p><strong>วันที่จบการศึกษา:</strong> ${graduationDate}</p>
+                <p><strong>คะแนนความประพฤติสุดท้าย:</strong> ${finalScore}</p>
+            </div>
+            
+            <div style="margin-bottom: 20px;">
+                <h4>สถิติสรุป</h4>
+                <table style="width: 100%; border-collapse: collapse; border: 1px solid #ddd;">
+                    <tr>
+                        <td style="border: 1px solid #ddd; padding: 8px; background: #f5f5f5;"><strong>จำนวนครั้งที่ฝ่าฝืน</strong></td>
+                        <td style="border: 1px solid #ddd; padding: 8px;">${$('#totalViolations').text()}</td>
+                    </tr>
+                    <tr>
+                        <td style="border: 1px solid #ddd; padding: 8px; background: #f5f5f5;"><strong>คะแนนที่หักทั้งหมด</strong></td>
+                        <td style="border: 1px solid #ddd; padding: 8px;">${$('#totalScoreDeducted').text()}</td>
+                    </tr>
+                    <tr>
+                        <td style="border: 1px solid #ddd; padding: 8px; background: #f5f5f5;"><strong>คะแนนเฉลี่ยต่อปี</strong></td>
+                        <td style="border: 1px solid #ddd; padding: 8px;">${$('#averageScorePerYear').text()}</td>
+                    </tr>
+                </table>
+            </div>
+        `;
+        
+        // Add behavior history if exists
+        const historyRows = $('#graduatedBehaviorHistoryTable tr');
+        if (historyRows.length > 0) {
+            printContent += `
+                <div>
+                    <h4>ประวัติการกระทำผิด</h4>
+                    <table style="width: 100%; border-collapse: collapse; border: 1px solid #ddd;">
+                        <thead>
+                            <tr style="background: #f5f5f5;">
+                                <th style="border: 1px solid #ddd; padding: 8px;">วันที่</th>
+                                <th style="border: 1px solid #ddd; padding: 8px;">ชั้นปี</th>
+                                <th style="border: 1px solid #ddd; padding: 8px;">ประเภท</th>
+                                <th style="border: 1px solid #ddd; padding: 8px;">คะแนนที่หัก</th>
+                                <th style="border: 1px solid #ddd; padding: 8px;">บันทึกโดย</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+            
+            historyRows.each(function() {
+                const cells = $(this).find('td');
+                if (cells.length > 0) {
+                    printContent += `
+                        <tr>
+                            <td style="border: 1px solid #ddd; padding: 8px;">${cells.eq(0).text()}</td>
+                            <td style="border: 1px solid #ddd; padding: 8px;">${cells.eq(1).text()}</td>
+                            <td style="border: 1px solid #ddd; padding: 8px;">${cells.eq(2).text()}</td>
+                            <td style="border: 1px solid #ddd; padding: 8px;">${cells.eq(3).text()}</td>
+                            <td style="border: 1px solid #ddd; padding: 8px;">${cells.eq(4).text()}</td>
+                        </tr>
+                    `;
+                }
+            });
+            
+            printContent += `
+                        </tbody>
+                    </table>
+                </div>
+            `;
+        } else {
+            printContent += `
+                <div>
+                    <h4>ประวัติการกระทำผิด</h4>
+                    <p style="text-align: center; color: green; font-style: italic;">
+                        นักเรียนคนนี้ไม่มีประวัติการกระทำผิดตลอดหลักสูตร<br>
+                        เป็นนักเรียนที่มีความประพฤติดีตัวอย่าง
+                    </p>
+                </div>
+            `;
+        }
+        
+        printContent += `
+            <div style="margin-top: 40px; text-align: right;">
+                <p>วันที่พิมพ์: ${new Date().toLocaleDateString('th-TH')}</p>
+                <p>ระบบบันทึกพฤติกรรมนักเรียน</p>
+            </div>
+        `;
+        
+        // Open print window
+        const printWindow = window.open('', '', 'width=800,height=600');
+        printWindow.document.write(`
+            <html>
+                <head>
+                    <title>รายงานประวัติ - ${studentName}</title>
+                    <style>
+                        body { font-family: 'Sarabun', Arial, sans-serif; margin: 20px; }
+                        table { width: 100%; border-collapse: collapse; }
+                        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+                        th { background-color: #f5f5f5; }
+                        @media print {
+                            body { margin: 0; }
+                        }
+                    </style>
+                </head>
+                <body>
+                    ${printContent}
+                </body>
+            </html>
+        `);
+        printWindow.document.close();
+        printWindow.print();
+    }
+    
+    // Graduated students search functionality
+    function searchGraduatedStudents() {
+        const searchTerm = $('#graduatedStudentsSearch').val().toLowerCase();
+        const tableRows = $('#graduatedStudentsTable tbody tr');
+        
+        tableRows.each(function() {
+            const rowText = $(this).text().toLowerCase();
+            if (rowText.includes(searchTerm)) {
+                $(this).show();
+            } else {
+                $(this).hide();
+            }
+        });
+        
+        // Update visible count
+        const visibleRows = tableRows.filter(':visible').length;
+        const totalRows = tableRows.length;
+        
+        if (visibleRows === 0 && searchTerm !== '') {
+            if ($('#graduatedStudentsTable tbody .no-results').length === 0) {
+                $('#graduatedStudentsTable tbody').append(`
+                    <tr class="no-results">
+                        <td colspan="6" class="text-center text-muted py-3">
+                            <i class="fas fa-search me-2"></i>
+                            ไม่พบข้อมูลที่ตรงกับการค้นหา "${searchTerm}"
+                        </td>
+                    </tr>
+                `);
+            }
+        } else {
+            $('#graduatedStudentsTable tbody .no-results').remove();
+        }
+    }
+    
+    // Bind search event
+    $(document).ready(function() {
+        $('#graduatedStudentsSearch').on('input', searchGraduatedStudents);
+    });
+    </script>
 </body>
 </html>

@@ -22,6 +22,11 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 // เปลี่ยนจาก auth:sanctum เป็น auth เฉพาะสำหรับ PDF report
 Route::get('/students/{id}/report', [StudentReportController::class, 'generatePDF'])->middleware('auth');
 
+// Route สำหรับดึงประวัติของนักเรียนที่จบแล้ว (ใช้ web middleware)
+Route::middleware(['auth'])->group(function () {
+    Route::get('/students/{id}/graduated-history', [StudentApiController::class, 'getGraduatedHistory']);
+});
+
 // Student API routes อื่นๆ ใช้ auth:sanctum ตามเดิม
 Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/students/{id}', [StudentApiController::class, 'show']);

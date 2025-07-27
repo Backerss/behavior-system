@@ -199,4 +199,59 @@ class GoogleSheetsImportService
 
         return true;
     }
+
+    /**
+     * ดึงข้อมูลจาก Google Sheets โดยใช้ GID
+     */
+    public function getSheetData($gid = 0)
+    {
+        try {
+            // URL ของ Google Sheets (ใช้ค่าเดียวกับ GoogleSheetsImportController)
+            $baseUrl = 'https://docs.google.com/spreadsheets/d/1L3O0f5HdX_7cPw2jrQT4IaPsjw_jFD3O0aeH9ZQ499c';
+            $url = $baseUrl . '/export?format=csv&gid=' . $gid;
+            
+            $context = stream_context_create([
+                'http' => [
+                    'timeout' => 30,
+                    'user_agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+                ]
+            ]);
+            
+            $response = file_get_contents($url, false, $context);
+            
+            if ($response === false) {
+                throw new Exception('ไม่สามารถดึงข้อมูลจาก Google Sheets ได้');
+            }
+
+            $rows = array_map("str_getcsv", explode("\n", $response));
+            
+            // ลบแถวว่างออก
+            $rows = array_filter($rows, function($row) {
+                return !empty(array_filter($row, function($cell) {
+                    return !empty(trim($cell));
+                }));
+            });
+
+            // แปลงเป็น associative array
+            if (empty($rows)) {
+                return [];
+            }
+
+            $headers = array_shift($rows);
+            $data = [];
+            
+            foreach ($rows as $row) {
+                $rowData = [];
+                foreach ($headers as $index => $header) {
+                    $rowData[trim($header)] = isset($row[$index]) ? trim($row[$index]) : '';
+                }
+                $data[] = $rowData;
+            }
+
+            return $data;
+            
+        } catch (Exception $e) {
+            throw new Exception('เกิดข้อผิดพลาดในการดึงข้อมูลจาก Google Sheets: ' . $e->getMessage());
+        }
+    }
 }

@@ -114,4 +114,142 @@ class StudentApiController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * ดึงประวัติการเรียนของนักเรียนที่จบการศึกษาแล้ว
+     *
+     * @param  int  $id
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getGraduatedHistory($id)
+    {
+        try {
+            Log::info("Loading graduated student history for ID: {$id}");
+            
+            // ดึงข้อมูลนักเรียนที่มีสถานะ graduated เท่านั้น
+            $student = Student::with([
+                'user', 
+                'classroom',
+                'guardians' => function($query) {
+                    $query->with('user');
+                }
+            ])->where('students_id', $id)
+              ->where('students_status', 'graduated')
+              ->first();
+            
+            if (!$student) {
+                Log::warning("Graduated student not found with ID: {$id}");
+                return response()->json([
+                    'success' => false,
+                    'message' => 'ไม่พบข้อมูลนักเรียนที่จบการศึกษาแล้ว'
+                ], 404);
+            }
+            
+            // ดึงประวัติพฤติกรรมทั้งหมดของนักเรียน
+            $behaviorHistory = BehaviorReport::with(['violation', 'teacher.user'])
+                ->where('reports_student_id', $id)
+                ->orderBy('reports_report_date', 'desc')
+                ->get();
+            
+            // คำนวณสถิติ
+            $totalViolations = $behaviorHistory->count();
+            $totalScoreDeducted = $behaviorHistory->sum(function($report) {
+                return $report->violation->violations_points_deducted ?? 0;
+            });
+            
+            // คำนวณจำนวนปีการศึกษาที่เรียน (ประมาณการจากระดับชั้น)
+            $gradeLevel = (int) filter_var($student->classroom->classes_level ?? 'ม.1', FILTER_SANITIZE_NUMBER_INT);
+            $academicYears = max(1, $gradeLevel); // อย่างน้อย 1 ปี
+            $averageScorePerYear = $academicYears > 0 ? round($totalScoreDeducted / $academicYears, 1) : 0;
+            
+            // หาผู้ปกครองคนแรก
+            $guardian = $student->guardians->first();
+            
+            // จัดรูปแบบข้อมูลนักเรียน
+            $formattedStudent = [
+                'students_id' => $student->students_id,
+                'student_id' => $student->students_student_code,
+                'first_name' => $student->user->users_first_name,
+                'last_name' => $student->user->users_last_name,
+                'id_card_number' => $student->id_number,
+                'birth_date' => $student->user->users_birthdate,
+                'class_name' => $student->classroom ? 
+                    $student->classroom->classes_level . '/' . $student->classroom->classes_room_number : 'ไม่ระบุ',
+                'behavior_score' => $student->students_current_score,
+                'profile_image' => $student->user->users_profile_image,
+                'updated_at' => $student->updated_at,
+                'guardian_name' => $guardian && $guardian->user ? 
+                    $guardian->user->users_first_name . ' ' . $guardian->user->users_last_name : 'ไม่ระบุ',
+                'guardian_phone' => $guardian->guardians_phone ?? 'ไม่ระบุ'
+            ];
+            
+            // จัดรูปแบบประวัติพฤติกรรม
+            $formattedHistory = $behaviorHistory->map(function($report) use ($student) {
+                return [
+                    'reports_id' => $report->reports_id,
+                    'created_at' => $report->reports_report_date,
+                    'violation_type' => $report->violation->violations_name,
+                    'violation_category' => $report->violation->violations_category,
+                    'score_deducted' => $report->violation->violations_points_deducted,
+                    'description' => $report->reports_description,
+                    'teacher_name' => $report->teacher && $report->teacher->user ? 
+                        $report->teacher->user->users_first_name . ' ' . $report->teacher->user->users_last_name : 'ไม่ระบุ',
+                    'grade_level' => $this->estimateGradeLevelFromDate($report->reports_report_date, $student)
+                ];
+            });
+            
+            // สถิติ
+            $statistics = [
+                'total_violations' => $totalViolations,
+                'total_score_deducted' => $totalScoreDeducted,
+                'average_score_per_year' => $averageScorePerYear,
+                'academic_years' => $academicYears
+            ];
+            
+            Log::info("Graduated student history loaded successfully for ID: {$id}");
+            
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'student' => $formattedStudent,
+                    'behavior_history' => $formattedHistory,
+                    'statistics' => $statistics
+                ]
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error("Error loading graduated student history for ID {$id}: " . $e->getMessage());
+            Log::error("Stack trace: " . $e->getTraceAsString());
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'เกิดข้อผิดพลาดในการดึงประวัติข้อมูล',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * ประมาณการระดับชั้นในขณะที่เกิดเหตุการณ์
+     * 
+     * @param string $reportDate
+     * @param Student $student
+     * @return string
+     */
+    private function estimateGradeLevelFromDate($reportDate, $student)
+    {
+        try {
+            $currentGrade = (int) filter_var($student->classroom->classes_level ?? 'ม.1', FILTER_SANITIZE_NUMBER_INT);
+            $currentYear = date('Y');
+            $reportYear = date('Y', strtotime($reportDate));
+            
+            // คำนวณระดับชั้นโดยประมาณ
+            $yearsDiff = $currentYear - $reportYear;
+            $estimatedGrade = max(1, $currentGrade - $yearsDiff);
+            
+            return 'ม.' . $estimatedGrade;
+        } catch (\Exception $e) {
+            return 'ไม่ระบุ';
+        }
+    }
 }
