@@ -140,6 +140,14 @@ Route::put('/teacher/profile/update', [App\Http\Controllers\TeacherController::c
      ->name('teacher.profile.update')
      ->middleware('auth');
 
+// Teacher API routes for archived students
+Route::prefix('api/teacher')->middleware('auth')->group(function () {
+    Route::get('/archived-students', [App\Http\Controllers\TeacherController::class, 'getArchivedStudents'])
+         ->name('api.teacher.archived-students');
+    Route::get('/student-history/{studentId}', [App\Http\Controllers\TeacherController::class, 'getStudentHistory'])
+         ->name('api.teacher.student-history');
+});
+
 // เพิ่ม Route สำหรับการแจ้งเตือนผู้ปกครองที่นี่
 Route::match(['get','post'], '/notifications/parent', [NotificationController::class, 'sendParentNotification'])
     ->middleware('auth')
