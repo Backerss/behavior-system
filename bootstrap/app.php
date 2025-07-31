@@ -11,7 +11,10 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
-        //
+        // เพิ่ม middleware สำหรับจัดการ JSON response ที่สะอาด
+        $middleware->alias([
+            'clean.json' => \App\Http\Middleware\CleanJsonResponse::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //

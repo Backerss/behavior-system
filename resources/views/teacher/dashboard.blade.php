@@ -2991,7 +2991,7 @@
         <script>
             $(document).ready(function () {
                 let googleSheetsPreviewData = null;
-
+                
                 // Toast Notification Function
                 function showToast(type, title, message) {
                     const toastId = 'toast-' + Date.now();
@@ -3172,13 +3172,26 @@
                 // Import Button Click
                 $('#importGoogleSheetsBtn').click(function () {
                     const selectedData = getSelectedGoogleSheetsValidData();
-
+                    
                     if (selectedData.length === 0) {
                         showToast('warning', 'แจ้งเตือน', 'กรุณาเลือกข้อมูลที่ต้องการนำเข้า');
                         return;
                     }
 
-                    if (!confirm('คุณต้องการนำเข้าข้อมูล ' + selectedData.length + ' รายการหรือไม่?')) {
+                    // เตือนเมื่อข้อมูลเยอะ
+                    let warningMessage = `คุณต้องการนำเข้าข้อมูล ${selectedData.length} รายการหรือไม่?`;
+                    if (selectedData.length > 30) {
+                        warningMessage += `\n\n⚠️ ข้อมูลจำนวนมาก (${selectedData.length} รายการ) อาจใช้เวลาในการประมวลผลนานกว่าปกติ`;
+                    }
+
+                    if (!confirm(warningMessage)) {
+                        return;
+                    }
+                    
+                    // ตรวจสอบ CSRF token
+                    const csrfToken = $('meta[name="csrf-token"]').attr('content');
+                    if (!csrfToken) {
+                        showToast('error', 'เกิดข้อผิดพลาด', 'ไม่พบ CSRF Token กรุณารีเฟรชหน้าและลองใหม่');
                         return;
                     }
 
@@ -3188,18 +3201,39 @@
                     $.ajax({
                         url: '{{ route("admin.google-sheets.import") }}',
                         method: 'POST',
-                        data: {
-                            selected_data: selectedData
+                        headers: {
+                            'X-CSRF-TOKEN': csrfToken,
+                            'Accept': 'application/json',
+                            'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'
                         },
-                        success: function (response) {
-                            if (response.success) {
-                                showToast('success', 'นำเข้าข้อมูลสำเร็จ!',
-                                    'สำเร็จ: ' + response.results.success_count + ' รายการ\n' +
-                                    'ผิดพลาด: ' + response.results.error_count + ' รายการ');
-
-                                if (response.results.errors.length > 0) {
-                                    console.log('รายการที่ผิดพลาด:', response.results.errors);
+                        data: {
+                            selected_data: selectedData,
+                            _token: csrfToken
+                        },
+                        timeout: 300000, // 5 นาที timeout
+                        beforeSend: function(xhr) {
+                            // Request starting...
+                        },
+                        success: function (response, textStatus, xhr) {
+                            // ตรวจสอบว่า response text มี PHP warning หรือไม่
+                            let cleanResponse = response;
+                            if (xhr.responseText && xhr.responseText.includes('<b>Warning</b>')) {
+                                try {
+                                    // หา JSON part จาก response text
+                                    const jsonStart = xhr.responseText.lastIndexOf('{');
+                                    if (jsonStart !== -1) {
+                                        const jsonPart = xhr.responseText.substring(jsonStart);
+                                        cleanResponse = JSON.parse(jsonPart);
+                                    }
+                                } catch (parseError) {
+                                    // ใช้ response เดิม
                                 }
+                            }
+                            
+                            if (cleanResponse && cleanResponse.success) {
+                                showToast('success', 'นำเข้าข้อมูลสำเร็จ!',
+                                    'สำเร็จ: ' + (cleanResponse.results.success_count || 0) + ' รายการ\n' +
+                                    'ผิดพลาด: ' + (cleanResponse.results.error_count || 0) + ' รายการ');
 
                                 // รีเซ็ตฟอร์ม
                                 $('#googleSheetsPreviewContainer').addClass('d-none');
@@ -3213,14 +3247,105 @@
                                     location.reload();
                                 }, 2000);
                             } else {
-                                showToast('error', 'เกิดข้อผิดพลาด', response.error);
+                                showToast('error', 'เกิดข้อผิดพลาด', cleanResponse.error || 'ไม่สามารถนำเข้าข้อมูลได้');
                             }
                         },
-                        error: function (xhr) {
-                            const response = xhr.responseJSON;
-                            showToast('error', 'เกิดข้อผิดพลาด', response ? response.error : 'ไม่สามารถติดต่อเซิร์ฟเวอร์ได้');
+                        error: function (xhr, textStatus, errorThrown) {
+                            // ตรวจสอบว่าเป็น success response ที่มี PHP warning หรือไม่
+                            if (xhr.status === 200 && xhr.responseText) {
+                                try {
+                                    // ลองหา JSON ใน response text
+                                    const jsonStart = xhr.responseText.lastIndexOf('{');
+                                    if (jsonStart !== -1) {
+                                        const jsonPart = xhr.responseText.substring(jsonStart);
+                                        const parsedResponse = JSON.parse(jsonPart);
+                                        
+                                        if (parsedResponse.success) {
+                                            showToast('success', 'นำเข้าข้อมูลสำเร็จ!',
+                                                'สำเร็จ: ' + (parsedResponse.results.success_count || 0) + ' รายการ\n' +
+                                                'ผิดพลาด: ' + (parsedResponse.results.error_count || 0) + ' รายการ\n' +
+                                                '(มีคำเตือนเล็กน้อยจาก PHP แต่ข้อมูลถูกบันทึกเรียบร้อย)');
+
+                                            // รีเซ็ตฟอร์ม
+                                            $('#googleSheetsPreviewContainer').addClass('d-none');
+                                            googleSheetsPreviewData = null;
+
+                                            // ปิด modal
+                                            $('#googleSheetsImportModal').modal('hide');
+
+                                            // Refresh หน้า
+                                            setTimeout(() => {
+                                                location.reload();
+                                            }, 2000);
+                                            
+                                            return; // ออกจาก error handler
+                                        }
+                                    }
+                                } catch (parseError) {
+                                    // ไม่สามารถ parse ได้
+                                }
+                            }
+                            
+                            let errorMessage = 'ไม่สามารถติดต่อเซิร์ฟเวอร์ได้';
+                            let errorType = 'error';
+                            
+                            try {
+                                // ลองแปลง response เป็น JSON
+                                let response = xhr.responseJSON;
+                                
+                                if (!response && xhr.responseText) {
+                                    try {
+                                        response = JSON.parse(xhr.responseText);
+                                    } catch (parseError) {
+                                        // ไม่สามารถ parse JSON ได้
+                                    }
+                                }
+                                
+                                if (response && response.error) {
+                                    errorMessage = response.error;
+                                } else if (response && response.message) {
+                                    errorMessage = response.message;
+                                } else if (xhr.status === 0) {
+                                    errorMessage = 'การเชื่อมต่อถูกขัดจังหวะ อาจเนื่องจากข้อมูลใช้เวลาในการประมวลผลนาน\nกรุณาตรวจสอบผลลัพธ์ในฐานข้อมูล';
+                                    errorType = 'warning';
+                                } else if (xhr.status === 419) {
+                                    errorMessage = 'CSRF Token หมดอายุ กรุณารีเฟรชหน้าและลองใหม่';
+                                } else if (xhr.status === 422) {
+                                    errorMessage = 'ข้อมูลที่ส่งไม่ถูกต้อง กรุณาตรวจสอบข้อมูลและลองใหม่อีกครั้ง';
+                                } else if (xhr.status === 500) {
+                                    errorMessage = 'เกิดข้อผิดพลาดภายในเซิร์ฟเวอร์';
+                                } else if (xhr.status === 504 || xhr.status === 408) {
+                                    errorMessage = 'เซิร์ฟเวอร์ใช้เวลาในการประมวลผลนานเกินไป\nข้อมูลอาจถูกบันทึกเรียบร้อยแล้ว กรุณาตรวจสอบผลลัพธ์';
+                                    errorType = 'warning';
+                                } else if (xhr.status === 413) {
+                                    errorMessage = 'ข้อมูลมีขนาดใหญ่เกินไป กรุณาลดจำนวนข้อมูลและลองใหม่';
+                                } else if (textStatus === 'timeout') {
+                                    errorMessage = 'หมดเวลาในการประมวลผล ข้อมูลอาจถูกบันทึกเรียบร้อยแล้ว\nกรุณาตรวจสอบผลลัพธ์ในระบบ';
+                                    errorType = 'warning';
+                                } else if (textStatus === 'parsererror') {
+                                    errorMessage = 'เกิดข้อผิดพลาดในการประมวลผลข้อมูลตอบกลับ\nข้อมูลอาจถูกบันทึกเรียบร้อยแล้ว กรุณาตรวจสอบผลลัพธ์';
+                                    errorType = 'warning';
+                                } else if (xhr.statusText) {
+                                    errorMessage = `เกิดข้อผิดพลาด: ${xhr.status} - ${xhr.statusText}`;
+                                }
+                                
+                            } catch (error) {
+                                // ไม่สามารถประมวลผล response ได้
+                                errorMessage = `เกิดข้อผิดพลาดไม่ทราบสาเหตุ (Status: ${xhr.status})`;
+                            }
+                            
+                            showToast(errorType, errorType === 'warning' ? 'แจ้งเตือน' : 'เกิดข้อผิดพลาด', errorMessage);
+                            
+                            // ถ้าเป็น timeout หรือ connection error ให้แสดงข้อความแนะนำ
+                            if (xhr.status === 0 || xhr.status === 504 || xhr.status === 408 || textStatus === 'timeout' || textStatus === 'parsererror') {
+                                setTimeout(() => {
+                                    if (confirm('ต้องการรีเฟรชหน้าเพื่อดูผลลัพธ์หรือไม่?\n\nข้อมูลอาจถูกบันทึกสำเร็จแล้วในเบื้องหลัง')) {
+                                        location.reload();
+                                    }
+                                }, 3000);
+                            }
                         },
-                        complete: function () {
+                        complete: function (xhr, textStatus) {
                             $('#importGoogleSheetsBtn').prop('disabled', false);
                             $('#googleSheetsImportLoading').addClass('d-none');
                         }

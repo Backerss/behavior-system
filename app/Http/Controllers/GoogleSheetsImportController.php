@@ -18,9 +18,7 @@ use DateInterval;
 
 class GoogleSheetsImportController extends Controller
 {
-    const DEFAULT_PASSWORD = '$2y$12$Yq98CXdMRT3w20RJM2vyYuyhS918XgHt2afpZKqQqrDYXJ5V447w.'; // 123456789
-    
-    // Base Google Sheets URL (แชร์เป็น Public และดู CSV export)
+    // ใช้ config แทน constant
     const GOOGLE_SHEETS_BASE_URL = 'https://docs.google.com/spreadsheets/d/1L3O0f5HdX_7cPw2jrQT4IaPsjw_jFD3O0aeH9ZQ499c';
     
     // รายการ Sheet tabs ที่มีอยู่
@@ -133,15 +131,6 @@ class GoogleSheetsImportController extends Controller
             // แปลงข้อมูลและตรวจสอบ
             $processedData = $this->processAndValidateData($data, $sheetType);
 
-            // Debug: บันทึกข้อมูลที่ได้
-            \Log::info('Google Sheets Data Retrieved', [
-                'sheet_type' => $sheetType,
-                'total_rows' => count($data),
-                'headers' => $data[0] ?? [],
-                'sample_data' => array_slice($data, 0, 3),
-                'user_id' => auth()->id() ?? 'guest'
-            ]);
-
             return response()->json([
                 'success' => true,
                 'data' => $processedData,
@@ -168,28 +157,113 @@ class GoogleSheetsImportController extends Controller
      */
     public function import(Request $request)
     {
+        // ปิด PHP warnings และ notices ที่อาจรบกวน JSON response
+        error_reporting(E_ERROR | E_PARSE);
+        ini_set('display_errors', 0);
+        ini_set('log_errors', 1);
+        
+        // เริ่มต้น output buffering เพื่อป้องกัน premature output
+        if (!ob_get_level()) {
+            ob_start();
+        }
+        
         try {
+            // เพิ่ม execution time และ memory limit
+            ini_set('max_execution_time', config('import.google_sheets.max_execution_time', 300));
+            ini_set('memory_limit', config('import.google_sheets.memory_limit', '512M'));
+            
+            // แก้ไขปัญหา max_input_vars สำหรับข้อมูลจำนวนมาก
+            ini_set('max_input_vars', config('import.google_sheets.max_input_vars', 5000));
+            ini_set('max_input_nesting_level', config('import.google_sheets.max_input_nesting_level', 64));
+            
             // ตรวจสอบสิทธิ์ Admin และ Teacher
+            if (!auth()->check()) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'กรุณาเข้าสู่ระบบ',
+                    'error_code' => 401
+                ], 401);
+            }
+            
             if (!in_array(auth()->user()->users_role, ['admin', 'teacher'])) {
-                return response()->json(['error' => 'คุณไม่มีสิทธิ์ในการเข้าถึงฟังก์ชันนี้'], 403);
+                return response()->json([
+                    'success' => false,
+                    'error' => 'คุณไม่มีสิทธิ์ในการเข้าถึงฟังก์ชันนี้',
+                    'error_code' => 403
+                ], 403);
             }
 
             $selectedData = $request->input('selected_data', []);
             
             if (empty($selectedData)) {
-                return response()->json(['error' => 'ไม่มีข้อมูลที่เลือกสำหรับการนำเข้า'], 400);
+                return response()->json([
+                    'success' => false,
+                    'error' => 'ไม่มีข้อมูลที่เลือกสำหรับการนำเข้า',
+                    'error_code' => 400
+                ], 400);
+            }
+            
+            if (!is_array($selectedData)) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'รูปแบบข้อมูลไม่ถูกต้อง',
+                    'error_code' => 422
+                ], 422);
             }
 
+            // การนำเข้าข้อมูลจริง
+
             $importResults = $this->importDataToDatabase($selectedData);
+
+            // ล้าง output buffer ก่อน return JSON
+            if (ob_get_level()) {
+                ob_clean();
+            }
 
             return response()->json([
                 'success' => true,
                 'message' => 'นำเข้าข้อมูลสำเร็จ',
-                'results' => $importResults
-            ]);
+                'results' => $importResults,
+                'timestamp' => now()->toISOString()
+            ], 200);
 
         } catch (Exception $e) {
-            return response()->json(['error' => 'เกิดข้อผิดพลาด: ' . $e->getMessage()], 500);
+            // ล้าง output buffer ในกรณี error
+            if (ob_get_level()) {
+                ob_clean();
+            }
+            
+            \Log::error('Import Error', [
+                'user_id' => auth()->id(),
+                'error' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString(),
+                'timestamp' => now()
+            ]);
+            
+            // ส่งข้อมูล error ที่ละเอียดขึ้น
+            $errorMessage = $e->getMessage();
+            $statusCode = 500;
+            
+            // ตรวจสอบประเภทของ error
+            if (strpos($errorMessage, 'timeout') !== false) {
+                $statusCode = 408; // Request Timeout
+                $errorMessage = 'การประมวลผลใช้เวลานานเกินไป กรุณาลองใหม่อีกครั้ง';
+            } elseif (strpos($errorMessage, 'memory') !== false) {
+                $statusCode = 413; // Payload Too Large
+                $errorMessage = 'ข้อมูลมีขนาดใหญ่เกินไป กรุณาลดจำนวนข้อมูลและลองใหม่';
+            } elseif (strpos($errorMessage, 'database') !== false || strpos($errorMessage, 'connection') !== false) {
+                $statusCode = 503; // Service Unavailable
+                $errorMessage = 'ไม่สามารถเชื่อมต่อฐานข้อมูลได้ กรุณาลองใหม่อีกครั้ง';
+            }
+            
+            return response()->json([
+                'success' => false,
+                'error' => $errorMessage,
+                'error_code' => $statusCode,
+                'timestamp' => now()->toISOString()
+            ], $statusCode);
         }
     }
 
@@ -204,13 +278,6 @@ class GoogleSheetsImportController extends Controller
             
             // ลองใช้ GID ที่กำหนดไว้ก่อน
             $url = self::GOOGLE_SHEETS_BASE_URL . '/export?format=csv&gid=' . $sheetConfig['gid'];
-            
-            // Debug: บันทึก URL ที่ใช้
-            \Log::info('Fetching Google Sheets Data', [
-                'sheet_type' => $sheetType,
-                'url' => $url,
-                'gid' => $sheetConfig['gid']
-            ]);
             
             $context = stream_context_create([
                 'http' => [
@@ -275,11 +342,6 @@ class GoogleSheetsImportController extends Controller
             try {
                 $url = self::GOOGLE_SHEETS_BASE_URL . '/export?format=csv&gid=' . $gid;
                 
-                \Log::info('Trying GID for teachers', [
-                    'gid' => $gid,
-                    'url' => $url
-                ]);
-                
                 $context = stream_context_create([
                     'http' => [
                         'timeout' => 10,
@@ -334,12 +396,6 @@ class GoogleSheetsImportController extends Controller
                         }
                         
                         if ($foundTeacherData) {
-                            \Log::info('Found correct GID for teachers', [
-                                'gid' => $gid,
-                                'headers' => $headers,
-                                'first_data' => $rows[1] ?? []
-                            ]);
-                            
                             // ลบแถวว่างออก
                             $rows = array_filter($rows, function($row) {
                                 return !empty(array_filter($row, function($cell) {
@@ -348,12 +404,6 @@ class GoogleSheetsImportController extends Controller
                             });
                             
                             return array_values($rows);
-                        } else {
-                            \Log::info('Not teacher data - skipping GID', [
-                                'gid' => $gid,
-                                'headers' => $headers,
-                                'first_data' => $rows[1] ?? []
-                            ]);
                         }
                     }
                 }
@@ -386,11 +436,6 @@ class GoogleSheetsImportController extends Controller
         foreach ($possibleGids as $gid) {
             try {
                 $url = self::GOOGLE_SHEETS_BASE_URL . '/export?format=csv&gid=' . $gid;
-                
-                \Log::info('Trying GID for guardians', [
-                    'gid' => $gid,
-                    'url' => $url
-                ]);
                 
                 $context = stream_context_create([
                     'http' => [
@@ -1139,66 +1184,91 @@ class GoogleSheetsImportController extends Controller
         $successCount = 0;
         $errorCount = 0;
         $errors = [];
+        
+        // แบ่งข้อมูลเป็น chunks เพื่อลด memory usage
+        $chunkSize = config('import.google_sheets.chunk_size', 50);
+        $chunks = array_chunk($selectedData, $chunkSize); // ประมวลผลตาม config
+        
+        foreach ($chunks as $chunkIndex => $chunk) {
+            DB::beginTransaction();
 
-        DB::beginTransaction();
-
-        try {
-            foreach ($selectedData as $item) {
-                try {
-                    $userData = $item['data'];
-                    
-                    // สร้าง User
-                    $userBirthdate = null;
-                    
-                    // สำหรับผู้ปกครอง ให้ users_birthdate = null ตามที่กำหนด
-                    if ($userData['role'] !== 'guardian' && isset($userData['date_of_birth']) && !empty($userData['date_of_birth']) && $userData['date_of_birth'] !== null) {
-                        // ตรวจสอบว่าเป็นวันที่จริงๆ ไม่ใช่อีเมลหรือข้อความอื่น
-                        $dateValue = $userData['date_of_birth'];
-                        if (!filter_var($dateValue, FILTER_VALIDATE_EMAIL) && 
-                            strpos($dateValue, '@') === false && 
-                            strlen($dateValue) <= 20 &&
-                            !preg_match('/[a-zA-Z]{3,}/', $dateValue)) {
-                            $userBirthdate = $dateValue;
+            try {
+                foreach ($chunk as $item) {
+                    try {
+                        $userData = $item['data'];
+                        
+                        // สร้าง User
+                        $userBirthdate = null;
+                        
+                        // สำหรับผู้ปกครอง ให้ users_birthdate = null ตามที่กำหนด
+                        if ($userData['role'] !== 'guardian' && isset($userData['date_of_birth']) && !empty($userData['date_of_birth']) && $userData['date_of_birth'] !== null) {
+                            // ตรวจสอบว่าเป็นวันที่จริงๆ ไม่ใช่อีเมลหรือข้อความอื่น
+                            $dateValue = $userData['date_of_birth'];
+                            if (!filter_var($dateValue, FILTER_VALIDATE_EMAIL) && 
+                                strpos($dateValue, '@') === false && 
+                                strlen($dateValue) <= 20 &&
+                                !preg_match('/[a-zA-Z]{3,}/', $dateValue)) {
+                                $userBirthdate = $dateValue;
+                            }
                         }
+                        
+                        $user = User::create([
+                            'users_name_prefix' => $userData['title'] ?? null,
+                            'users_first_name' => $userData['first_name'],
+                            'users_last_name' => $userData['last_name'],
+                            'users_email' => $userData['email'],
+                            'users_phone_number' => $userData['phone'] ?? null,
+                            'users_password' => config('import.defaults.password'),
+                            'users_role' => $userData['role'],
+                            'users_birthdate' => $userBirthdate,
+                            'users_created_at' => now(),
+                            'users_updated_at' => now(),
+                            'users_status' => $userData['status'] ?? config('import.defaults.status', 'active')
+                        ]);
+
+                        // สร้างข้อมูลตามบทบาท
+                        $this->createRoleSpecificData($user, $userData);
+
+                        $successCount++;
+
+                    } catch (Exception $e) {
+                        $errorCount++;
+                        $errors[] = "แถว {$item['row_number']}: " . $e->getMessage();
+                        \Log::error("Import row error", [
+                            'row' => $item['row_number'],
+                            'error' => $e->getMessage(),
+                            'data' => isset($userData) ? $userData : null
+                        ]);
                     }
-                    
-                    $user = User::create([
-                        'users_name_prefix' => $userData['title'] ?? null,
-                        'users_first_name' => $userData['first_name'],
-                        'users_last_name' => $userData['last_name'],
-                        'users_email' => $userData['email'],
-                        'users_phone_number' => $userData['phone'] ?? null,
-                        'users_password' => self::DEFAULT_PASSWORD,
-                        'users_role' => $userData['role'],
-                        'users_birthdate' => $userBirthdate,
-                        'users_created_at' => now(),
-                        'users_updated_at' => now(),
-                        'users_status' => $userData['status'] ?? 'active'
-                    ]);
+                }
 
-                    // สร้างข้อมูลตามบทบาท
-                    $this->createRoleSpecificData($user, $userData);
+                DB::commit();
 
-                    $successCount++;
-
-                } catch (Exception $e) {
+            } catch (Exception $e) {
+                DB::rollback();
+                \Log::error("Chunk " . ($chunkIndex + 1) . " failed", [
+                    'error' => $e->getMessage(),
+                    'chunk_size' => count($chunk)
+                ]);
+                
+                // เพิ่ม error สำหรับ chunk นี้
+                foreach ($chunk as $item) {
                     $errorCount++;
-                    $errors[] = "แถว {$item['row_number']}: " . $e->getMessage();
+                    $errors[] = "แถว {$item['row_number']}: ไม่สามารถบันทึกข้อมูลได้เนื่องจากข้อผิดพลาดในระบบ";
                 }
             }
-
-            DB::commit();
-
-            return [
-                'success_count' => $successCount,
-                'error_count' => $errorCount,
-                'errors' => $errors
-            ];
-
-        } catch (Exception $e) {
-            DB::rollback();
-            throw $e;
+            
+            // หน่วงเวลาเล็กน้อยระหว่าง chunks เพื่อลดภาระระบบ
+            if ($chunkIndex < count($chunks) - 1) {
+                usleep(config('import.google_sheets.chunk_delay', 100000)); // ใช้ค่าจาก config
+            }
         }
+
+        return [
+            'success_count' => $successCount,
+            'error_count' => $errorCount,
+            'errors' => $errors
+        ];
     }
 
     /**
@@ -1236,8 +1306,8 @@ class GoogleSheetsImportController extends Controller
                     'students_student_code' => $userData['student_id'] ?? null,
                     'class_id' => $classroom ? $classroom->classes_id : null,
                     'students_academic_year' => $userData['academic_year'] ?? date('Y'),
-                    'students_current_score' => 100,
-                    'students_status' => $userData['status'] ?? 'active',
+                    'students_current_score' => config('import.defaults.student_score', 100),
+                    'students_status' => $userData['status'] ?? config('import.defaults.status', 'active'),
                     'students_gender' => $userData['gender'] ?? null,
                     'students_created_at' => now()
                 ]);
@@ -1260,19 +1330,13 @@ class GoogleSheetsImportController extends Controller
 
             case 'guardian':
                 try {
-                    // Log ข้อมูลสำหรับ debugging
-                    \Log::info('Creating Guardian with data:', [
-                        'user_id' => $user->users_id,
-                        'userData' => $userData
-                    ]);
-                    
                     $guardian = Guardian::create([
                         'user_id' => $user->users_id,
                         'guardians_relationship_to_student' => 'ผู้ปกครอง',
                         'guardians_phone' => $userData['phone'] ?? null,
                         'guardians_email' => $userData['email'] ?? null,
                         'guardians_line_id' => $userData['line_id'] ?? null,
-                        'guardians_preferred_contact_method' => $userData['contact_method'] ?? 'phone',
+                        'guardians_preferred_contact_method' => $userData['contact_method'] ?? config('import.defaults.contact_method', 'phone'),
                         'guardians_created_at' => now(),
                         'updated_at' => now()
                     ]);

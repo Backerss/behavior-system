@@ -158,7 +158,9 @@ Route::prefix('admin')->middleware(['auth'])->group(function () {
     Route::get('/google-sheets', [GoogleSheetsImportController::class, 'index'])->name('admin.google-sheets');
     Route::get('/google-sheets/sheets', [GoogleSheetsImportController::class, 'getAvailableSheets'])->name('admin.google-sheets.sheets');
     Route::get('/google-sheets/preview', [GoogleSheetsImportController::class, 'preview'])->name('admin.google-sheets.preview');
-    Route::post('/google-sheets/import', [GoogleSheetsImportController::class, 'import'])->name('admin.google-sheets.import');
+    Route::post('/google-sheets/import', [GoogleSheetsImportController::class, 'import'])
+        ->middleware(['App\Http\Middleware\ExtendExecutionTime:600', 'clean.json'])
+        ->name('admin.google-sheets.import');
 });
 
 // Parent notification API routes
