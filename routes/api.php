@@ -6,6 +6,7 @@ use App\Http\Controllers\StudentApiController;
 use App\Http\Controllers\BehaviorReportController;
 use App\Http\Controllers\ViolationController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\ClassroomController;
 use App\Http\Controllers\API\StudentReportController;
 use App\Http\Controllers\NotificationController;
 

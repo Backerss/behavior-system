@@ -43,7 +43,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const classroomSearch = document.getElementById('classroomSearch');
     const btnSearchClass = document.getElementById('btnSearchClass');
     const confirmDeleteClass = document.getElementById('confirmDeleteClass');
-    const filterAcademicYear = document.getElementById('filterAcademicYear');
     const filterLevel = document.getElementById('filterLevel');
     const btnApplyFilter = document.getElementById('btnApplyFilter');
 
@@ -55,7 +54,6 @@ document.addEventListener('DOMContentLoaded', function() {
         // สร้าง URL พร้อม query parameters
         let url = `/api/classes?page=${page}`;
         if (search) url += `&search=${encodeURIComponent(search)}`;
-        if (filters.academicYear) url += `&academicYear=${encodeURIComponent(filters.academicYear)}`;
         if (filters.level) url += `&level=${encodeURIComponent(filters.level)}`;
         
         // เรียก API จริง
@@ -121,7 +119,6 @@ document.addEventListener('DOMContentLoaded', function() {
         const rowsHtml = classrooms.map(classroom => {
             const classId = classroom.classes_id || '';
             const className = `${classroom.classes_level || 'N/A'}/${classroom.classes_room_number || 'N/A'}`;
-            const academicYear = classroom.classes_academic_year || 'N/A';
             // const studentCount = classroom.students_count || 0; // student_count is available if needed in the future
 
             let teacherName = 'ยังไม่ได้กำหนด';
@@ -137,7 +134,6 @@ document.addEventListener('DOMContentLoaded', function() {
             return `
                 <tr>
                     <td>${escapeHtml(className)}</td>
-                    <td>${escapeHtml(academicYear)}</td>
                     <td>${escapeHtml(teacherName)}</td>
                     <td>
                         <button class="btn btn-sm btn-outline-primary view-class-btn me-1" data-id="${classId}" title="ดูรายละเอียด">
@@ -224,9 +220,9 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // ฟังก์ชันโหลดข้อมูลตัวกรอง (ปีการศึกษาและระดับชั้น)
+    // ฟังก์ชันโหลดข้อมูลตัวกรอง (ระดับชั้น)
     function fetchFilters() {
-        fetch('/api/classes/filters/all', {
+        fetch('/classes/filters/all', {
             headers: {
                 'Accept': 'application/json',
                 'X-Requested-With': 'XMLHttpRequest'
@@ -235,29 +231,6 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                // เติมข้อมูลปีการศึกษา
-                if (data.data.academicYears && data.data.academicYears.length > 0) {
-                    const academicYearSelect = document.getElementById('filterAcademicYear');
-                    data.data.academicYears.forEach(year => {
-                        const option = new Option(year, year);
-                        academicYearSelect.add(option);
-                    });
-                    
-                    // เติมข้อมูลในฟอร์มเพิ่มด้วย
-                    const formAcademicYearSelect = document.getElementById('classes_academic_year');
-                    if (formAcademicYearSelect) {
-                        // ล้างตัวเลือกเดิมยกเว้นตัวแรก
-                        while (formAcademicYearSelect.options.length > 1) {
-                            formAcademicYearSelect.remove(1);
-                        }
-                        
-                        data.data.academicYears.forEach(year => {
-                            const option = new Option(year, year);
-                            formAcademicYearSelect.add(option);
-                        });
-                    }
-                }
-                
                 // เติมข้อมูลระดับชั้น
                 if (data.data.levels && data.data.levels.length > 0) {
                     const levelSelect = document.getElementById('filterLevel');
@@ -324,7 +297,6 @@ document.addEventListener('DOMContentLoaded', function() {
                         document.getElementById('classId').value = classroom.classes_id;
                         document.getElementById('classes_level').value = classroom.classes_level || '';
                         document.getElementById('classes_room_number').value = classroom.classes_room_number || '';
-                        document.getElementById('classes_academic_year').value = classroom.classes_academic_year || '';
                         
                         // เลือกครูที่กำหนดไว้
                         if (classroom.teacher) {
@@ -597,12 +569,6 @@ document.addEventListener('DOMContentLoaded', function() {
                                 <div class="col-6">
                                     <label class="text-muted small">ห้อง</label>
                                     <p class="mb-2 fw-bold">${escapeHtml(classroom.classes_room_number || 'N/A')}</p>
-                                </div>
-                            </div>
-                            <div class="row">
-                                <div class="col-12">
-                                    <label class="text-muted small">ปีการศึกษา</label>
-                                    <p class="mb-2 fw-bold">${escapeHtml(classroom.classes_academic_year || 'N/A')}</p>
                                 </div>
                             </div>
                             <div class="row">
@@ -1142,7 +1108,6 @@ document.addEventListener('DOMContentLoaded', function() {
     // กำหนด event ให้กับปุ่มกรองข้อมูล
     if (btnApplyFilter) {
         btnApplyFilter.addEventListener('click', function() {
-            classManager.filters.academicYear = filterAcademicYear.value;
             classManager.filters.level = filterLevel.value;
             fetchClassrooms(1, classManager.searchTerm, classManager.filters);
         });

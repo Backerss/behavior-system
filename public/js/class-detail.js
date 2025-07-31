@@ -17,7 +17,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const classDetailModal = document.getElementById('classDetailModal');
     const classTitle = document.querySelector('.class-title');
     const classLevelRoom = document.getElementById('class-level-room');
-    const classAcademicYear = document.getElementById('class-academic-year');
     const classTeacherName = document.getElementById('class-teacher-name');
     const classStudentsCount = document.getElementById('class-students-count');
     const classAvgScore = document.getElementById('class-avg-score');
@@ -221,7 +220,6 @@ document.addEventListener('DOMContentLoaded', function() {
         const roomInfo = `${classData.classes_level}/${classData.classes_room_number}`;
         classTitle.textContent = roomInfo;
         classLevelRoom.textContent = roomInfo;
-        classAcademicYear.textContent = classData.classes_academic_year;
         
         // แสดงข้อมูลครูประจำชั้น
         if (classData.teacher && classData.teacher.user) {
@@ -609,7 +607,6 @@ document.addEventListener('DOMContentLoaded', function() {
         // รีเซ็ตข้อมูลที่แสดง
         classTitle.textContent = '';
         classLevelRoom.textContent = '';
-        classAcademicYear.textContent = '';
         classTeacherName.textContent = '';
         classStudentsCount.textContent = '';
         studentCountBadge.textContent = '0';

@@ -33,16 +33,10 @@ class ClassroomController extends Controller
                 $query->where(function($q) use ($searchTerm) {
                     $q->where('classes_level', 'LIKE', "%{$searchTerm}%")
                       ->orWhere('classes_room_number', 'LIKE', "%{$searchTerm}%")
-                      ->orWhere('classes_academic_year', 'LIKE', "%{$searchTerm}%")
                       ->orWhereHas('teacher.user', function($subQ) use ($searchTerm) {
                           $subQ->where(DB::raw("CONCAT(users_first_name, ' ', users_last_name)"), 'LIKE', "%{$searchTerm}%");
                       });
                 });
-            }
-            
-            // กรองตามปีการศึกษา
-            if (!empty($academicYear)) {
-                $query->where('classes_academic_year', $academicYear);
             }
             
             // กรองตามระดับชั้น
@@ -84,7 +78,6 @@ class ClassroomController extends Controller
             $validator = Validator::make($request->all(), [
                 'classes_level' => 'required|string|max:10',
                 'classes_room_number' => 'required|string|max:5',
-                'classes_academic_year' => 'required|string|max:4',
                 'teacher_id' => 'required|exists:tb_teachers,teachers_id',
             ]);
 
@@ -99,7 +92,6 @@ class ClassroomController extends Controller
             $classroom = new ClassRoom();
             $classroom->classes_level = $request->classes_level;
             $classroom->classes_room_number = $request->classes_room_number;
-            $classroom->classes_academic_year = $request->classes_academic_year;
             
             // สำคัญ! ต้องใช้ชื่อฟิลด์ให้ตรงกับในฐานข้อมูล
             // ถ้าคอลัมน์ในฐานข้อมูลชื่อ "teacher_id"
@@ -173,12 +165,10 @@ class ClassroomController extends Controller
             $validator = Validator::make($request->all(), [
                 'classes_level' => 'required|string|max:10',
                 'classes_room_number' => 'required|string|max:5',
-                'classes_academic_year' => 'required|string|max:4',
                 'teacher_id' => 'required|exists:tb_teachers,teachers_id',
             ], [
                 'classes_level.required' => 'กรุณาระบุระดับชั้น',
                 'classes_room_number.required' => 'กรุณาระบุหมายเลขห้องเรียน',
-                'classes_academic_year.required' => 'กรุณาระบุปีการศึกษา',
                 'teacher_id.required' => 'กรุณาเลือกครูประจำชั้น',
                 'teacher_id.exists' => 'ไม่พบข้อมูลครูที่เลือก',
             ]);
@@ -197,7 +187,6 @@ class ClassroomController extends Controller
             // ตรวจสอบว่ามีห้องเรียนซ้ำหรือไม่ ยกเว้นห้องเรียนปัจจุบัน
             $existingClassroom = ClassRoom::where('classes_level', $request->classes_level)
                                     ->where('classes_room_number', $request->classes_room_number)
-                                    ->where('classes_academic_year', $request->classes_academic_year)
                                     ->where('classes_id', '!=', $id)
                                     ->first();
                                     
@@ -211,7 +200,6 @@ class ClassroomController extends Controller
             // อัพเดทข้อมูล
             $classroom->classes_level = $request->classes_level;
             $classroom->classes_room_number = $request->classes_room_number;
-            $classroom->classes_academic_year = $request->classes_academic_year;
             $classroom->teachers_id = $request->teacher_id;
             $classroom->save();
             
@@ -359,19 +347,13 @@ class ClassroomController extends Controller
     }
     
     /**
-     * ดึงข้อมูลปีการศึกษาและระดับชั้นทั้งหมดสำหรับตัวกรอง
+     * ดึงข้อมูลระดับชั้นทั้งหมดสำหรับตัวกรอง
      * 
      * @return \Illuminate\Http\JsonResponse
      */
     public function getFilters()
     {
         try {
-            // แก้จาก Classroom เป็น ClassRoom
-            $academicYears = ClassRoom::select('classes_academic_year')
-                                     ->distinct()
-                                     ->orderBy('classes_academic_year', 'desc')
-                                     ->pluck('classes_academic_year');
-                                     
             $levels = ClassRoom::select('classes_level')
                              ->distinct()
                              ->orderBy('classes_level')
@@ -380,7 +362,6 @@ class ClassroomController extends Controller
             return response()->json([
                 'success' => true,
                 'data' => [
-                    'academicYears' => $academicYears,
                     'levels' => $levels
                 ],
                 'message' => 'ดึงข้อมูลตัวกรองสำเร็จ'
@@ -486,7 +467,7 @@ class ClassroomController extends Controller
     public function getClassesForRegistration()
     {
         try {
-            $classes = ClassRoom::select('classes_id', 'classes_level', 'classes_room_number', 'classes_academic_year')
+            $classes = ClassRoom::select('classes_id', 'classes_level', 'classes_room_number')
                 ->orderBy('classes_level')
                 ->orderBy('classes_room_number')
                 ->get()
@@ -494,7 +475,6 @@ class ClassroomController extends Controller
                     return [
                         'id' => $class->classes_id,
                         'label' => $class->classes_level . '/' . $class->classes_room_number,
-                        'academic_year' => $class->classes_academic_year
                     ];
                 });
 

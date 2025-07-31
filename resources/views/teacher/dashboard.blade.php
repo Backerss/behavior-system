@@ -672,44 +672,6 @@
             <div class="content-wrapper">
                 <div class="container-fluid">
                     <!-- Academic Year Info & Notifications -->
-                    <div class="row mb-4">
-                        <div class="col-12">
-                            <div class="academic-info-section">
-                                <!-- ข้อมูลปีการศึกษา -->
-                                <div class="card border-primary mb-3">
-                                    <div class="card-body p-3">
-                                        <div class="d-flex align-items-center justify-content-between">
-                                            <div class="d-flex align-items-center">
-                                                <div class="academic-icon me-3">
-                                                    <i class="fas fa-calendar-alt text-primary fs-4"></i>
-                                                </div>
-                                                <div>
-                                                    <h6 class="mb-1 fw-bold text-primary" id="academic-year-display">
-                                                        ปีการศึกษา 2568 ภาคเรียนที่ 1
-                                                    </h6>
-                                                    <small class="text-muted" id="academic-period-info">
-                                                        ช่วงภาคเรียน: 16 พฤษภาคม - 31 ตุลาคม
-                                                    </small>
-                                                </div>
-                                            </div>
-                                            <div class="academic-status">
-                                                <span class="badge bg-success" id="academic-status-badge">
-                                                    <i class="fas fa-check-circle me-1"></i>
-                                                    ปกติ
-                                                </span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <!-- การแจ้งเตือน -->
-                                <div id="academic-notifications" style="display: none;">
-                                    <!-- จะถูกเติมด้วย JavaScript -->
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
                     <!-- Welcome Section -->
                     <div class="welcome-section d-flex justify-content-between align-items-center mb-4">
                         <div>
@@ -2016,15 +1978,7 @@
                     <div class="card mb-3">
                         <div class="card-body">
                             <div class="row g-2">
-                                <div class="col-md-4">
-                                    <label class="form-label">ปีการศึกษา</label>
-                                    <select class="form-select form-select-sm" id="filterAcademicYear"
-                                        autocomplete="off">
-                                        <option value="">ทั้งหมด</option>
-                                        <!-- จะถูกเติมโดย JavaScript -->
-                                    </select>
-                                </div>
-                                <div class="col-md-4">
+                                <div class="col-md-6">
                                     <label class="form-label">ระดับชั้น</label>
                                     <select class="form-select form-select-sm" id="filterLevel" autocomplete="off">
                                         <option value="">ทั้งหมด</option>
@@ -2046,9 +2000,8 @@
                             <table class="table table-hover align-middle">
                                 <thead class="table-light">
                                     <tr>
-                                        <th style="width: 15%">ชั้นเรียน</th>
-                                        <th style="width: 20%">ปีการศึกษา</th>
-                                        <th style="width: 25%">ครูประจำชั้น</th>
+                                        <th style="width: 20%">ชั้นเรียน</th>
+                                        <th style="width: 35%">ครูประจำชั้น</th>
                                         <th style="width: 15%">จัดการ</th>
                                     </tr>
                                 </thead>
@@ -2104,19 +2057,6 @@
                                 </div>
 
                                 <div class="row">
-                                    <div class="col-md-6 mb-3">
-                                        <label for="classes_academic_year" class="form-label">ปีการศึกษา <span
-                                                class="text-danger">*</span></label>
-                                        <select class="form-select" id="classes_academic_year"
-                                            name="classes_academic_year" required autocomplete="off">
-                                            <option value="" selected disabled>เลือกปีการศึกษา</option>
-                                            <option value="2566">2566</option>
-                                            <option value="2567">2567</option>
-                                            <option value="2568">2568</option>
-                                        </select>
-                                        <div class="invalid-feedback">กรุณาเลือกปีการศึกษา</div>
-                                    </div>
-
                                     <div class="col-md-6 mb-3">
                                         <label for="teacher_id" class="form-label">ครูประจำชั้น <span
                                                 class="text-danger">*</span></label>
@@ -2174,10 +2114,6 @@
                                         <div class="row mb-2">
                                             <div class="col-sm-5 text-muted">ชั้นเรียน:</div>
                                             <div class="col-sm-7 fw-medium" id="class-level-room"></div>
-                                        </div>
-                                        <div class="row mb-2">
-                                            <div class="col-sm-5 text-muted">ปีการศึกษา:</div>
-                                            <div class="col-sm-7 fw-medium" id="class-academic-year"></div>
                                         </div>
                                         <div class="row mb-2">
                                             <div class="col-sm-5 text-muted">ครูประจำชั้น:</div>
@@ -2868,123 +2804,6 @@
     <script src="/js/parent-notification.js"></script>
     <!-- Archived Students JS -->
     <script src="/js/archived-students.js"></script>
-
-    <!-- Academic Year Management Script -->
-    <script>
-        $(document).ready(function () {
-            // ข้อมูลปีการศึกษาจาก PHP
-            const academicData = @json($academicStatus ?? []);
-            const academicNotifications = @json($academicNotifications ?? []);
-
-            // อัปเดตข้อมูลปีการศึกษา
-            function updateAcademicDisplay() {
-                if (academicData.display_text) {
-                    $('#academic-year-display').text(academicData.display_text);
-                }
-
-                // อัปเดตข้อมูลช่วงภาคเรียน
-                updateSemesterPeriodInfo(academicData.semester);
-            }
-
-            // อัปเดตข้อมูลช่วงภาคเรียน
-            function updateSemesterPeriodInfo(semester) {
-                let periodText = '';
-                if (semester == 1) {
-                    periodText = 'ช่วงภาคเรียน: 16 พฤษภาคม - 31 ตุลาคม';
-                } else if (semester == 2) {
-                    periodText = 'ช่วงภาคเรียน: 1 พฤศจิกายน - 15 พฤษภาคม (ปีถัดไป)';
-                }
-                $('#academic-period-info').text(periodText);
-            }
-
-            // แสดงการแจ้งเตือน
-            function displayAcademicNotifications() {
-                const notificationContainer = $('#academic-notifications');
-
-                if (academicNotifications && academicNotifications.length > 0) {
-                    let notificationsHtml = '';
-
-                    academicNotifications.forEach(function (notification) {
-                        const alertClass = notification.type === 'warning' ? 'alert-warning' : 'alert-info';
-                        const icon = notification.type === 'warning' ? 'fas fa-exclamation-triangle' : 'fas fa-info-circle';
-
-                        notificationsHtml += `
-                        <div class="alert ${alertClass} alert-dismissible fade show mb-2" role="alert">
-                            <i class="${icon} me-2"></i>
-                            ${notification.message}
-                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                        </div>
-                    `;
-                    });
-
-                    notificationContainer.html(notificationsHtml).show();
-                } else {
-                    notificationContainer.hide();
-                }
-            }
-
-            // อัปเดต status badge
-            function updateStatusBadge() {
-                const statusBadge = $('#academic-status-badge');
-
-                if (academicNotifications && academicNotifications.length > 0) {
-                    const hasWarning = academicNotifications.some(n => n.type === 'warning');
-                    if (hasWarning) {
-                        statusBadge.removeClass('bg-success').addClass('bg-warning');
-                        statusBadge.html('<i class="fas fa-exclamation-triangle me-1"></i>ต้องระวัง');
-                    } else {
-                        statusBadge.removeClass('bg-success').addClass('bg-info');
-                        statusBadge.html('<i class="fas fa-info-circle me-1"></i>มีข้อมูล');
-                    }
-                } else {
-                    statusBadge.removeClass('bg-warning bg-info').addClass('bg-success');
-                    statusBadge.html('<i class="fas fa-check-circle me-1"></i>ปกติ');
-                }
-            }
-
-            // เริ่มต้นการทำงาน
-            updateAcademicDisplay();
-            displayAcademicNotifications();
-            updateStatusBadge();
-
-            // เพิ่ม CSS สำหรับ animation
-            const style = document.createElement('style');
-            style.textContent = `
-            .academic-info-section .card {
-                transition: all 0.3s ease;
-            }
-            
-            .academic-info-section .card:hover {
-                box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-                transform: translateY(-2px);
-            }
-            
-            .academic-icon {
-                padding: 0.5rem;
-                border-radius: 50%;
-                background-color: rgba(13, 110, 253, 0.1);
-            }
-            
-            .academic-status .badge {
-                transition: all 0.3s ease;
-            }
-            
-            #academic-notifications .alert {
-                border-left: 4px solid;
-                border-left-color: inherit;
-            }
-            
-            .alert-warning {
-                border-left-color: #ffc107 !important;
-            }
-            
-            .alert-info {
-                border-left-color: #0dcaf0 !important;
-            }
-        `;
-            document.head.appendChild(style);
-        });
-    </script>
 
     <!-- Google Sheets Import JavaScript (Admin Only) -->
     @if(auth()->user()->users_role === 'admin')

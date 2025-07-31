@@ -25,6 +25,9 @@ Route::middleware('guest')->group(function () {
     Route::post('/login', [AuthController::class, 'login']);
 });
 
+// Route ที่ไม่ต้อง authentication
+Route::get('/classes/filters/all', [ClassroomController::class, 'getFilters']);
+
 // เส้นทางสำหรับผู้ที่เข้าสู่ระบบแล้ว
 Route::middleware('auth')->group(function () {
     // ออกจากระบบ
@@ -112,7 +115,6 @@ Route::prefix('api')->middleware('auth')->group(function () {
         Route::delete('/{id}', [ClassroomController::class, 'destroy'])->where('id', '[0-9]+');
         Route::get('/{id}/students', [ClassroomController::class, 'getStudents'])->where('id', '[0-9]+');
         Route::get('/teachers/all', [ClassroomController::class, 'getAllTeachers']);
-        Route::get('/filters/all', [ClassroomController::class, 'getFilters']);
         Route::get('/{id}/violations/stats', [ClassroomController::class, 'getViolationStatistics'])->where('id', '[0-9]+');
         Route::get('/{id}/export', [ClassroomController::class, 'exportClassReport'])->where('id', '[0-9]+');
     });
