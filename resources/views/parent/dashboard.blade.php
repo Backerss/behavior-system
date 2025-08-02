@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="csrf-token" content="{{ csrf_token() }}">{{-- เพิ่มบรรทัดนี้ --}}
-    <title>ระบบสารสนเทศจัดการคะแนนนักเรียน - หน้าผู้ปกครอง</title>
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>ระบบสารสนเทศจัดการคะแนนพฤติกรรมนักเรียน - หน้าผู้ปกครอง</title>
+    
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Font Awesome -->
@@ -12,42 +13,363 @@
     <!-- Google Font: Prompt -->
     <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <!-- App CSS -->
-    <link href="/css/app.css" rel="stylesheet">
+    <link href="{{ asset('css/app.css') }}" rel="stylesheet">
     <!-- Parent Dashboard Specific CSS -->
     <link href="{{ asset('css/parent.css') }}" rel="stylesheet">
-    <link rel="stylesheet" href="{{ asset('css/student.css') }}">
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-</head>
-<body>
-    <!-- Theme Toggle -->
-    <div id="theme-toggle" class="theme-toggle">
-        <i class="fas fa-moon"></i>
-    </div>
     
-    <div class="app-container">
-        <!-- Desktop Navbar (displays on larger screens) -->
-        <nav class="desktop-navbar d-none d-lg-flex jus">
-            <div class="desktop-navbar-container">
-                <div class="desktop-navbar-brand">
-                    <i class="fas fa-graduation-cap"></i>
-                    <span>ระบบจัดการคะแนนพฤติกรรม</span>
-                </div>
-                <div class="desktop-navbar-menu">
-                    <!-- เพิ่มปุ่มออกจากระบบในเมนู -->
-                    <a href="javascript:void(0);" onclick="document.getElementById('logout-form').submit();" class="desktop-nav-link">
-                        <i class="fas fa-sign-out-alt"></i>
-                        <span>ออกจากระบบ</span>
-                    </a>
-                    <form id="logout-form" action="{{ route('logout') }}" method="POST" class="d-none">
-                        @csrf
-                    </form>
-                </div>
-            </div>
-        </nav>
+    <style>
+        :root {
+            --primary-app: #3b82f6;
+            --secondary-app: #64748b;
+            --accent-app: #06b6d4;
+            --success-app: #10b981;
+            --warning-app: #f59e0b;
+            --danger-app: #ef4444;
+            --light-app: #f8fafc;
+            --dark-app: #1e293b;
+        }
+
+        body {
+            font-family: 'Prompt', sans-serif;
+            min-height: 100vh;
+            background-color: #f8fafc;
+        }
+
+        .btn-primary-app {
+            background: var(--primary-app);
+            border-color: var(--primary-app);
+            color: white;
+        }
+
+        .btn-primary-app:hover {
+            background: #2563eb;
+            border-color: #2563eb;
+            color: white;
+        }
+
+        .text-primary-app {
+            color: var(--primary-app) !important;
+        }
+
+        .bg-primary-app {
+            background-color: var(--primary-app) !important;
+        }
+
+        .bg-secondary-app {
+            background-color: var(--secondary-app) !important;
+        }
         
+        .app-card {
+            background: white;
+            border: 1px solid rgba(226, 232, 240, 0.8);
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
+            transition: all 0.2s ease;
+        }
+        
+        .app-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.06);
+            border-color: rgba(59, 130, 246, 0.2);
+        }
+
+        .navbar {
+            background: white;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .student-tab {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 12px 20px;
+            margin: 0 6px;
+            transition: all 0.2s ease;
+            color: #64748b;
+        }
+
+        .student-tab:hover {
+            border-color: var(--primary-app);
+            color: var(--primary-app);
+            transform: translateY(-1px);
+        }
+
+        .student-tab.active {
+            background: var(--primary-app);
+            color: white;
+            border-color: var(--primary-app);
+            box-shadow: 0 2px 8px rgba(59, 130, 246, 0.25);
+        }
+
+        .stats-card {
+            background: white;
+            color: #1e293b;
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stats-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: var(--primary-app);
+        }
+
+        .stats-value {
+            font-size: 3rem !important;
+            font-weight: 700;
+            color: var(--primary-app);
+        }
+
+        .desktop-grid {
+            display: grid;
+            grid-template-columns: 300px 1fr 350px;
+            gap: 24px;
+            margin-bottom: 2rem;
+        }
+
+        @media (max-width: 991.98px) {
+            .desktop-grid {
+                display: none;
+            }
+        }
+
+        .chart-container.desktop-chart {
+            height: 400px;
+            position: relative;
+        }
+
+        .activity-item {
+            transition: all 0.2s ease;
+            border-radius: 6px;
+            padding: 12px;
+            margin-bottom: 6px;
+        }
+
+        .activity-item:hover {
+            background: #f8fafc;
+            transform: translateX(2px);
+        }
+
+        .notification-item {
+            transition: all 0.2s ease;
+            border-radius: 8px;
+            margin-bottom: 6px;
+            padding: 12px;
+        }
+
+        .notification-item:hover {
+            background: #f8fafc;
+            transform: translateX(2px);
+        }
+
+        .parent-info-card {
+            background: white;
+            color: #1e293b;
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+            position: relative;
+        }
+
+        .parent-info-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: var(--primary-app);
+        }
+
+        .student-summary-card {
+            border-radius: 12px;
+            transition: all 0.2s ease;
+            border: 1px solid #e2e8f0;
+        }
+
+        .student-summary-card:hover {
+            border-color: var(--primary-app);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.1);
+        }
+
+        /* Student Tabs Enhancement */
+        .student-tabs {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            justify-content: center;
+        }
+
+        .student-avatar-small {
+            width: 24px;
+            height: 24px;
+            background: #f1f5f9;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            transition: all 0.2s ease;
+            color: #64748b;
+        }
+
+        .student-tab.active .student-avatar-small {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+        }
+
+        /* Bottom Navbar Styles */
+        .bottom-navbar .nav-link {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 8px 4px;
+            color: #64748b;
+            text-decoration: none;
+            transition: all 0.2s ease;
+            border-radius: 6px;
+        }
+
+        .bottom-navbar .nav-link:hover {
+            color: var(--primary-app);
+            background: #f8fafc;
+        }
+
+        .bottom-navbar .nav-link.active {
+            color: var(--primary-app);
+            background: #f1f5f9;
+        }
+
+        .bottom-navbar .nav-link i {
+            font-size: 1.1rem;
+            margin-bottom: 2px;
+        }
+
+        /* Enhanced Cards */
+        .student-info-card {
+            background: white;
+            color: #1e293b;
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+        }
+
+        /* Progress Bars */
+        .progress {
+            border-radius: 6px;
+            overflow: hidden;
+            background: #f1f5f9;
+            height: 6px;
+        }
+
+        .progress-bar {
+            border-radius: 6px;
+            transition: width 0.4s ease;
+        }
+
+        /* Responsive Enhancements */
+        @media (max-width: 768px) {
+            .student-tabs {
+                flex-direction: column;
+                gap: 8px;
+            }
+            
+            .student-tab {
+                justify-content: center;
+                text-align: center;
+                padding: 16px 20px;
+            }
+            
+            .desktop-grid-summary {
+                grid-template-columns: 1fr;
+                gap: 16px;
+            }
+
+            .app-container {
+                padding-bottom: 80px;
+            }
+        }
+
+        /* Loading Animation */
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(59, 130, 246, 0.1);
+            border-left: 4px solid var(--primary-app);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-light fixed-top">
+        <div class="container">
+            <a class="navbar-brand fw-bold text-primary-app" href="{{ route('parent.dashboard') }}">
+                <i class="fas fa-family me-2"></i>
+                ระบบจัดการคะแนนพฤติกรรม - ผู้ปกครอง
+            </a>
+            
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    @auth
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ route('parent.dashboard') }}">
+                                <i class="fas fa-home me-1"></i>แดชบอร์ด
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#">
+                                <i class="fas fa-bell me-1"></i>การแจ้งเตือน
+                                @if($user->notifications && $user->notifications->where('read_at', null)->count() > 0)
+                                <span class="badge bg-danger ms-1">{{ $user->notifications->where('read_at', null)->count() }}</span>
+                                @endif
+                            </a>
+                        </li>
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                                <i class="fas fa-user me-1"></i>
+                                {{ $user->first_name }}
+                            </a>
+                            <ul class="dropdown-menu">
+                                <li>
+                                    <form action="{{ route('logout') }}" method="POST" class="d-inline">
+                                        @csrf
+                                        <button type="submit" class="dropdown-item text-danger">
+                                            <i class="fas fa-sign-out-alt me-1"></i>ออกจากระบบ
+                                        </button>
+                                    </form>
+                                </li>
+                            </ul>
+                        </li>
+                    @endauth
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="app-container" style="margin-top: 80px;">
         <!-- Header (Mobile only) -->
-        <header class="dashboard-header text-white py-3 d-lg-none">
+        <header class="dashboard-header text-white py-3 d-lg-none" style="background: var(--primary-app);">
             <div class="container">
                 <h1 class="h4 mb-0">ระบบสารสนเทศจัดการคะแนนพฤติกรรมนักเรียน</h1>
             </div>
@@ -249,15 +571,15 @@
                                     <!-- Class Rank Card -->
                                     <div class="app-card stats-card p-3 mt-3">
                                         <div class="text-center">
-                                            <h3 class="h5 text-primary-app mb-3">อันดับในห้องเรียน</h3>
+                                            <h3 class="h5 text-primary-app mb-3">อันดับในห้อง {{ $student['class_level'] }}/{{ $student['class_room'] }}</h3>
                                             <p class="display-4 fw-bold mb-2 stats-value student-rank">{{ $student['class_rank'] }}<span class="fs-6">/{{ $student['total_students'] }}</span></p>
                                             <span class="badge bg-secondary-app text-dark">
                                                 @if($student['class_rank'] == 1)
-                                                    อันดับ 1
+                                                    อันดับ 1 ในห้อง
                                                 @elseif($student['class_rank'] <= 3)
-                                                    กลุ่มหัวหน้า
+                                                    กลุ่มหัวหน้าในห้อง
                                                 @else
-                                                    ต้องปรับปรุง
+                                                    ต้องปรับปรุงในห้อง
                                                 @endif
                                             </span>
                                         </div>
@@ -286,7 +608,7 @@
                                 <div class="chart-area">
                                     <div class="app-card h-100 p-4">
                                         <h3 class="h5 text-primary-app mb-3">สรุปคะแนนพฤติกรรม</h3>
-                                        <div class="chart-container">
+                                        <div class="chart-container desktop-chart">
                                             <canvas id="studentBehaviorChart{{ $index+1 }}"></canvas>
                                         </div>
                                     </div>
@@ -295,29 +617,103 @@
                                 <!-- Right Column: Recent Activities -->
                                 <div class="activities-area">
                                     <div class="app-card p-4 h-100">
-                                        <h3 class="h5 text-primary-app mb-3">กิจกรรมล่าสุด</h3>
+                                        <h3 class="h5 text-primary-app mb-3">ประวัติพฤติกรรมล่าสุด</h3>
                                         <div class="activity-list">
                                             @if(isset($student['recent_activities']) && count($student['recent_activities']) > 0)
                                                 @foreach($student['recent_activities'] as $activity)
                                                     <div class="activity-item d-flex py-2">
                                                         <div class="me-3">
-                                                            <div class="bg-{{ $activity['color'] }} rounded-circle activity-icon d-flex align-items-center justify-content-center">
+                                                            <div class="bg-{{ $activity['color'] }} rounded-circle activity-icon d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
                                                                 <i class="{{ $activity['icon'] }} text-white"></i>
                                                             </div>
                                                         </div>
                                                         <div class="activity-content">
                                                             <p class="mb-0 fw-medium">{{ $activity['message'] }}</p>
                                                             <p class="text-muted small mb-0">โดย {{ $activity['teacher'] }} - {{ $activity['date'] }}</p>
+                                                            @if(isset($activity['points']))
+                                                                <span class="badge bg-{{ $activity['points'] > 0 ? 'success' : 'danger' }} mt-1">
+                                                                    {{ $activity['points'] > 0 ? '+' : '' }}{{ $activity['points'] }} คะแนน
+                                                                </span>
+                                                            @endif
                                                         </div>
                                                     </div>
                                                 @endforeach
                                             @else
                                                 <div class="text-center py-4">
                                                     <i class="fas fa-history fa-2x text-muted mb-2"></i>
-                                                    <p class="text-muted mb-0">ยังไม่มีกิจกรรมที่บันทึก</p>
+                                                    <p class="text-muted mb-0">ยังไม่มีการบันทึกพฤติกรรม</p>
                                                 </div>
                                             @endif
                                         </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Mobile Layout (Row-based) -->
+                            <div class="mobile-grid d-lg-none">
+                                <!-- Points Score Card -->
+                                <div class="app-card stats-card p-3 mb-4">
+                                    <div class="text-center">
+                                        <h3 class="h5 text-primary-app mb-3">คะแนนความประพฤติ</h3>
+                                        <p class="display-4 fw-bold mb-2 stats-value">{{ $student['current_score'] }}</p>
+                                        <span class="badge bg-{{ $student['score_color'] }}">{{ $student['score_status'] }}</span>
+                                    </div>
+                                </div>
+                                
+                                <!-- Class Rank Card -->
+                                <div class="app-card stats-card p-3 mb-4">
+                                    <div class="text-center">
+                                        <h3 class="h5 text-primary-app mb-3">อันดับในห้อง {{ $student['class_level'] }}/{{ $student['class_room'] }}</h3>
+                                        <p class="display-4 fw-bold mb-2 stats-value">{{ $student['class_rank'] }}<span class="fs-6">/{{ $student['total_students'] }}</span></p>
+                                        <span class="badge bg-secondary-app text-dark">
+                                            @if($student['class_rank'] == 1)
+                                                อันดับ 1 ในห้อง
+                                            @elseif($student['class_rank'] <= 3)
+                                                กลุ่มหัวหน้าในห้อง
+                                            @else
+                                                ต้องปรับปรุงในห้อง
+                                            @endif
+                                        </span>
+                                    </div>
+                                </div>
+                                
+                                <!-- Behavior Chart -->
+                                <div class="app-card mb-4 p-4">
+                                    <h3 class="h5 text-primary-app mb-3">สรุปคะแนนพฤติกรรม</h3>
+                                    <div class="chart-container" style="height: 250px;">
+                                        <canvas id="studentBehaviorChartMobile{{ $index+1 }}"></canvas>
+                                    </div>
+                                </div>
+                                
+                                <!-- Recent Activities -->
+                                <div class="app-card p-4">
+                                    <h3 class="h5 text-primary-app mb-3">ประวัติพฤติกรรมล่าสุด</h3>
+                                    <div class="activity-list mobile-activities">
+                                        @if(isset($student['recent_activities']) && count($student['recent_activities']) > 0)
+                                            @foreach($student['recent_activities'] as $activity)
+                                                <div class="activity-item d-flex py-2 {{ !$loop->last ? 'border-bottom' : '' }}">
+                                                    <div class="me-3">
+                                                        <div class="bg-{{ $activity['color'] }} rounded-circle activity-icon d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                                                            <i class="{{ $activity['icon'] }} text-white"></i>
+                                                        </div>
+                                                    </div>
+                                                    <div class="activity-content">
+                                                        <p class="mb-0 fw-medium">{{ $activity['message'] }}</p>
+                                                        <p class="text-muted small mb-0">โดย {{ $activity['teacher'] }} - {{ $activity['date'] }}</p>
+                                                        @if(isset($activity['points']))
+                                                            <span class="badge bg-{{ $activity['points'] > 0 ? 'success' : 'danger' }} mt-1">
+                                                                {{ $activity['points'] > 0 ? '+' : '' }}{{ $activity['points'] }} คะแนน
+                                                            </span>
+                                                        @endif
+                                                    </div>
+                                                </div>
+                                            @endforeach
+                                        @else
+                                            <div class="text-center text-muted py-4">
+                                                <i class="fas fa-info-circle mb-2 fa-2x"></i>
+                                                <p>ยังไม่มีการบันทึกพฤติกรรมในระบบ</p>
+                                            </div>
+                                        @endif
                                     </div>
                                 </div>
                             </div>
@@ -327,6 +723,32 @@
             </div>
 
         </div>
+
+        <!-- Bottom Navbar (Mobile Only) -->
+        <nav class="bottom-navbar d-lg-none" style="background: white; position: fixed; bottom: 0; left: 0; right: 0; z-index: 1000; box-shadow: 0 -1px 3px rgba(0, 0, 0, 0.1); border-top: 1px solid #e2e8f0;">
+            <div class="container">
+                <div class="row text-center py-2">
+                    <div class="col">
+                        <a href="{{ route('parent.dashboard') }}" class="nav-link text-primary-app active">
+                            <i class="fas fa-home"></i>
+                            <span class="small">หน้าหลัก</span>
+                        </a>
+                    </div>
+                    <div class="col">
+                        <a href="#" class="nav-link text-muted">
+                            <i class="fas fa-bell"></i>
+                            <span class="small">การแจ้งเตือน</span>
+                        </a>
+                    </div>
+                    <div class="col">
+                        <a href="#" class="nav-link text-muted">
+                            <i class="fas fa-user-cog"></i>
+                            <span class="small">ตั้งค่า</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </nav>
 
     </div>
 

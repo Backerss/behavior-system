@@ -35,27 +35,36 @@ class ParentController extends Controller
             })->with(['user', 'classroom', 'behaviorReports'])->get();
 
             foreach ($students as $student) {
+                // คำนวณอันดับในชั้นจริง
+                $classRankData = $this->getClassRank($student->students_id, $student->class_id);
+                
+                // คำนวณการเปลี่ยนแปลงคะแนนในสัปดาห์นี้
+                $weeklyChange = $this->getWeeklyScoreChange($student->students_id);
+                
+                // ดึงข้อมูลครูประจำชั้น
+                $homeroomTeacher = $this->getHomeRoomTeacher($student->class_id);
+                
+                // ดึงกิจกรรมล่าสุด
+                $recentActivities = $this->getRecentActivities($student->students_id);
+                
                 $studentsData[] = [
                     'id' => $student->students_id,
                     'name_prefix' => $student->user->users_name_prefix ?? '',
                     'first_name' => $student->user->users_first_name ?? '',
                     'last_name' => $student->user->users_last_name ?? '',
-                    'student_code' => $student->students_student_code ?? '',
-                    'class_level' => $student->classroom->classes_level ?? '',
-                    'class_room' => $student->classroom->classes_room_number ?? '',
+                    'student_code' => $student->students_student_code ?? '-',
+                    'class_level' => $student->classroom->classes_level ?? '-',
+                    'class_room' => $student->classroom->classes_room_number ?? '-',
                     'current_score' => $student->students_current_score ?? 100,
                     'score_color' => $this->getScoreColor($student->students_current_score ?? 100),
                     'score_status' => $this->getScoreStatus($student->students_current_score ?? 100),
-                    'class_rank' => rand(1, 30),
-                    'total_students' => 30,
-                    'weekly_change' => rand(-10, 10),
-                    'change_color' => rand(0, 1) ? 'success' : 'danger',
-                    'change_direction' => rand(0, 1) ? 'up' : 'down',
-                    'homeroom_teacher' => [
-                        'name' => 'ครูใจดี แสนดี',
-                        'phone' => '0812345678'
-                    ],
-                    'recent_activities' => []
+                    'class_rank' => $classRankData['rank'],
+                    'total_students' => $classRankData['total'],
+                    'weekly_change' => $weeklyChange,
+                    'change_color' => $weeklyChange >= 0 ? 'success' : 'danger',
+                    'change_direction' => $weeklyChange >= 0 ? 'up' : 'down',
+                    'homeroom_teacher' => $homeroomTeacher,
+                    'recent_activities' => $recentActivities
                 ];
             }
         }
@@ -179,7 +188,8 @@ class ParentController extends Controller
             ->where('tb_behavior_reports.reports_report_date', '>=', $startOfWeek)
             ->sum('tb_violations.violations_points_deducted');
             
-        return (int) $weeklyChange;
+        // แปลงเป็นค่าลบเพื่อแสดงการเปลี่ยนแปลง (คะแนนลดลง = ค่าลบ)
+        return $weeklyChange ? -(int) $weeklyChange : 0;
     }
     
     /**
@@ -187,17 +197,23 @@ class ParentController extends Controller
      */
     private function getClassRank($studentId, $classId)
     {
+        if (!$classId) {
+            return ['rank' => '-', 'total' => 0];
+        }
+        
         $classStudents = Student::where('class_id', $classId)
             ->orderBy('students_current_score', 'desc')
             ->get();
             
-        $rank = 1;
+        $rank = '-';
         $total = $classStudents->count();
         
-        foreach ($classStudents as $index => $student) {
-            if ($student->students_id == $studentId) {
-                $rank = $index + 1;
-                break;
+        if ($total > 0) {
+            foreach ($classStudents as $index => $student) {
+                if ($student->students_id == $studentId) {
+                    $rank = $index + 1;
+                    break;
+                }
             }
         }
         
@@ -209,6 +225,14 @@ class ParentController extends Controller
      */
     private function getHomeRoomTeacher($classId)
     {
+        if (!$classId) {
+            return [
+                'name' => 'ไม่พบข้อมูล',
+                'phone' => '-',
+                'email' => '-'
+            ];
+        }
+        
         $class = ClassRoom::with(['teacher.user'])->find($classId);
         
         if ($class && $class->teacher && $class->teacher->user) {
@@ -216,15 +240,15 @@ class ParentController extends Controller
                 'name' => ($class->teacher->user->users_name_prefix ?? '') . 
                          $class->teacher->user->users_first_name . ' ' . 
                          $class->teacher->user->users_last_name,
-                'phone' => $class->teacher->user->users_phone_number ?? '',
-                'email' => $class->teacher->user->users_email ?? ''
+                'phone' => $class->teacher->user->users_phone_number ?? '-',
+                'email' => $class->teacher->user->users_email ?? '-'
             ];
         }
         
         return [
             'name' => 'ยังไม่ได้กำหนด',
-            'phone' => '',
-            'email' => ''
+            'phone' => '-',
+            'email' => '-'
         ];
     }
     
@@ -239,20 +263,33 @@ class ParentController extends Controller
             ->limit(5)
             ->get();
             
+        if ($activities->isEmpty()) {
+            return [];
+        }
+            
         $formattedActivities = [];
         
         foreach ($activities as $activity) {
-            $points = abs($activity->violation->violations_points_deducted); // ใช้ค่าสัมบูรณ์เพื่อแสดงเป็นตัวเลขบวก
-            $teacherName = ($activity->teacher->user->users_name_prefix ?? '') . 
-                  $activity->teacher->user->users_first_name;
+            if (!$activity->violation) {
+                continue; // ข้ามถ้าไม่มีข้อมูล violation
+            }
+            
+            $points = abs($activity->violation->violations_points_deducted);
+            $teacherName = 'ไม่ระบุ';
+            
+            if ($activity->teacher && $activity->teacher->user) {
+                $teacherName = ($activity->teacher->user->users_name_prefix ?? '') . 
+                      $activity->teacher->user->users_first_name;
+            }
             
             $formattedActivities[] = [
-            'type' => 'negative',
-            'icon' => 'fas fa-minus',
-            'color' => $points >= 5 ? 'danger' : 'warning',
-            'message' => "ถูกหักคะแนน {$points} จาก {$activity->violation->violations_name}",
-            'teacher' => $teacherName,
-            'date' => Carbon::parse($activity->reports_report_date)->locale('th')->format('j M Y')
+                'type' => 'negative',
+                'icon' => 'fas fa-minus',
+                'color' => $points >= 5 ? 'danger' : 'warning',
+                'message' => "ถูกหักคะแนน {$points} จาก {$activity->violation->violations_name}",
+                'teacher' => $teacherName,
+                'date' => Carbon::parse($activity->reports_report_date)->locale('th')->format('j M Y'),
+                'points' => -$points // แสดงเป็นค่าลบ
             ];
         }
         
