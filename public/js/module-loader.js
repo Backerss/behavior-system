@@ -157,7 +157,6 @@ class BehaviorSystemModules {
         
         try {
             await this.loader.loadMultiple(pageModules);
-            console.log(`Modules loaded for page: ${pageName}`, pageModules);
         } catch (error) {
             console.error(`Error loading modules for page ${pageName}:`, error);
         }
@@ -210,8 +209,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // โหลด modules สำหรับหน้านี้
     window.behaviorModules.loadForPage(pageName)
         .then(() => {
-            console.log('All modules loaded successfully');
-            
             // Trigger event เมื่อโหลดเสร็จ
             const event = new CustomEvent('modulesLoaded', {
                 detail: { page: pageName }

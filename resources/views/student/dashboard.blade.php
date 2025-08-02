@@ -589,21 +589,6 @@
             'data' => [1],
             'colors' => ['#e9ecef']
         ]);
-        
-        // Debug: ตรวจสอบข้อมูลที่ส่งมา
-        console.log('Chart Data:', window.chartData);
-        console.log('Violation Data:', window.violationData);
-        console.log('Recent Activities:', @json($recent_activities));
-        console.log('Student ID:', {{ $student->students_id ?? 'null' }});
-        console.log('Behavior Summary:', @json($behavior_summary));
-        console.log('Classroom Details:', @json($classroom_details));
-        
-        // แสดงข้อมูล Debug ในหน้าเว็บ (ถ้าเปิด debug mode)
-        @if(config('app.debug'))
-            console.log('=== DEBUG INFO ===');
-            console.log('Student Data:', @json($student));
-            console.log('Recent Activities Count:', {{ is_countable($recent_activities) ? count($recent_activities) : 0 }});
-        @endif
     </script>
 </body>
 </html>

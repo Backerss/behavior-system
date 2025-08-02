@@ -316,7 +316,6 @@ function initializeAnimations() {
 function initializeCharts() {
     // Charts will be initialized dynamically when needed
     // ลบการเรียก initStudentBehaviorChart และ initAttendanceChart ออก
-    console.log('Charts initialized - waiting for data');
 }
 
 /**

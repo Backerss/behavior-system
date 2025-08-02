@@ -72,9 +72,6 @@ class ClassroomController extends Controller
     public function store(Request $request)
     {
         try {
-            // บันทึก log ข้อมูลที่ส่งเข้ามา
-            \Log::info('Request data:', $request->all());
-            
             $validator = Validator::make($request->all(), [
                 'classes_level' => 'required|string|max:10',
                 'classes_room_number' => 'required|string|max:5',
@@ -419,7 +416,7 @@ class ClassroomController extends Controller
      * ส่งออกรายงานห้องเรียนเป็น PDF
      * 
      * @param int $id
-     * @return \Illuminate\Http\Response
+     * @return \Illuminate\Http\JsonResponse|\Illuminate\Http\Response
      */
     public function exportClassReport($id)
     {
@@ -478,9 +475,6 @@ class ClassroomController extends Controller
                     ];
                 });
 
-            // เพิ่ม log สำหรับ debugging
-            \Log::info('Classes retrieved successfully', ['count' => $classes->count()]);
-            
             return response()->json($classes);
         
         } catch (\Exception $e) {

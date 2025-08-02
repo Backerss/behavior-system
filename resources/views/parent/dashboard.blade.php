@@ -340,7 +340,6 @@
         document.addEventListener('DOMContentLoaded', function() {
             // ข้อมูลนักเรียนจาก PHP
             const studentsData = @json($studentsData ?? []);
-            console.log('Students Data:', studentsData.length, 'students found');
             
             // Global chart management - ใช้ Map แทน Object
             window.parentDashboardCharts = new Map();
@@ -379,7 +378,6 @@
                         const chart = window.parentDashboardCharts.get(chartId);
                         chart.destroy();
                         window.parentDashboardCharts.delete(chartId);
-                        console.log(`Chart ${chartId} destroyed from Map`);
                     } catch (error) {
                         console.warn(`Error destroying chart ${chartId}:`, error);
                         window.parentDashboardCharts.delete(chartId);
@@ -393,7 +391,6 @@
                     if (existingChart) {
                         try {
                             existingChart.destroy();
-                            console.log(`Chart ${chartId} destroyed from Registry`);
                         } catch (error) {
                             console.warn(`Error destroying chart from registry:`, error);
                         }
@@ -416,8 +413,6 @@
 
             // Main View Functions
             function showAllStudentsView() {
-                console.log('Showing all students view');
-                
                 hideElement(individualStudentView);
                 showElement(allStudentsView);
                 
@@ -435,8 +430,6 @@
             }
 
             function showStudentDetailView(studentId) {
-                console.log('Showing student detail view:', studentId);
-                
                 hideElement(allStudentsView);
                 showElement(individualStudentView);
                 
@@ -461,8 +454,6 @@
             }
 
             function loadStudentDetails(student, index) {
-                console.log('Loading details for student:', student.first_name, 'Index:', index);
-                
                 // Update student data in view
                 updateStudentViewData(student, index);
                 
@@ -525,8 +516,6 @@
                     return;
                 }
 
-                console.log('Loading chart for student ID:', studentId, 'Chart ID:', chartId);
-                
                 // ทำลาย chart เก่าอย่างสมบูรณ์
                 destroyChart(chartId);
                 
@@ -632,7 +621,6 @@
                     
                     // เก็บ chart instance ใน Map
                     window.parentDashboardCharts.set(chartId, chart);
-                    console.log(`Chart created successfully: ${chartId}`);
                     
                 } catch (error) {
                     console.error(`Error creating chart ${chartId}:`, error);
@@ -657,7 +645,6 @@
                 tab.addEventListener('click', function(e) {
                     e.preventDefault();
                     const studentId = this.dataset.student;
-                    console.log('Tab clicked:', studentId);
                     
                     setActiveTab(this);
                     
@@ -673,7 +660,6 @@
                 link.addEventListener('click', function(e) {
                     e.preventDefault();
                     const studentId = this.dataset.student;
-                    console.log('View details clicked:', studentId);
                     
                     const targetTab = document.querySelector(`[data-student="${studentId}"]`);
                     setActiveTab(targetTab);
@@ -694,9 +680,7 @@
             });
 
             // Initialize
-            console.log('Initializing parent dashboard...');
             showAllStudentsView();
-            console.log('Parent dashboard initialized successfully');
         });
     </script>
 </body>

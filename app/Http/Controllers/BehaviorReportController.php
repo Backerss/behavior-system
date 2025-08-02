@@ -26,7 +26,6 @@ class BehaviorReportController extends Controller
      */
     public function store(Request $request)
     {
-        // dd($request->all());
         try {
             // ตรวจสอบข้อมูลที่ส่งมา
             $validator = Validator::make($request->all(), [

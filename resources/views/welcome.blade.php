@@ -120,7 +120,7 @@
                         <img src="{{ asset('images/banner.png') }}?v={{ time() }}" 
                              alt="นวมินทราชูทิศ มัชฌิม" 
                              class="img-fluid rounded-4 shadow-lg hero-image"
-                             onerror="this.style.display='none'; console.log('Image load failed, hiding element');"
+                             onerror="this.style.display='none';"
                              style="max-height: 400px; object-fit: cover; width: 100%;"
                              loading="lazy"
                              crossorigin="anonymous">
@@ -495,8 +495,7 @@
             // Handle all image errors
             document.querySelectorAll('img').forEach(function(img) {
                 img.addEventListener('error', function() {
-                    console.log('Image failed to load:', this.src);
-                    // Don't show error in console
+                    // Hide broken images silently
                     this.style.display = 'none';
                 });
             });
@@ -544,7 +543,7 @@
             if (e.reason && e.reason.message && 
                 (e.reason.message.includes('facebook') || e.reason.message.includes('fbcdn'))) {
                 e.preventDefault();
-                console.log('Suppressed Facebook network error');
+                // Suppress Facebook network errors silently
             }
         });
     </script>

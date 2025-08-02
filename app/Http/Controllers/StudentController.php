@@ -137,8 +137,6 @@ class StudentController extends Controller
      */
     private function getRecentActivities($studentId)
     {
-        Log::info('getRecentActivities called with studentId: ' . $studentId);
-        
         if (!$studentId) {
             Log::warning('No studentId provided');
             return collect([]);
@@ -156,10 +154,7 @@ class StudentController extends Controller
                 ->where('student_id', $studentId)
                 ->count();
             
-            Log::info('Total reports for student ' . $studentId . ': ' . $totalReports);
-            
             if ($totalReports === 0) {
-                Log::info('No behavior reports found for student: ' . $studentId);
                 return collect([]);
             }
             
@@ -183,8 +178,6 @@ class StudentController extends Controller
                     'tb_users.users_last_name'
                 )
                 ->get();
-            
-            Log::info('Retrieved ' . $reports->count() . ' reports from database');
             
             // แปลงข้อมูลให้อยู่ในรูปแบบที่ต้องการ
             return $reports->map(function ($report) {

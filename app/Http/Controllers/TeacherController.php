@@ -47,12 +47,8 @@ class TeacherController extends Controller
 
             // Handle profile image upload
             if ($request->hasFile('profile_image')) {
-                // Debug info
-                \Log::info('Found profile image file to upload');
-                
                 // Delete old image if it exists
                 if ($user->users_profile_image) {
-                    \Log::info('Deleting old profile image: ' . $user->users_profile_image);
                     Storage::delete('public/' . $user->users_profile_image);
                 }
                 

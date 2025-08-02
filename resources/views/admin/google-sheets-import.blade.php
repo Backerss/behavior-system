@@ -338,7 +338,7 @@
                                   'ผิดพลาด: ' + response.results.error_count + ' รายการ');
                             
                             if (response.results.errors.length > 0) {
-                                console.log('รายการที่ผิดพลาด:', response.results.errors);
+                                // Log errors silently for admin review
                             }
                             
                             // รีเซ็ตฟอร์ม

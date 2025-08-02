@@ -1409,9 +1409,6 @@
             
             // ฟังก์ชันโหลดข้อมูลชั้นเรียน
             function loadClasses() {
-                // เพิ่ม debug เพื่อตรวจสอบการเรียก API
-                console.log('Fetching classes from API...');
-                
                 fetch('/api/classes/registration', {
                     headers: {
                         'Accept': 'application/json',
@@ -1427,8 +1424,6 @@
                     return response.json();
                 })
                 .then(classes => {
-                    console.log('Classes loaded successfully:', classes);
-                    
                     const classSelect = document.getElementById('class_id');
                     
                     if (!classSelect) {

@@ -189,9 +189,6 @@ function sendParentNotification() {
     // ดึง CSRF token จาก meta tag
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
     
-    console.log('Sending notification to API:', data);
-    console.log('CSRF Token:', csrfToken);
-    
     // ส่งข้อมูล
     fetch('/notifications/parent', {
         method: 'POST',
@@ -205,12 +202,8 @@ function sendParentNotification() {
         credentials: 'same-origin'
     })
     .then(async response => {
-        console.log('API Response status:', response.status);
-        console.log('API Response headers:', response.headers);
-        
         // อ่าน response body
         const responseText = await response.text();
-        console.log('API Response body:', responseText);
         
         if (!response.ok) {
             // พยายาม parse JSON ถ้าเป็น JSON
@@ -242,8 +235,6 @@ function sendParentNotification() {
         return jsonData;
     })
     .then(data => {
-        console.log('API Response data:', data);
-        
         if (data.success) {
             // แสดงข้อความสำเร็จ
             document.getElementById('notification-success').classList.remove('d-none');
