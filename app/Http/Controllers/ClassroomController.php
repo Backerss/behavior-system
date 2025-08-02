@@ -455,39 +455,4 @@ class ClassroomController extends Controller
             ], 500);
         }
     }
-
-    /**
-     * ดึงข้อมูลห้องเรียนสำหรับการลงทะเบียน
-     * 
-     * @return \Illuminate\Http\JsonResponse
-     */
-    public function getClassesForRegistration()
-    {
-        try {
-            $classes = ClassRoom::select('classes_id', 'classes_level', 'classes_room_number')
-                ->orderBy('classes_level')
-                ->orderBy('classes_room_number')
-                ->get()
-                ->map(function ($class) {
-                    return [
-                        'id' => $class->classes_id,
-                        'label' => $class->classes_level . '/' . $class->classes_room_number,
-                    ];
-                });
-
-            return response()->json($classes);
-        
-        } catch (\Exception $e) {
-            \Log::error('Error in getClassesForRegistration: ' . $e->getMessage(), [
-                'file' => $e->getFile(),
-                'line' => $e->getLine(),
-                'trace' => $e->getTraceAsString()
-            ]);
-        
-            return response()->json([
-                'error' => 'ไม่สามารถโหลดข้อมูลชั้นเรียนได้',
-                'message' => $e->getMessage()
-            ], 500);
-        }
-    }
 }

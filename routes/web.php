@@ -16,10 +16,6 @@ Route::get('/', [WelcomeController::class, 'index'])->name('welcome');
 
 // เส้นทางสำหรับผู้ที่ไม่ได้เข้าสู่ระบบ
 Route::middleware('guest')->group(function () {
-    // หน้าลงทะเบียน
-    Route::get('/register', [AuthController::class, 'showRegisterForm'])->name('register');
-    Route::post('/register', [AuthController::class, 'register']);
-    
     // หน้าเข้าสู่ระบบ
     Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
     Route::post('/login', [AuthController::class, 'login']);
@@ -107,7 +103,6 @@ Route::prefix('api')->middleware('auth')->group(function () {
     
     // Class routes
     Route::prefix('classes')->group(function () {
-        Route::get('/registration', [ClassroomController::class, 'getClassesForRegistration']);
         Route::get('/', [ClassroomController::class, 'index']);
         Route::post('/', [ClassroomController::class, 'store']);
         Route::get('/{id}', [ClassroomController::class, 'show'])->where('id', '[0-9]+');

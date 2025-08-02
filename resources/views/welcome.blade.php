@@ -75,11 +75,6 @@
                                 <i class="fas fa-sign-in-alt me-1"></i> เข้าสู่ระบบ
                             </a>
                         </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-white" href="/register">
-                                <i class="fas fa-user-plus me-1"></i> ลงทะเบียน
-                            </a>
-                        </li>
                     </ul>
                 </div>
             </div>
