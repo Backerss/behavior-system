@@ -21,3 +21,19 @@ yarn-error.log
 /.nova
 /.vscode
 /.zed
+
+# Custom additions for clean project
+*.log
+*.tmp
+*.temp
+*.backup
+*_backup.*
+.DS_Store
+Thumbs.db
+
+# Documentation that should not be tracked
+*_SUMMARY.md
+*_TESTING.md
+*_EXAMPLE.md
+TESTING_*.md
+TEMP_*.md
