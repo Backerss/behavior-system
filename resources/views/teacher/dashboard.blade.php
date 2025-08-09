@@ -32,6 +32,43 @@
             display: none;
         }
 
+        /* Enhanced UI Styles for Status Sync */
+        /* Minimal adjustments */
+        .btn-group .dropdown-toggle {
+            font-weight: 500;
+            transition: background-color .15s ease, color .15s ease, box-shadow .15s ease;
+            box-shadow: none !important;
+        }
+        .btn-group .dropdown-toggle:hover,
+        .btn-group .dropdown-toggle:focus {
+            background-color: #198754 !important; /* keep success tone */
+            color: #fff !important;
+            box-shadow: none !important;
+            transform: none !important;
+        }
+        .dropdown-menu {
+            border: 1px solid #e5e7eb !important;
+            box-shadow: 0 4px 12px rgba(0,0,0,.06) !important;
+            border-radius: 10px !important;
+            padding: .25rem 0 !important;
+            margin-top: 6px !important;
+        }
+        .dropdown-item {
+            padding: .85rem 1.1rem !important;
+            display: block;
+            transition: background-color .12s ease;
+        }
+        .dropdown-item:hover {
+            background: #f5f7fa !important;
+            color: #212529 !important;
+        }
+        .dropdown-item:hover .text-muted { color: #6c757d !important; }
+        .dropdown-item:hover .bg-primary { background: #0d6efd !important; }
+        .toast { border-radius: 10px !important; box-shadow: 0 4px 18px rgba(0,0,0,.12) !important; backdrop-filter: none; }
+        .toast-body { padding: .9rem 1rem; }
+        /* Remove intensive loading pulse for minimal style */
+        .btn[data-loading="1"] { position: relative; }
+
         /* Google Sheets Modal Styles */
         .modal-xl {
             max-width: 95%;
@@ -681,10 +718,142 @@
                             <p class="text-muted">วันนี้คือวันที่ <span class="current-date">{{ date('d F Y') }}</span>
                             </p>
                         </div>
-                        <div class="d-none d-md-flex">
-                            <button class="btn btn-primary-app me-2" data-bs-toggle="modal"
+                        <div class="d-none d-md-flex align-items-center">
+                            <button class="btn btn-primary-app me-3 shadow-sm" data-bs-toggle="modal"
                                 data-bs-target="#newViolationModal">
                                 <i class="fas fa-plus me-2"></i> บันทึกพฤติกรรม
+                            </button>
+                            <div class="btn-group">
+                                <button class="btn btn-success dropdown-toggle shadow-sm" 
+                                        data-bs-toggle="dropdown" 
+                                        aria-expanded="false"
+                                        style="border-radius: 8px;">
+                                    <i class="fas fa-sync-alt me-2"></i>จัดการสถานะ
+                                </button>
+                                <ul class="dropdown-menu shadow-lg border-0" style="border-radius: 12px; overflow: hidden;">
+                                    <li>
+                                        <a class="dropdown-item py-3 px-4" href="#" id="btnSyncStudentStatus">
+                                            <div class="d-flex align-items-center">
+                                                <div class="bg-primary bg-gradient rounded-circle p-2 me-3">
+                                                    <i class="fas fa-rotate text-white"></i>
+                                                </div>
+                                                <div>
+                                                    <div class="fw-semibold text-dark">ซิงค์สถานะนักเรียน</div>
+                                                    <small class="text-muted">อัปเดตจาก Google Sheet</small>
+                                                </div>
+                                            </div>
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                        <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+                            <script>
+                                document.addEventListener('DOMContentLoaded', () => {
+                                    const btn = document.getElementById('btnSyncStudentStatus');
+                                    
+                                    if (!btn) return;
+                                    
+                                    btn.addEventListener('click', function(e){
+                                        e.preventDefault();
+                                        if (this.dataset.loading === '1') return;
+                                        
+                                        // Show loading state with beautiful animation
+                                        this.dataset.loading = '1';
+                                        const originalContent = this.querySelector('div').innerHTML;
+                                        this.querySelector('div').innerHTML = `
+                                            <div class="d-flex align-items-center">
+                                                <div class="bg-warning bg-gradient rounded-circle p-2 me-3">
+                                                    <i class="fas fa-spinner fa-spin text-white"></i>
+                                                </div>
+                                                <div>
+                                                    <div class="fw-semibold text-dark">กำลังซิงค์...</div>
+                                                    <small class="text-muted">กรุณารอสักครู่</small>
+                                                </div>
+                                            </div>
+                                        `;
+                                        
+                                        Swal.fire({
+                                            title: 'กำลังซิงค์สถานะ...',
+                                            html: '<div class="py-2 text-muted small">ดึงข้อมูลจาก Google Sheet และตรวจสอบความแตกต่าง</div>',
+                                            allowOutsideClick: false,
+                                            didOpen: () => { Swal.showLoading(); }
+                                        });
+
+                                        fetch('/api/students/status-sync', {
+                                            method: 'POST',
+                                            headers: {
+                                                'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').getAttribute('content'),
+                                                'Accept': 'application/json'
+                                            }
+                                        }).then(r=>r.json()).then(data=>{
+                                            if (data.success) {
+                                                const s = data.summary;
+                                                const details = data.details || {};
+                                                const updatedRows = (details.updated_details || []).map((u,i)=>`<tr>
+                                                    <td class='text-center'>${i+1}</td>
+                                                    <td><code>${u.code}</code></td>
+                                                    <td>${u.name || '-'}</td>
+                                                    <td><span class='badge bg-secondary'>${u.old ?? '-'}</span></td>
+                                                    <td><span class='badge bg-success'>${u.new}</span></td>
+                                                </tr>`).join('');
+                                                const updatedTable = updatedRows ? `
+                                                    <div class='mt-3 text-start'>
+                                                        <h6 class='fw-semibold mb-2'>รายการที่อัปเดต (${details.updated_details.length})</h6>
+                                                        <div class='table-responsive' style='max-height:240px; overflow:auto; border:1px solid #eee; border-radius:6px;'>
+                                                            <table class='table table-sm table-hover mb-0'>
+                                                                <thead class='table-light position-sticky top-0'>
+                                                                    <tr>
+                                                                        <th style='width:40px'>#</th>
+                                                                        <th>รหัส</th>
+                                                                        <th>ชื่อ</th>
+                                                                        <th>เดิม</th>
+                                                                        <th>ใหม่</th>
+                                                                    </tr>
+                                                                </thead>
+                                                                <tbody>${updatedRows}</tbody>
+                                                            </table>
+                                                        </div>
+                                                    </div>` : '<div class="mt-3 text-muted small">ไม่มีรายการที่ต้องอัปเดต</div>';
+
+                                                Swal.fire({
+                                                    icon: 'success',
+                                                    title: 'ซิงค์สำเร็จ',
+                                                    width: 760,
+                                                    html: `
+                                                        <div class='row g-2 text-start small'>
+                                                            <div class='col-6 col-lg-3'><div class='p-2 bg-light rounded border'><div class='text-muted'>อัปเดต</div><div class='fs-5 fw-semibold text-success'>${s.updated}</div></div></div>
+                                                            <div class='col-6 col-lg-3'><div class='p-2 bg-light rounded border'><div class='text-muted'>ไม่เปลี่ยน</div><div class='fs-5 fw-semibold'>${s.unchanged}</div></div></div>
+                                                            <div class='col-6 col-lg-3'><div class='p-2 bg-light rounded border'><div class='text-muted'>ไม่พบ</div><div class='fs-5 fw-semibold text-warning'>${s.not_found}</div></div></div>
+                                                            <div class='col-6 col-lg-3'><div class='p-2 bg-light rounded border'><div class='text-muted'>ไม่ถูกต้อง</div><div class='fs-5 fw-semibold text-danger'>${s.invalid_status}</div></div></div>
+                                                        </div>
+                                                        ${updatedTable}
+                                                    `,
+                                                    confirmButtonText: 'ปิด',
+                                                });
+
+                                                this.querySelector('div').innerHTML = originalContent;
+                                            } else {
+                                                Swal.fire({
+                                                    icon: 'error',
+                                                    title: 'ซิงค์ไม่สำเร็จ',
+                                                    html: `<div class='text-danger small'>${data.message || 'ไม่สามารถซิงค์ได้'}</div>`,
+                                                });
+                                                this.querySelector('div').innerHTML = originalContent;
+                                            }
+                                        }).catch(err=>{
+                                            Swal.fire({
+                                                icon: 'error',
+                                                title: 'เกิดข้อผิดพลาด',
+                                                html: `<div class='text-danger small'>${err.message}</div>`
+                                            });
+                                            this.querySelector('div').innerHTML = originalContent;
+                                        }).finally(()=>{
+                                            this.dataset.loading='0';
+                                        });
+                                    });
+                                });
+                            </script>
                             </button>
                         </div>
                     </div>

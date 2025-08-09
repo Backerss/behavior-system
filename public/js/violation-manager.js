@@ -58,17 +58,14 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         })
         .catch(error => {
-            // ตรวจสอบว่าเป็นการยกเลิก request หรือไม่
             if (error.name === 'AbortError') {
                 console.log('Request was cancelled');
                 return;
             }
-            
-            console.error('Fetch Error:', error);
-            console.warn('Using mock data due to API error');
-            
-            // ใช้ข้อมูลตัวอย่างแทน
-            useMockData();
+            console.error('Fetch violations error:', error);
+            showError('ไม่สามารถดึงข้อมูลประเภทพฤติกรรมได้');
+            violationManager.violations = [];
+            renderViolationsList();
         })
         .finally(() => {
             violationManager.isLoading = false;
@@ -76,39 +73,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // เพิ่มฟังก์ชันแสดงข้อมูลตัวอย่าง
-    function useMockData() {
-        // ข้อมูลตัวอย่าง
-        violationManager.violations = [
-            {
-                violations_id: 1,
-                violations_name: 'ผิดระเบียบการแต่งกาย',
-                violations_category: 'medium',
-                violations_points_deducted: 5,
-                violations_description: 'นักเรียนแต่งกายไม่ถูกระเบียบตามข้อกำหนดของโรงเรียน'
-            },
-            {
-                violations_id: 2,
-                violations_name: 'มาสาย',
-                violations_category: 'light',
-                violations_points_deducted: 3,
-                violations_description: 'นักเรียนมาโรงเรียนหลังเวลา 08:00 น.'
-            },
-            {
-                violations_id: 3,
-                violations_name: 'ทะเลาะวิวาท',
-                violations_category: 'severe',
-                violations_points_deducted: 20,
-                violations_description: 'นักเรียนก่อเหตุทะเลาะวิวาท ทำร้ายร่างกายผู้อื่น'
-            }
-        ];
-        
-        violationManager.currentPage = 1;
-        violationManager.totalPages = 1;
-        
-        renderViolationsList();
-        renderPagination();
-    }
+    // (ลบ useMockData – ไม่ใช้ mock อีกต่อไป)
 
     // ฟังก์ชันสำหรับแสดงรายการประเภทพฤติกรรม
     function renderViolationsList() {
@@ -469,56 +434,15 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // สำหรับอัปเดต select box ประเภทพฤติกรรม
-    const newViolationModal = document.getElementById('newViolationModal');
-    if (newViolationModal) {
-        newViolationModal.addEventListener('show.bs.modal', function() {
-            updateViolationSelects();
-        });
-    }
+    // ปิดการผูก event กับ newViolationModal เพื่อลดการซ้ำของตัวเลือก (behavior-report.js รับผิดชอบ)
+    // const newViolationModal = document.getElementById('newViolationModal');
+    // if (newViolationModal) {
+    //     newViolationModal.addEventListener('show.bs.modal', function() {
+    //         updateViolationSelects();
+    //     });
+    // }
     
     // เพิ่มฟังก์ชัน updateViolationSelects()
-    function updateViolationSelects() {
-        fetch('/api/violations/all')
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    const violations = data.data;
-                    const selects = document.querySelectorAll('select[data-violation-select]');
-                    
-                    selects.forEach(select => {
-                        // เก็บค่าที่เลือกไว้ (ถ้ามี)
-                        const selectedValue = select.value;
-                        
-                        // ล้างตัวเลือกเดิม (ยกเว้นตัวเลือกแรก)
-                        while (select.options.length > 1) {
-                            select.remove(1);
-                        }
-                        
-                        // เพิ่มตัวเลือกใหม่
-                        violations.forEach(violation => {
-                            const option = new Option(violation.violations_name, violation.violations_id);
-                            
-                            // เพิ่ม data-category และ data-points
-                            option.dataset.category = violation.violations_category;
-                            option.dataset.points = violation.violations_points_deducted;
-                            
-                            select.add(option);
-                        });
-                        
-                        // เลือกค่าเดิม (ถ้ามี)
-                        if (selectedValue) {
-                            select.value = selectedValue;
-                        }
-                        
-                        // ทริกเกอร์ event change
-                        select.dispatchEvent(new Event('change'));
-                    });
-                }
-            })
-            .catch(error => {
-                console.error('Error fetching violations for select:', error);
-            });
-    }
 });
 
 // สำหรับเปิด modal เพิ่มประเภทพฤติกรรมใหม่

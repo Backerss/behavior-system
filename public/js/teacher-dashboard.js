@@ -56,35 +56,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     
-    // Student search in violation modal
-    const studentSearchInput = document.querySelector('#newViolationModal input[placeholder="พิมพ์ชื่อหรือรหัสนักเรียน..."]');
-    const selectedStudentContainer = document.querySelector('.selected-student');
-    
-    if (studentSearchInput) {
-        studentSearchInput.addEventListener('keyup', function(e) {
-            const searchTerm = this.value.trim();
-            
-            if (searchTerm.length >= 2) {
-                // Simulate student search
-                setTimeout(() => {
-                    showStudentSearchResults(searchTerm);
-                }, 300);
-            } else {
-                hideStudentSearchResults();
-            }
-        });
-        
-        // Remove selected student
-        const removeStudentBtn = document.querySelector('.selected-student .btn-close');
-        if (removeStudentBtn) {
-            removeStudentBtn.addEventListener('click', function() {
-                if (selectedStudentContainer) {
-                    selectedStudentContainer.style.display = 'none';
-                }
-                studentSearchInput.value = '';
-            });
-        }
-    }
+    // (Removed simulated student search in modal to reduce unused code)
     
     // Date restriction for violation date (max 3 days in the past)
     const dateInput = document.querySelector('#violationDate');
@@ -193,19 +165,23 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // แก้ไขการใช้ jQuery ด้วย Vanilla JavaScript
-    const violationTypesModal = document.getElementById('violationTypesModal');
-    if (violationTypesModal) {
-        violationTypesModal.addEventListener('shown.bs.modal', function() {
-            loadViolationTypes();
-        });
-    }
+    // ยกเลิกการเรียก loadViolationTypes() ซ้ำเมื่อเปิด modal รายการประเภทพฤติกรรม
+    // เพราะ behavior-report.js จัดการโหลดและอัปเดต select แล้ว
+    // หากต้องการรีเฟรชเฉพาะตารางใน modal ควรมีฟังก์ชันเฉพาะไม่กระทบ select
+    // const violationTypesModal = document.getElementById('violationTypesModal');
+    // if (violationTypesModal) {
+    //     violationTypesModal.addEventListener('shown.bs.modal', function() {
+    //         loadViolationTypes(); // removed to avoid duplicate options
+    //     });
+    // }
     
-    const newViolationModal = document.getElementById('newViolationModal');
-    if (newViolationModal) {
-        newViolationModal.addEventListener('show.bs.modal', function() {
-            updateViolationSelects();
-        });
-    }
+    // ปิดการโหลดประเภทพฤติกรรมซ้ำใน modal (ให้ behavior-report.js จัดการเท่านั้น)
+    // const newViolationModal = document.getElementById('newViolationModal');
+    // if (newViolationModal) {
+    //     newViolationModal.addEventListener('show.bs.modal', function() {
+    //         updateViolationSelects();
+    //     });
+    // }
 
     if (studentSearch && btnSearchStudent) {
         btnSearchStudent.addEventListener('click', function() {
@@ -569,23 +545,7 @@ document.addEventListener('DOMContentLoaded', function() {
     searchStudents();
 });
 
-// ฟังก์ชันแสดงผลการค้นหานักเรียน
-function showStudentSearchResults(searchTerm) {
-    // สำหรับการจำลองผลการค้นหา
-    const resultsContainer = document.querySelector('.student-search-results');
-    if (resultsContainer) {
-        resultsContainer.innerHTML = `<div class="list-group-item">ผลการค้นหา: ${searchTerm}</div>`;
-        resultsContainer.style.display = 'block';
-    }
-}
-
-// ฟังก์ชันซ่อนผลการค้นหานักเรียน
-function hideStudentSearchResults() {
-    const resultsContainer = document.querySelector('.student-search-results');
-    if (resultsContainer) {
-        resultsContainer.style.display = 'none';
-    }
-}
+// (Removed showStudentSearchResults / hideStudentSearchResults simulation functions)
 
 // ฟังก์ชันกรองข้อมูลกราฟ
 function filterChartData(filterType) {
@@ -930,56 +890,6 @@ function escapeHtml(text) {
     return text.toString().replace(/[&<>"']/g, function(m) { return map[m]; });
 }
 
-// แก้ไขฟังก์ชัน updateViolationSelects ให้จัดการข้อมูลได้ดีขึ้น
-function updateViolationSelects() {
-    fetch('/api/violations/all', {
-        headers: {
-            'Accept': 'application/json',
-            'X-Requested-With': 'XMLHttpRequest',
-            'X-CSRF-TOKEN': violationManager.csrfToken
-        }
-    })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        return response.json();
-    })
-    .then(data => {
-        const violationSelect = document.getElementById('violationType');
-        if (!violationSelect) {
-            console.warn('Violation select element not found');
-            return;
-        }
-        
-        // เคลียร์ options เก่า (ยกเว้น option แรก)
-        while (violationSelect.children.length > 1) {
-            violationSelect.removeChild(violationSelect.lastChild);
-        }
-        
-        // ตรวจสอบโครงสร้างข้อมูล
-        let violations = [];
-        if (data && data.data) {
-            if (Array.isArray(data.data)) {
-                violations = data.data;
-            } else if (data.data.data && Array.isArray(data.data.data)) {
-                violations = data.data.data;
-            }
-        }
-        
-        // เพิ่ม options ใหม่
-        violations.forEach(violation => {
-            const option = document.createElement('option');
-            option.value = violation.violations_id || violation.id;
-            option.textContent = violation.violations_name || violation.name;
-            option.dataset.points = violation.violations_points_deducted || violation.points_deducted || 0;
-            violationSelect.appendChild(option);
-        });
-    })
-    .catch(error => {
-        console.error('Error updating violation selects:', error);
-    });
-}
 
 // เพิ่มฟังก์ชันสำหรับการ attach event listeners ของปุ่มแก้ไขและลบ
 function attachEditButtonListeners() {

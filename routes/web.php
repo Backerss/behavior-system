@@ -10,6 +10,7 @@ use App\Http\Controllers\ParentController;
 use App\Http\Controllers\WelcomeController;
 use App\Http\Controllers\NotificationController; // เพิ่มบรรทัดนี้
 use App\Http\Controllers\GoogleSheetsImportController;
+use App\Http\Controllers\StudentStatusSyncController;
 
 // หน้าหลัก
 Route::get('/', [WelcomeController::class, 'index'])->name('welcome');
@@ -120,6 +121,9 @@ Route::prefix('api')->middleware('auth')->group(function () {
         Route::get('/violations', [DashboardController::class, 'getViolationTypes']);
         Route::get('/stats', [DashboardController::class, 'getMonthlyStats']);
     });
+
+    // ซิงค์สถานะนักเรียนจาก Google Sheet
+    Route::post('/students/status-sync', [StudentStatusSyncController::class, 'sync'])->name('api.students.status-sync');
     
     // เพิ่มบรรทัดนี้
     Route::get('/students/{id}/report', [App\Http\Controllers\API\StudentReportController::class, 'generatePDF'])->middleware('auth');
