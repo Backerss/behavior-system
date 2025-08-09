@@ -661,12 +661,6 @@
                     <i class="fas fa-archive"></i>
                     <span>ประวัติการเก็บข้อมูล</span>
                 </a>
-                @if(auth()->user()->users_role === 'admin')
-                    <a href="#" data-bs-toggle="modal" data-bs-target="#googleSheetsImportModal" class="menu-item">
-                        <i class="fab fa-google-drive"></i>
-                        <span>นำเข้าข้อมูล</span>
-                    </a>
-                @endif
                 <a href="#" data-bs-toggle="modal" data-bs-target="#profileModal" class="menu-item">
                     <i class="fas fa-user-circle"></i>
                     <span>โปรไฟล์</span>
@@ -723,12 +717,13 @@
                                 data-bs-target="#newViolationModal">
                                 <i class="fas fa-plus me-2"></i> บันทึกพฤติกรรม
                             </button>
+                            @if(auth()->user()->users_role === 'admin')
                             <div class="btn-group">
-                                <button class="btn btn-success dropdown-toggle shadow-sm" 
+                                <button class="btn btn-secondary dropdown-toggle shadow-sm" 
                                         data-bs-toggle="dropdown" 
                                         aria-expanded="false"
-                                        style="border-radius: 8px;">
-                                    <i class="fas fa-sync-alt me-2"></i>จัดการสถานะ
+                                        style="border-radius: 8px; background-color:#6c757d !important; border-color:#6c757d !important; color:#fff !important;">
+                                    <i class="fas fa-sync-alt me-2"></i>เครื่องมือผู้ดูแล
                                 </button>
                                 <ul class="dropdown-menu shadow-lg border-0" style="border-radius: 12px; overflow: hidden;">
                                     <li>
@@ -744,8 +739,23 @@
                                             </div>
                                         </a>
                                     </li>
+                                    <li><hr class="dropdown-divider my-2"></li>
+                                    <li>
+                                        <a class="dropdown-item py-3 px-4" href="#" data-bs-toggle="modal" data-bs-target="#googleSheetsImportModal">
+                                            <div class="d-flex align-items-center">
+                                                <div class="bg-success bg-gradient rounded-circle p-2 me-3">
+                                                    <i class="fab fa-google-drive text-white"></i>
+                                                </div>
+                                                <div>
+                                                    <div class="fw-semibold text-dark">นำเข้าข้อมูล</div>
+                                                    <small class="text-muted">จาก Google Sheets</small>
+                                                </div>
+                                            </div>
+                                        </a>
+                                    </li>
                                 </ul>
                             </div>
+                            @endif
                         </div>
                         <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
                             <script>
