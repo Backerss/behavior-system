@@ -237,8 +237,21 @@ function loadViolationTypes() {
                 throw new Error('ข้อมูลประเภทพฤติกรรมไม่ถูกต้อง');
             }
             
-            behaviorReport.violations = violationsArray;
-            updateViolationSelect(violationsArray);
+            // กรองซ้ำ (กันกรณี API หรือสคริปต์อื่นเพิ่มมาซ้ำ) โดยใช้ key = name(lower) + id
+            const uniqueMap = new Map();
+            violationsArray.forEach(v => {
+                if (!v) return;
+                const nameKey = (v.violations_name || '').trim().toLowerCase();
+                // ถ้าชื่อเคยมีแล้ว ข้าม (เก็บตัวแรกไว้)
+                if (!uniqueMap.has(nameKey)) {
+                    uniqueMap.set(nameKey, v);
+                }
+            });
+            const uniqueViolations = Array.from(uniqueMap.values());
+            behaviorReport.violations = uniqueViolations;
+            updateViolationSelect(uniqueViolations);
+            // รอ microtask เผื่อมีสคริปต์อื่น inject เสร็จแล้วจึง dedup อีกครั้ง
+            queueMicrotask(() => deduplicateViolationSelect());
         })
         .catch(error => {
             console.error('Error loading violations:', error.message);
@@ -253,23 +266,65 @@ function updateViolationSelect(violations) {
     const select = document.getElementById('violationType');
     
     if (!select) return;
-    
-    // เคลียร์ตัวเลือกเดิม
-    while (select.options.length > 1) {
-        select.remove(1);
-    }
+    // ถ้ามี optgroup หรือ option จากสคริปต์อื่น ให้เคลียร์ทั้งหมด (ยกเว้น placeholder ตัวแรกถ้ามี)
+    const placeholderText = select.options.length ? select.options[0].textContent : 'เลือกประเภทพฤติกรรม';
+    select.innerHTML = `<option value="">${placeholderText}</option>`;
     
     if (!Array.isArray(violations)) {
         console.error('violations ต้องเป็น array');
         return;
     }
     
+    const frag = document.createDocumentFragment();
+    const addedNames = new Set();
     violations.forEach(violation => {
-        const option = new Option(violation.violations_name, violation.violations_id);
+        if (!violation) return;
+        const name = (violation.violations_name || '').trim();
+        const nameKey = name.toLowerCase();
+        if (addedNames.has(nameKey)) return; // กันซ้ำอีกชั้น
+        addedNames.add(nameKey);
+        const option = document.createElement('option');
+        option.value = violation.violations_id;
+        option.textContent = name;
         option.dataset.points = violation.violations_points_deducted;
-        select.add(option);
+        frag.appendChild(option);
     });
+    select.appendChild(frag);
 }
+
+/**
+ * ลบ option ที่ซ้ำกันใน select (กันกรณีสคริปต์อื่นเคยเพิ่มไว้ก่อนหน้า)
+ */
+function deduplicateViolationSelect() {
+    const select = document.getElementById('violationType');
+    if (!select) return;
+    const seenName = new Set();
+    const seenValue = new Set();
+    for (let i = 1; i < select.options.length; i++) {
+        const opt = select.options[i];
+        const nameKey = opt.textContent.trim().toLowerCase();
+        const valueKey = opt.value;
+        if (seenName.has(nameKey) || (valueKey && seenValue.has(valueKey))) {
+            select.remove(i);
+            i--;
+        } else {
+            seenName.add(nameKey);
+            if (valueKey) seenValue.add(valueKey);
+        }
+    }
+}
+
+// เพิ่มการ deduplicate เมื่อโฟกัสหรือคลิก select (กันกรณี script อื่นเพิ่มหลังโหลด)
+document.addEventListener('DOMContentLoaded', () => {
+    const select = document.getElementById('violationType');
+    if (!select) return;
+    ['focus', 'click'].forEach(evt => {
+        select.addEventListener(evt, () => {
+            // ใช้ requestAnimationFrame เพื่อให้ option ใหม่ (ถ้ามี) ถูกเพิ่มก่อน
+            requestAnimationFrame(() => deduplicateViolationSelect());
+        });
+    });
+});
 
 /**
  * อัปเดตคะแนนที่หัก
