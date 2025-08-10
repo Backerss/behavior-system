@@ -2643,6 +2643,125 @@
         </div>
     </div>
 
+    <!-- Edit Violation Report Sidebar -->
+    <div id="editViolationSidebar" class="sidebar-overlay">
+        <div class="sidebar-content">
+            <div class="sidebar-header">
+                <h5 class="sidebar-title">
+                    <i class="fas fa-edit me-2"></i>แก้ไขรายงานพฤติกรรม
+                </h5>
+                <button type="button" class="btn-close-sidebar" onclick="closeEditViolationSidebar()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <div class="sidebar-body">
+                <!-- Loading State -->
+                <div id="editViolationLoading" class="text-center py-4" style="display: none;">
+                    <div class="spinner-border spinner-border-sm text-primary" role="status">
+                        <span class="visually-hidden">กำลังโหลด...</span>
+                    </div>
+                    <p class="mt-2 text-muted small">กำลังโหลดข้อมูล...</p>
+                </div>
+
+                <!-- Error State -->
+                <div id="editViolationError" class="alert alert-danger" style="display: none;">
+                    <i class="fas fa-exclamation-circle me-2"></i>
+                    <span id="editViolationErrorMessage">เกิดข้อผิดพลาดในการโหลดข้อมูล</span>
+                </div>
+
+                <!-- Edit Form -->
+                <div id="editViolationForm" style="display: none;">
+                    <form id="violationEditForm">
+                        <input type="hidden" id="editReportId">
+                        
+                        <!-- Student Info Display -->
+                        <div id="editStudentInfo" class="alert alert-info mb-3">
+                            <h6 class="mb-1">ข้อมูลนักเรียน:</h6>
+                            <div id="editStudentInfoDisplay"></div>
+                        </div>
+
+                        <!-- Violation Type -->
+                        <div class="mb-3">
+                            <label for="editViolationType" class="form-label">ประเภทพฤติกรรม <span class="text-danger">*</span></label>
+                            <select class="form-select" id="editViolationType" name="violation_id" required>
+                                <option value="">เลือกประเภทพฤติกรรม</option>
+                            </select>
+                        </div>
+
+                        <!-- Points Deducted Display -->
+                        <div class="mb-3">
+                            <label class="form-label">คะแนนที่หัก</label>
+                            <div class="input-group">
+                                <span class="form-control" id="editPointsDeducted">0</span>
+                                <span class="input-group-text">คะแนน</span>
+                            </div>
+                        </div>
+
+                        <!-- Date and Time -->
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="editViolationDate" class="form-label">วันที่ <span class="text-danger">*</span></label>
+                                <input type="date" class="form-control" id="editViolationDate" name="violation_date" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="editViolationTime" class="form-label">เวลา <span class="text-danger">*</span></label>
+                                <input type="time" class="form-control" id="editViolationTime" name="violation_time" required>
+                            </div>
+                        </div>
+
+                        <!-- Description -->
+                        <div class="mb-3">
+                            <label for="editViolationDescription" class="form-label">รายละเอียดเพิ่มเติม</label>
+                            <textarea class="form-control" id="editViolationDescription" name="description" rows="3" placeholder="ระบุรายละเอียดเพิ่มเติม (ถ้ามี)"></textarea>
+                        </div>
+
+                        <!-- Current Evidence -->
+                        <div class="mb-3" id="currentEvidenceSection" style="display: none;">
+                            <label class="form-label">หลักฐานปัจจุบัน</label>
+                            <div class="border rounded p-2">
+                                <img id="currentEvidenceImage" src="" alt="หลักฐานปัจจุบัน" class="img-fluid rounded" style="max-height: 200px;">
+                                <div class="mt-2">
+                                    <small class="text-muted">หลักฐานที่อัปโหลดไว้แล้ว</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- New Evidence -->
+                        <div class="mb-3">
+                            <label for="editEvidenceFile" class="form-label">แนบหลักฐานใหม่ (ถ้าต้องการเปลี่ยน)</label>
+                            <input type="file" class="form-control" id="editEvidenceFile" name="evidence" accept="image/*">
+                            <div class="form-text">รองรับไฟล์ภาพเท่านั้น (JPG, PNG, GIF) - ถ้าไม่เลือกจะใช้หลักฐานเดิม</div>
+                        </div>
+
+                        <!-- Success/Error Messages -->
+                        <div id="editViolationSuccess" class="alert alert-success" style="display: none;">
+                            <i class="fas fa-check-circle me-2"></i>
+                            <span id="editViolationSuccessMessage">บันทึกการแก้ไขเรียบร้อยแล้ว</span>
+                        </div>
+
+                        <div id="editViolationFormError" class="alert alert-danger" style="display: none;">
+                            <i class="fas fa-exclamation-circle me-2"></i>
+                            <span id="editViolationFormErrorMessage">เกิดข้อผิดพลาดในการบันทึก</span>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Action Buttons -->
+                <div id="editViolationActions" class="mt-4" style="display: none;">
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <button type="button" class="btn btn-secondary" onclick="closeEditViolationSidebar()">
+                            ยกเลิก
+                        </button>
+                        <button type="button" class="btn btn-primary-app" id="saveEditViolationBtn">
+                            <i class="fas fa-save me-1"></i> บันทึกการแก้ไข
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
 </body>
 
 </html>

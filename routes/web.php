@@ -68,6 +68,12 @@ Route::middleware('auth')->group(function () {
             ->name('teacher.student.reset-password');
     });
     
+    // Behavior Reports routes สำหรับการอัปเดตและลบ
+    Route::post('/api/behavior-reports/{id}/update', [App\Http\Controllers\BehaviorReportController::class, 'update'])
+        ->name('api.behavior-reports.update');
+    Route::post('/api/behavior-reports/{id}/delete', [App\Http\Controllers\BehaviorReportController::class, 'destroy'])
+        ->name('api.behavior-reports.delete');
+    
     // หน้าแดชบอร์ดของผู้ปกครอง - ใช้ ParentController
     Route::get('/parent/dashboard', [ParentController::class, 'dashboard'])->name('parent.dashboard');
     

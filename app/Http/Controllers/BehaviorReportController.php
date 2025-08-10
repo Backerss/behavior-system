@@ -366,6 +366,7 @@ class BehaviorReportController extends Controller
                                      : null,
                     'report_date' => Carbon::parse($report->reports_report_date)->format('j M Y, H:i น.'),
                     'report_date_thai' => Carbon::parse($report->reports_report_date)->locale('th')->format('j F Y, H:i น.'),
+                    'report_datetime' => $report->reports_report_date, // Raw datetime for editing
                     'created_at' => Carbon::parse($report->created_at)->format('d/m/Y H:i')
                 ]
             ];
@@ -380,6 +381,187 @@ class BehaviorReportController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'เกิดข้อผิดพลาดในการดึงข้อมูลรายละเอียดรายงาน',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * อัปเดตรายงานพฤติกรรมนักเรียน
+     *
+     * @param Request $request
+     * @param int $id
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function update(Request $request, $id)
+    {
+        try {
+            // ค้นหารายงานพฤติกรรม
+            $behaviorReport = BehaviorReport::find($id);
+            
+            if (!$behaviorReport) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'ไม่พบรายงานพฤติกรรมที่ต้องการแก้ไข'
+                ], 404);
+            }
+
+            // ตรวจสอบสิทธิ์ในการแก้ไข (เฉพาะครูที่บันทึกหรือ admin)
+            $user = Auth::user();
+            // ตรวจสิทธิ์: admin ทำได้ทุกอย่าง, ครูต้องเป็นคนที่สร้างรายงานนี้
+            if ($user->users_role !== 'admin') {
+                // หา teacher จาก users_id ของ user ปัจจุบัน
+                $currentTeacher = DB::table('tb_teachers')
+                    ->where('users_id', $user->users_id)
+                    ->first();
+                if (!$currentTeacher || (int)$behaviorReport->teacher_id !== (int)$currentTeacher->teachers_id) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'คุณไม่มีสิทธิ์แก้ไขรายงานนี้'
+                    ], 403);
+                }
+            }
+
+            // ตรวจสอบข้อมูลที่ส่งมา
+            $validator = Validator::make($request->all(), [
+                'violation_id' => 'required|exists:tb_violations,violations_id',
+                // JS ส่งมาเป็น 'report_datetime' แบบ Y-m-d H:i:s ถ้าไม่มีวินาทีจะเติม :00 แล้ว
+                'report_datetime' => 'required|date_format:Y-m-d H:i:s',
+                'description' => 'nullable|string|max:1000',
+                'evidence' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048'
+            ], [
+                'violation_id.required' => 'กรุณาเลือกประเภทการกระทำผิด',
+                'violation_id.exists' => 'ไม่พบข้อมูลประเภทการกระทำผิด',
+                'report_datetime.required' => 'กรุณาระบุวันและเวลาที่เกิดเหตุ',
+                'report_datetime.date_format' => 'รูปแบบวันและเวลาไม่ถูกต้อง',
+                'evidence.image' => 'ไฟล์ที่แนบต้องเป็นรูปภาพเท่านั้น',
+                'evidence.mimes' => 'รองรับเฉพาะไฟล์รูปภาพนามสกุล: jpeg, png, jpg, gif',
+                'evidence.max' => 'ขนาดไฟล์รูปภาพต้องไม่เกิน 2MB'
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'ข้อมูลไม่ถูกต้อง',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            // เริ่ม transaction
+            DB::beginTransaction();
+
+            // ข้อมูลการกระทำผิดใหม่
+            $violation = Violation::find($request->violation_id);
+            
+            // คำนวณคะแนนใหม่
+            $oldPointsDeducted = $behaviorReport->violation->violations_points_deducted ?? 0;
+            $newPointsDeducted = $violation->violations_points_deducted;
+            $pointsDifference = $newPointsDeducted - $oldPointsDeducted;
+
+            // อัปเดตคะแนนนักเรียน
+            $student = Student::find($behaviorReport->student_id);
+            $student->students_current_score -= $pointsDifference;
+            $student->save();
+
+            // จัดการไฟล์หลักฐานใหม่ (ถ้ามี)
+            $evidencePath = $behaviorReport->reports_evidence_path;
+            if ($request->hasFile('evidence')) {
+                // ลบไฟล์เก่า
+                if ($evidencePath && Storage::disk('public')->exists($evidencePath)) {
+                    Storage::disk('public')->delete($evidencePath);
+                }
+                // อัปโหลดไฟล์ใหม่ ให้ path สอดคล้องกับ store()
+                $file = $request->file('evidence');
+                $filename = time() . '_' . $file->getClientOriginalName();
+                $path = $file->storeAs('public/behavior_evidences', $filename);
+                $evidencePath = str_replace('public/', '', $path); // เก็บเฉพาะส่วนภายใน storage
+            }
+
+            // อัปเดตรายงาน
+            $behaviorReport->update([
+                'violation_id' => $request->violation_id,
+                'reports_report_date' => $request->report_datetime,
+                'reports_description' => $request->description,
+                'reports_evidence_path' => $evidencePath,
+            ]);
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'แก้ไขรายงานพฤติกรรมเรียบร้อยแล้ว',
+                'data' => $behaviorReport
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollback();
+            Log::error('Error updating behavior report: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'เกิดข้อผิดพลาดในการแก้ไขรายงาน',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * ลบรายงานพฤติกรรมนักเรียน
+     *
+     * @param int $id
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function destroy($id)
+    {
+        try {
+            // ค้นหารายงานพฤติกรรม
+            $behaviorReport = BehaviorReport::find($id);
+            
+            if (!$behaviorReport) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'ไม่พบรายงานพฤติกรรมที่ต้องการลบ'
+                ], 404);
+            }
+
+            // ตรวจสอบสิทธิ์ในการลบ (เฉพาะครูที่บันทึกหรือ admin)
+            $user = Auth::user();
+            if ($user->users_role !== 'admin' && $behaviorReport->teacher_id !== $user->users_id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'คุณไม่มีสิทธิ์ลบรายงานนี้'
+                ], 403);
+            }
+
+            // เริ่ม transaction
+            DB::beginTransaction();
+
+            // คืนคะแนนให้นักเรียน
+            $student = Student::find($behaviorReport->student_id);
+            $pointsToReturn = $behaviorReport->violation->violations_points_deducted ?? 0;
+            $student->students_current_score += $pointsToReturn;
+            $student->save();
+
+            // ลบไฟล์หลักฐาน (ถ้ามี)
+            if ($behaviorReport->reports_evidence_path && Storage::disk('public')->exists($behaviorReport->reports_evidence_path)) {
+                Storage::disk('public')->delete($behaviorReport->reports_evidence_path);
+            }
+
+            // ลบรายงาน
+            $behaviorReport->delete();
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'ลบรายงานพฤติกรรมเรียบร้อยแล้ว'
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollback();
+            Log::error('Error deleting behavior report: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'เกิดข้อผิดพลาดในการลบรายงาน',
                 'error' => $e->getMessage()
             ], 500);
         }

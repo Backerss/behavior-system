@@ -759,13 +759,51 @@ function displayViolationDetail(data) {
  * ลบรายงานพฤติกรรม
  */
 function deleteViolationReport(reportId) {
-    if (confirm('คุณต้องการลบรายงานพฤติกรรมนี้หรือไม่?')) {
-        showSuccess('ลบรายงานพฤติกรรมเรียบร้อยแล้ว');
+    if (confirm('คุณต้องการลบรายงานพฤติกรรมนี้หรือไม่?\n\nข้อมูลที่ลบแล้วจะไม่สามารถกู้คืนได้')) {
+        // แสดง loading state
+        const deleteBtn = document.getElementById('deleteReportBtn');
+        const originalText = deleteBtn.innerHTML;
+        deleteBtn.disabled = true;
+        deleteBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> กำลังลบ...';
         
-        // ปิด modal และรีเฟรชรายการ
-        const modal = bootstrap.Modal.getInstance(document.getElementById('violationDetailModal'));
-        modal.hide();
-        loadRecentReports();
+        fetch(`/api/behavior-reports/${reportId}/delete`, {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': behaviorReport.csrfToken,
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('เกิดข้อผิดพลาดในการลบรายงาน');
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                showSuccess(data.message || 'ลบรายงานพฤติกรรมเรียบร้อยแล้ว');
+                
+                // ปิด modal และรีเฟรชรายการ
+                const modal = bootstrap.Modal.getInstance(document.getElementById('violationDetailModal'));
+                if (modal) {
+                    modal.hide();
+                }
+                
+                // รีเฟรชรายการ
+                loadRecentReports();
+            } else {
+                throw new Error(data.message || 'เกิดข้อผิดพลาดในการลบรายงาน');
+            }
+        })
+        .catch(error => {
+            showError(error.message);
+        })
+        .finally(() => {
+            // คืนสถานะปุ่ม
+            deleteBtn.disabled = false;
+            deleteBtn.innerHTML = originalText;
+        });
     }
 }
 
@@ -773,12 +811,14 @@ function deleteViolationReport(reportId) {
  * แก้ไขรายงานพฤติกรรม
  */
 function editViolationReport(reportId) {
-    // ปิด modal รายละเอียดและเปิด modal แก้ไข
+    // ปิด modal รายละเอียด
     const detailModal = bootstrap.Modal.getInstance(document.getElementById('violationDetailModal'));
-    detailModal.hide();
+    if (detailModal) {
+        detailModal.hide();
+    }
     
-    // เปิด modal แก้ไข (ต้องสร้างต่อไป)
-    showSuccess('ฟีเจอร์แก้ไขจะพร้อมใช้งานเร็วๆ นี้');
+    // เปิด sidebar และโหลดข้อมูล
+    openEditViolationSidebar(reportId);
 }
 
 /**
@@ -1628,5 +1668,342 @@ function resetStudentPassword(studentId) {
         btn.disabled = false;
         btn.classList.remove('btn-loading');
         btn.innerHTML = originalText;
+    });
+}
+
+/**
+ * เปิด Sidebar แก้ไขรายงานพฤติกรรม
+ */
+function openEditViolationSidebar(reportId) {
+    const sidebar = document.getElementById('editViolationSidebar');
+    sidebar.classList.add('show');
+    
+    // รีเซ็ตสถานะ
+    showEditViolationLoading();
+    hideEditViolationError();
+    hideEditViolationForm();
+    hideEditViolationActions();
+    
+    // โหลดข้อมูลรายงาน
+    loadViolationReportForEdit(reportId);
+    
+    // เพิ่ม event listener สำหรับปิด sidebar เมื่อคลิกพื้นหลัง
+    sidebar.addEventListener('click', function(e) {
+        if (e.target === sidebar) {
+            closeEditViolationSidebar();
+        }
+    });
+}
+
+/**
+ * ปิด Sidebar แก้ไขรายงานพฤติกรรม
+ */
+function closeEditViolationSidebar() {
+    const sidebar = document.getElementById('editViolationSidebar');
+    sidebar.classList.remove('show');
+    
+    // รีเซ็ตฟอร์ม
+    const form = document.getElementById('violationEditForm');
+    if (form) {
+        form.reset();
+    }
+}
+
+/**
+ * แสดงสถานะ Loading ของ Sidebar
+ */
+function showEditViolationLoading() {
+    document.getElementById('editViolationLoading').style.display = 'block';
+}
+
+/**
+ * ซ่อนสถานะ Loading ของ Sidebar
+ */
+function hideEditViolationLoading() {
+    document.getElementById('editViolationLoading').style.display = 'none';
+}
+
+/**
+ * แสดงข้อผิดพลาดใน Sidebar
+ */
+function showEditViolationError(message) {
+    document.getElementById('editViolationErrorMessage').textContent = message;
+    document.getElementById('editViolationError').style.display = 'block';
+}
+
+/**
+ * ซ่อนข้อผิดพลาดใน Sidebar
+ */
+function hideEditViolationError() {
+    document.getElementById('editViolationError').style.display = 'none';
+}
+
+/**
+ * แสดงฟอร์มแก้ไขใน Sidebar
+ */
+function showEditViolationForm() {
+    document.getElementById('editViolationForm').style.display = 'block';
+}
+
+/**
+ * ซ่อนฟอร์มแก้ไขใน Sidebar
+ */
+function hideEditViolationForm() {
+    document.getElementById('editViolationForm').style.display = 'none';
+}
+
+/**
+ * แสดงปุ่มแอคชั่นใน Sidebar
+ */
+function showEditViolationActions() {
+    document.getElementById('editViolationActions').style.display = 'block';
+}
+
+/**
+ * ซ่อนปุ่มแอคชั่นใน Sidebar
+ */
+function hideEditViolationActions() {
+    document.getElementById('editViolationActions').style.display = 'none';
+}
+
+/**
+ * โหลดข้อมูลรายงานพฤติกรรมสำหรับแก้ไข
+ */
+function loadViolationReportForEdit(reportId) {
+    fetch(`/api/behavior-reports/${reportId}`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('ไม่สามารถโหลดข้อมูลได้');
+            }
+            return response.json();
+        })
+        .then(response => {
+            if (response.success && response.data) {
+                populateEditForm(response.data);
+            } else {
+                throw new Error(response.message || 'ไม่สามารถโหลดข้อมูลได้');
+            }
+        })
+        .catch(error => {
+            hideEditViolationLoading();
+            showEditViolationError(error.message);
+        });
+}
+
+/**
+ * เติมข้อมูลในฟอร์มแก้ไข
+ */
+function populateEditForm(data) {
+    hideEditViolationLoading();
+    
+    // เติมข้อมูลพื้นฐาน
+    document.getElementById('editReportId').value = data.id;
+    
+    // ข้อมูลนักเรียน
+    const studentInfo = `
+        <div class="d-flex align-items-center">
+            <img src="${data.student.avatar_url || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(data.student.name) + '&background=95A4D8&color=fff'}" class="rounded-circle me-2" width="30" height="30" alt="รูปประจำตัว">
+            <div>
+                <strong>${data.student.name || 'ไม่ระบุชื่อ'}</strong><br>
+                <small class="text-muted">รหัส: ${data.student.student_code || 'ไม่ระบุ'} | ชั้น: ${data.student.class || 'ไม่ระบุ'}</small>
+            </div>
+        </div>
+    `;
+    document.getElementById('editStudentInfoDisplay').innerHTML = studentInfo;
+    
+    // โหลดประเภทพฤติกรรมและเลือกค่าปัจจุบัน - ต้องใช้ violation id ที่ถูกต้อง
+    // ก่อนอื่นต้องหา violation id จากข้อมูลเดิม
+    findViolationIdAndLoadTypes(data);
+    
+    // เติมข้อมูลวันที่และเวลา
+    if (data.report && data.report.report_datetime) {
+        try {
+            // แปลงรูปแบบวันที่จาก API มาเป็น input format
+            const reportDate = new Date(data.report.report_datetime);
+            if (!isNaN(reportDate.getTime())) {
+                document.getElementById('editViolationDate').value = reportDate.toISOString().split('T')[0];
+                document.getElementById('editViolationTime').value = reportDate.toTimeString().split(' ')[0].substring(0, 5);
+            }
+        } catch (e) {
+            console.error('Error parsing date:', e);
+            // ใช้วันที่ปัจจุบันเป็นค่าเริ่มต้น
+            const now = new Date();
+            document.getElementById('editViolationDate').value = now.toISOString().split('T')[0];
+            document.getElementById('editViolationTime').value = now.toTimeString().split(' ')[0].substring(0, 5);
+        }
+    }
+    
+    // เติมรายละเอียด
+    document.getElementById('editViolationDescription').value = data.report?.description || '';
+    
+    // หลักฐาน
+    if (data.report?.evidence_url) {
+        document.getElementById('currentEvidenceImage').src = data.report.evidence_url;
+        document.getElementById('currentEvidenceSection').style.display = 'block';
+    } else {
+        document.getElementById('currentEvidenceSection').style.display = 'none';
+    }
+    
+    showEditViolationForm();
+    showEditViolationActions();
+    
+    // เพิ่ม event listener สำหรับปุ่มบันทึก
+    document.getElementById('saveEditViolationBtn').onclick = function() {
+        saveViolationEdit();
+    };
+}
+
+/**
+ * ค้นหา violation ID และโหลดประเภทพฤติกรรม
+ */
+function findViolationIdAndLoadTypes(data) {
+    fetch('/api/violations/all')
+        .then(response => response.json())
+        .then(violationsData => {
+            if (violationsData.success) {
+                const select = document.getElementById('editViolationType');
+                select.innerHTML = '<option value="">เลือกประเภทพฤติกรรม</option>';
+                
+                let selectedViolationId = null;
+                
+                violationsData.data.forEach(violation => {
+                    const option = document.createElement('option');
+                    option.value = violation.violations_id;
+                    option.textContent = violation.violations_name;
+                    option.dataset.points = violation.violations_points_deducted;
+                    
+                    // ค้นหา violation ที่ตรงกับชื่อในข้อมูล
+                    if (violation.violations_name === data.violation?.name) {
+                        option.selected = true;
+                        selectedViolationId = violation.violations_id;
+                        document.getElementById('editPointsDeducted').textContent = violation.violations_points_deducted;
+                    }
+                    
+                    select.appendChild(option);
+                });
+                
+                // เพิ่ม event listener สำหรับการเปลี่ยนประเภทพฤติกรรม
+                select.addEventListener('change', function() {
+                    const selectedOption = this.options[this.selectedIndex];
+                    const points = selectedOption.dataset.points || 0;
+                    document.getElementById('editPointsDeducted').textContent = points;
+                });
+            }
+        })
+        .catch(error => {
+            console.error('Error loading violation types:', error);
+        });
+}
+
+/**
+ * โหลดประเภทพฤติกรรมสำหรับฟอร์มแก้ไข
+ */
+function loadViolationTypesForEdit(selectedViolationId) {
+    fetch('/api/violations/all')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const select = document.getElementById('editViolationType');
+                select.innerHTML = '<option value="">เลือกประเภทพฤติกรรม</option>';
+                
+                data.data.forEach(violation => {
+                    const option = document.createElement('option');
+                    option.value = violation.violations_id;
+                    option.textContent = violation.violations_name;
+                    option.dataset.points = violation.violations_points_deducted;
+                    
+                    if (violation.violations_id == selectedViolationId) {
+                        option.selected = true;
+                        document.getElementById('editPointsDeducted').textContent = violation.violations_points_deducted;
+                    }
+                    
+                    select.appendChild(option);
+                });
+                
+                // เพิ่ม event listener สำหรับการเปลี่ยนประเภทพฤติกรรม
+                select.addEventListener('change', function() {
+                    const selectedOption = this.options[this.selectedIndex];
+                    const points = selectedOption.dataset.points || 0;
+                    document.getElementById('editPointsDeducted').textContent = points;
+                });
+            }
+        })
+        .catch(error => {
+            console.error('Error loading violation types:', error);
+        });
+}
+
+/**
+ * บันทึกการแก้ไขรายงานพฤติกรรม
+ */
+function saveViolationEdit() {
+    const form = document.getElementById('violationEditForm');
+    const formData = new FormData(form);
+    const reportId = document.getElementById('editReportId').value;
+    
+    // ซ่อนข้อความก่อนหน้า
+    document.getElementById('editViolationSuccess').style.display = 'none';
+    document.getElementById('editViolationFormError').style.display = 'none';
+    
+    // ปุ่มบันทึก loading
+    const saveBtn = document.getElementById('saveEditViolationBtn');
+    const originalText = saveBtn.innerHTML;
+    saveBtn.disabled = true;
+    saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> กำลังบันทึก...';
+    
+    // รวมวันที่และเวลา
+    const date = document.getElementById('editViolationDate').value;
+    const time = document.getElementById('editViolationTime').value;
+    if (date && time) {
+        const datetime = `${date} ${time}:00`;
+        formData.append('report_datetime', datetime);
+    }
+    
+    // แนบไฟล์หลักฐาน (ถ้ามี)
+    const evidenceFile = document.getElementById('editEvidenceFile').files[0];
+    if (evidenceFile) {
+        formData.append('evidence', evidenceFile);
+    }
+    
+    // ส่งข้อมูล (ใช้ POST route ที่รองรับ FormData)
+    fetch(`/api/behavior-reports/${reportId}/update`, {
+        method: 'POST',
+        headers: {
+            'X-CSRF-TOKEN': behaviorReport.csrfToken,
+            'Accept': 'application/json'
+        },
+        body: formData
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('เกิดข้อผิดพลาดในการบันทึกข้อมูล');
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.success) {
+            // แสดงข้อความสำเร็จ
+            document.getElementById('editViolationSuccessMessage').textContent = data.message || 'บันทึกการแก้ไขเรียบร้อยแล้ว';
+            document.getElementById('editViolationSuccess').style.display = 'block';
+            
+            // รีเฟรชข้อมูลในตาราง
+            loadRecentReports();
+            
+            // ปิด sidebar หลัง 2 วินาที
+            setTimeout(() => {
+                closeEditViolationSidebar();
+            }, 2000);
+        } else {
+            throw new Error(data.message || 'เกิดข้อผิดพลาดในการบันทึกข้อมูล');
+        }
+    })
+    .catch(error => {
+        document.getElementById('editViolationFormErrorMessage').textContent = error.message;
+        document.getElementById('editViolationFormError').style.display = 'block';
+    })
+    .finally(() => {
+        // คืนสถานะปุ่ม
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = originalText;
     });
 }

@@ -31,6 +31,11 @@ class BehaviorReport extends Model
     protected $table = 'tb_behavior_reports';
     
     /**
+     * ตารางนี้ไม่มีคอลัมน์ updated_at ในฐานข้อมูล จึงปิด timestamps
+     */
+    public $timestamps = false;
+    
+    /**
      * Primary key
      */
     protected $primaryKey = 'reports_id';

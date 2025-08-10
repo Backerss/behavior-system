@@ -28,8 +28,8 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/students/{id}/graduated-history', [StudentApiController::class, 'getGraduatedHistory']);
 });
 
-// Student API routes อื่นๆ ใช้ auth:sanctum ตามเดิม
-Route::middleware(['auth:sanctum'])->group(function () {
+// Student API routes อื่นๆ ใช้ auth สำหรับ web session
+Route::middleware(['auth'])->group(function () {
     Route::get('/students/{id}', [StudentApiController::class, 'show']);
     
     // Behavior Report routes
