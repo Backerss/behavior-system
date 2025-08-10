@@ -460,7 +460,7 @@ class BehaviorReportController extends Controller
 
             // อัปเดตคะแนนนักเรียน
             $student = Student::find($behaviorReport->student_id);
-            $student->students_current_score -= $pointsDifference;
+            $student->students_current_score = max(0, $student->students_current_score - $pointsDifference);
             $student->save();
 
             // จัดการไฟล์หลักฐานใหม่ (ถ้ามี)

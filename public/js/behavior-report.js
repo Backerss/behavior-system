@@ -608,7 +608,7 @@ function displayRecentReports(reports) {
                 <button class="btn btn-sm btn-primary-app view-violation-btn" data-id="${report.id}" onclick="showViolationDetail(${report.id})">
                     <i class="fas fa-eye"></i>
                 </button>
-                <button class="btn btn-sm btn-outline-primary edit-violation-btn" data-id="${report.id}">
+                <button class="btn btn-sm btn-outline-primary edit-violation-btn" data-id="${report.id}" onclick="openEditViolationSidebar(${report.id})" title="แก้ไขรายงาน">
                     <i class="fas fa-edit"></i>
                 </button>
             </td>
@@ -1798,6 +1798,16 @@ function populateEditForm(data) {
     
     // เติมข้อมูลพื้นฐาน
     document.getElementById('editReportId').value = data.id;
+
+    // เก็บ context สำหรับคำนวณคะแนนตอนยืนยันบันทึก
+    window.behaviorEditContext = {
+        oldViolationPoints: (data.violation && typeof data.violation.points_deducted !== 'undefined') ? Number(data.violation.points_deducted) : 0,
+        studentCurrentScore: (data.student && typeof data.student.current_score !== 'undefined') ? Number(data.student.current_score) : 100,
+        originalViolationId: null,
+        originalDate: null,
+        originalTime: null,
+        originalDescription: ''
+    };
     
     // ข้อมูลนักเรียน
     const studentInfo = `
@@ -1823,6 +1833,9 @@ function populateEditForm(data) {
             if (!isNaN(reportDate.getTime())) {
                 document.getElementById('editViolationDate').value = reportDate.toISOString().split('T')[0];
                 document.getElementById('editViolationTime').value = reportDate.toTimeString().split(' ')[0].substring(0, 5);
+                // เก็บค่าเดิมไว้สำหรับเทียบ
+                window.behaviorEditContext.originalDate = document.getElementById('editViolationDate').value;
+                window.behaviorEditContext.originalTime = document.getElementById('editViolationTime').value;
             }
         } catch (e) {
             console.error('Error parsing date:', e);
@@ -1830,11 +1843,14 @@ function populateEditForm(data) {
             const now = new Date();
             document.getElementById('editViolationDate').value = now.toISOString().split('T')[0];
             document.getElementById('editViolationTime').value = now.toTimeString().split(' ')[0].substring(0, 5);
+            window.behaviorEditContext.originalDate = document.getElementById('editViolationDate').value;
+            window.behaviorEditContext.originalTime = document.getElementById('editViolationTime').value;
         }
     }
     
     // เติมรายละเอียด
     document.getElementById('editViolationDescription').value = data.report?.description || '';
+    window.behaviorEditContext.originalDescription = document.getElementById('editViolationDescription').value || '';
     
     // หลักฐาน
     if (data.report?.evidence_url) {
@@ -1851,6 +1867,88 @@ function populateEditForm(data) {
     document.getElementById('saveEditViolationBtn').onclick = function() {
         saveViolationEdit();
     };
+
+    // ปุ่มลบจากใน Sidebar แก้ไข
+    const deleteBtn = document.getElementById('deleteEditViolationBtn');
+    if (deleteBtn) {
+        deleteBtn.onclick = function() {
+            const reportId = document.getElementById('editReportId').value;
+            if (!reportId) return;
+
+            if (typeof Swal !== 'undefined') {
+                const vt = document.getElementById('editViolationType');
+                const vtText = vt && vt.options[vt.selectedIndex] ? vt.options[vt.selectedIndex].text : '-';
+                const points = Number(document.getElementById('editPointsDeducted')?.textContent || 0);
+                const studentName = (data && data.student && data.student.name) ? data.student.name : '-';
+
+                Swal.fire({
+                    title: 'ยืนยันการลบรายงานนี้?',
+                    html: `
+                        <div class='text-start small'>
+                            <div class='mb-1'>นักเรียน: <strong>${studentName}</strong></div>
+                            <div class='mb-1'>ประเภทพฤติกรรม: <strong>${vtText}</strong></div>
+                            <div class='mb-1'>คะแนนที่เคยหัก: <strong>${points}</strong> คะแนน</div>
+                            <div class='text-muted'>ระบบจะทำการคืนคะแนนที่หักและลบรายงานนี้ออก</div>
+                        </div>
+                    `,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'ลบรายงาน',
+                    cancelButtonText: 'ยกเลิก',
+                    confirmButtonColor: '#d33'
+                }).then(result => {
+                    if (!result.isConfirmed) return;
+
+                    // แสดงกำลังลบ
+                    deleteBtn.disabled = true;
+                    const original = deleteBtn.innerHTML;
+                    deleteBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> กำลังลบ...';
+
+                    fetch(`/api/behavior-reports/${reportId}/delete`, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRF-TOKEN': behaviorReport.csrfToken,
+                            'Accept': 'application/json',
+                            'Content-Type': 'application/json'
+                        }
+                    })
+                    .then(r => {
+                        if (!r.ok) throw new Error('ลบไม่สำเร็จ');
+                        return r.json();
+                    })
+                    .then(resp => {
+                        if (resp.success === false) throw new Error(resp.message || 'ลบไม่สำเร็จ');
+
+                        // Toast แจ้งลบสำเร็จ
+                        if (typeof Swal !== 'undefined') {
+                            Swal.fire({
+                                toast: true,
+                                position: 'top-end',
+                                icon: 'success',
+                                title: resp.message || 'ลบรายงานสำเร็จ',
+                                showConfirmButton: false,
+                                timer: 2000,
+                                timerProgressBar: true
+                            });
+                        }
+
+                        // รีเฟรชตารางและปิด Sidebar
+                        loadRecentReports();
+                        closeEditViolationSidebar();
+                    })
+                    .catch(err => {
+                        if (typeof Swal !== 'undefined') {
+                            Swal.fire({ icon: 'error', title: 'ลบไม่สำเร็จ', text: err.message || 'เกิดข้อผิดพลาด' });
+                        }
+                    })
+                    .finally(() => {
+                        deleteBtn.disabled = false;
+                        deleteBtn.innerHTML = original;
+                    });
+                });
+            }
+        };
+    }
 }
 
 /**
@@ -1881,6 +1979,11 @@ function findViolationIdAndLoadTypes(data) {
                     
                     select.appendChild(option);
                 });
+
+                // เก็บ violation id เดิมไว้ใน context เพื่อใช้ตรวจสอบความเปลี่ยนแปลง
+                if (window.behaviorEditContext) {
+                    window.behaviorEditContext.originalViolationId = selectedViolationId;
+                }
                 
                 // เพิ่ม event listener สำหรับการเปลี่ยนประเภทพฤติกรรม
                 select.addEventListener('change', function() {
@@ -1958,14 +2061,137 @@ function saveViolationEdit() {
         const datetime = `${date} ${time}:00`;
         formData.append('report_datetime', datetime);
     }
-    
+
+    // เตรียมข้อมูลคำนวณคะแนนเพื่อยืนยัน
+    const select = document.getElementById('editViolationType');
+    const selectedOption = select.options[select.selectedIndex];
+    const newPoints = Number(selectedOption?.dataset?.points || 0);
+    const oldPoints = Number((window.behaviorEditContext && window.behaviorEditContext.oldViolationPoints) || 0);
+    const currentScore = Number((window.behaviorEditContext && window.behaviorEditContext.studentCurrentScore) || 100);
+    const diff = newPoints - oldPoints; // คะแนนที่จะเปลี่ยนแปลงจากเดิม
+    const calculatedNewScore = Math.max(0, currentScore - diff); // ไม่ให้ต่ำกว่า 0 (สอดคล้องกับ backend)
+
     // แนบไฟล์หลักฐาน (ถ้ามี)
     const evidenceFile = document.getElementById('editEvidenceFile').files[0];
     if (evidenceFile) {
         formData.append('evidence', evidenceFile);
     }
-    
-    // ส่งข้อมูล (ใช้ POST route ที่รองรับ FormData)
+
+    // แสดง SweetAlert เพื่อยืนยันก่อนบันทึก
+    if (typeof Swal !== 'undefined') {
+        const changeText = diff === 0
+            ? '<span class="text-muted">ไม่มีการเปลี่ยนคะแนนที่หัก</span>'
+            : (diff > 0
+                ? `<span class="text-danger">เพิ่มการหัก ${diff} คะแนน</span>`
+                : `<span class="text-success">ลดการหัก ${Math.abs(diff)} คะแนน</span>`);
+
+        Swal.fire({
+            title: 'ยืนยันการบันทึกการแก้ไข?',
+            html: `
+                <div class='text-start small'>
+                    <div class='mb-2'>ประเภทพฤติกรรมใหม่: <strong>${selectedOption?.text || '-'}</strong></div>
+                    <div class='mb-2'>คะแนนที่หัก (เดิม ➜ ใหม่): <strong>${oldPoints}</strong> ➜ <strong>${newPoints}</strong></div>
+                    <div class='mb-2'>ผลกระทบต่อคะแนนนักเรียน: ${changeText}</div>
+                    <div class='p-2 mt-2 border rounded bg-light'>คะแนนนักเรียน: <strong>${currentScore}</strong> ➜ <strong>${calculatedNewScore}</strong></div>
+                </div>
+            `,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'บันทึก',
+            cancelButtonText: 'ยกเลิก'
+        }).then(result => {
+            if (!result.isConfirmed) {
+                // ผู้ใช้ยกเลิก
+                saveBtn.disabled = false;
+                saveBtn.innerHTML = originalText;
+                return;
+            }
+
+            // ตรวจสอบว่าไม่มีการเปลี่ยนแปลงข้อมูลหรือไม่ (ประเภท, วันที่, เวลา, รายละเอียด, ไฟล์หลักฐานใหม่)
+            try {
+                const ctx = window.behaviorEditContext || {};
+                const newViolationId = (document.getElementById('editViolationType').value || '').toString();
+                const newDate = (document.getElementById('editViolationDate').value || '').toString();
+                const newTime = (document.getElementById('editViolationTime').value || '').toString();
+                const newDesc = (document.getElementById('editViolationDescription').value || '').trim();
+                const hasNewEvidence = (document.getElementById('editEvidenceFile').files || []).length > 0;
+                const unchanged = (
+                    (ctx.originalViolationId ? newViolationId === String(ctx.originalViolationId) : true) &&
+                    (ctx.originalDate ? newDate === ctx.originalDate : true) &&
+                    (ctx.originalTime ? newTime === ctx.originalTime : true) &&
+                    (ctx.originalDescription !== undefined ? newDesc === (ctx.originalDescription || '').trim() : true) &&
+                    !hasNewEvidence
+                );
+
+                if (unchanged) {
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({
+                            toast: true,
+                            position: 'top-end',
+                            icon: 'info',
+                            title: 'บันทึกค่าเดิม',
+                            text: 'ไม่ได้มีการเปลี่ยนแปลงข้อมูล',
+                            showConfirmButton: false,
+                            timer: 2000,
+                            timerProgressBar: true
+                        });
+                    }
+                    // คืนสถานะปุ่มและหยุดการส่งข้อมูล
+                    saveBtn.disabled = false;
+                    saveBtn.innerHTML = originalText;
+                    return;
+                }
+            } catch (e) {
+                // ถ้าตรวจสอบไม่สำเร็จ ให้ผ่านไปยังการบันทึกตามปกติ
+                console.warn('Unable to verify unchanged state:', e);
+            }
+
+            // ส่งข้อมูล (ใช้ POST route ที่รองรับ FormData)
+            fetch(`/api/behavior-reports/${reportId}/update`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': behaviorReport.csrfToken,
+                    'Accept': 'application/json'
+                },
+                body: formData
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('เกิดข้อผิดพลาดในการบันทึกข้อมูล');
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    // แสดงข้อความสำเร็จ
+                    document.getElementById('editViolationSuccessMessage').textContent = data.message || 'บันทึกการแก้ไขเรียบร้อยแล้ว';
+                    document.getElementById('editViolationSuccess').style.display = 'block';
+
+                    // รีเฟรชข้อมูลในตาราง
+                    loadRecentReports();
+
+                    // ปิด sidebar หลัง 2 วินาที
+                    setTimeout(() => {
+                        closeEditViolationSidebar();
+                    }, 2000);
+                } else {
+                    throw new Error(data.message || 'เกิดข้อผิดพลาดในการบันทึกข้อมูล');
+                }
+            })
+            .catch(error => {
+                document.getElementById('editViolationFormErrorMessage').textContent = error.message;
+                document.getElementById('editViolationFormError').style.display = 'block';
+            })
+            .finally(() => {
+                // คืนสถานะปุ่ม
+                saveBtn.disabled = false;
+                saveBtn.innerHTML = originalText;
+            });
+        });
+        return; // รอผลจาก SweetAlert
+    }
+
+    // กรณีไม่พบ SweetAlert ให้ส่งตรง (fallback)
     fetch(`/api/behavior-reports/${reportId}/update`, {
         method: 'POST',
         headers: {
@@ -1982,17 +2208,10 @@ function saveViolationEdit() {
     })
     .then(data => {
         if (data.success) {
-            // แสดงข้อความสำเร็จ
             document.getElementById('editViolationSuccessMessage').textContent = data.message || 'บันทึกการแก้ไขเรียบร้อยแล้ว';
             document.getElementById('editViolationSuccess').style.display = 'block';
-            
-            // รีเฟรชข้อมูลในตาราง
             loadRecentReports();
-            
-            // ปิด sidebar หลัง 2 วินาที
-            setTimeout(() => {
-                closeEditViolationSidebar();
-            }, 2000);
+            setTimeout(() => { closeEditViolationSidebar(); }, 2000);
         } else {
             throw new Error(data.message || 'เกิดข้อผิดพลาดในการบันทึกข้อมูล');
         }
@@ -2002,7 +2221,6 @@ function saveViolationEdit() {
         document.getElementById('editViolationFormError').style.display = 'block';
     })
     .finally(() => {
-        // คืนสถานะปุ่ม
         saveBtn.disabled = false;
         saveBtn.innerHTML = originalText;
     });

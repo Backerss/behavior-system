@@ -2750,6 +2750,9 @@
                 <!-- Action Buttons -->
                 <div id="editViolationActions" class="mt-4" style="display: none;">
                     <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <button type="button" class="btn btn-outline-danger me-auto" id="deleteEditViolationBtn">
+                            <i class="fas fa-trash-alt me-1"></i> ลบบันทึก
+                        </button>
                         <button type="button" class="btn btn-secondary" onclick="closeEditViolationSidebar()">
                             ยกเลิก
                         </button>
