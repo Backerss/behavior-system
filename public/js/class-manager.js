@@ -35,7 +35,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // เชื่อมต่อกับ Elements ต่าง ๆ
     const classroomList = document.getElementById('classroomList');
-    const classroomForm = document.getElementById('classroomForm');
+    const classroomDrawerEl = document.getElementById('classroomDrawer');
     const btnShowAddClass = document.getElementById('btnShowAddClass');
     const btnCloseClassForm = document.getElementById('btnCloseClassForm');
     const btnCancelClass = document.getElementById('btnCancelClass');
@@ -222,7 +222,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // ฟังก์ชันโหลดข้อมูลตัวกรอง (ระดับชั้น)
     function fetchFilters() {
-        fetch('/classes/filters/all', {
+        fetch('/api/classes/filters/all', {
             headers: {
                 'Accept': 'application/json',
                 'X-Requested-With': 'XMLHttpRequest'
@@ -246,9 +246,39 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    // ฟังก์ชันเติมข้อมูลครูใน select
+    function populateTeacherSelect() {
+        const teacherSelect = document.getElementById('teacher_id');
+        if (!teacherSelect) return;
+        
+        // ล้างตัวเลือกเดิม
+        teacherSelect.innerHTML = '<option value="" selected disabled>เลือกครูประจำชั้น</option>';
+        
+        if (!classManager.teachers || classManager.teachers.length === 0) {
+            teacherSelect.innerHTML = '<option value="" disabled selected>ไม่พบข้อมูลครู</option>';
+            return;
+        }
+        
+        classManager.teachers.forEach(teacher => {
+            // แก้ไขการสร้างชื่อครูให้แสดงครบถ้วน
+            const prefix = teacher.users_name_prefix || '';
+            const firstName = teacher.users_first_name || '';
+            const lastName = teacher.users_last_name || '';
+            const teacherName = `${prefix}${firstName} ${lastName}`.trim();
+            
+            if (teacherName) { // เฉพาะที่มีชื่อ
+                const option = new Option(teacherName, teacher.teachers_id);
+                teacherSelect.add(option);
+            }
+        });
+        
+        console.log('Teacher select populated with', classManager.teachers.length, 'teachers');
+    }
+
     // ฟังก์ชันโหลดข้อมูลครูทั้งหมด
     function fetchTeachers() {
-        fetch('/api/classes/teachers/all', {
+        // ใช้ endpoint API ที่ใช้งานร่วมกับ API routes อื่นๆ
+        return fetch('/api/classes/teachers/all', {
             headers: {
                 'Accept': 'application/json',
                 'X-Requested-With': 'XMLHttpRequest'
@@ -256,27 +286,22 @@ document.addEventListener('DOMContentLoaded', function() {
         })
         .then(response => response.json())
         .then(data => {
+            console.log('Teachers data received:', data); // Debug log
             if (data.success) {
                 classManager.teachers = data.data;
-                
-                // เติมข้อมูลในตัวเลือกครูประจำชั้น
-                const teacherSelect = document.getElementById('teacher_id');
-                if (teacherSelect) {
-                    // ล้างตัวเลือกเดิมยกเว้นตัวแรก
-                    while (teacherSelect.options.length > 1) {
-                        teacherSelect.remove(1);
-                    }
-                    
-                    classManager.teachers.forEach(teacher => {
-                        const teacherName = `${teacher.users_name_prefix}${teacher.users_first_name} ${teacher.users_last_name}`;
-                        const option = new Option(teacherName, teacher.teachers_id);
-                        teacherSelect.add(option);
-                    });
-                }
+                populateTeacherSelect();
+                console.log('Total teachers loaded:', classManager.teachers.length); // Debug log
+                return data.data; // Return the teachers for chaining
+            } else {
+                console.error('Failed to fetch teachers:', data.message);
+                showError('ไม่สามารถโหลดรายชื่อครูได้: ' + (data.message || 'Unknown error'));
+                throw new Error(data.message || 'Failed to fetch teachers');
             }
         })
         .catch(error => {
             console.error('Error fetching teachers:', error);
+            showError('เกิดข้อผิดพลาดในการโหลดรายชื่อครู: ' + error.message);
+            throw error;
         });
     }
 
@@ -298,24 +323,41 @@ document.addEventListener('DOMContentLoaded', function() {
                         document.getElementById('classes_level').value = classroom.classes_level || '';
                         document.getElementById('classes_room_number').value = classroom.classes_room_number || '';
                         
-                        // เลือกครูที่กำหนดไว้
-                        if (classroom.teacher) {
-                            document.getElementById('teacher_id').value = classroom.teacher.teachers_id || '';
-                        } else {
-                            document.getElementById('teacher_id').value = '';
-                        }
-                        
                         // เปลี่ยน title ของฟอร์ม
                         document.getElementById('formClassTitle').textContent = 'แก้ไขข้อมูลห้องเรียน';
+                        
+                        // เปิดใช้งานโหมดแก้ไข
+                        setEditMode(true);
+                        
+                        // โหลดข้อมูลสถิติห้องเรียน
+                        loadClassroomStats(classId);
                         
                         // ล้าง validation errors
                         formClassroom.querySelectorAll('.is-invalid').forEach(element => {
                             element.classList.remove('is-invalid');
                         });
-                        
-                        // แสดงฟอร์ม ซ่อนรายการ
-                        classroomList.classList.add('d-none');
-                        classroomForm.classList.remove('d-none');
+
+                        // เปิด Drawer สำหรับแก้ไข
+                        if (classroomDrawerEl) {
+                            const drawer = bootstrap.Offcanvas.getOrCreateInstance(classroomDrawerEl);
+                            drawer.show();
+                            
+                            // ตรวจสอบว่ามีข้อมูลครูหรือไม่ หากไม่มีให้โหลด
+                            if (!classManager.teachers || classManager.teachers.length === 0) {
+                                fetchTeachers().then(() => {
+                                    // หลังจากโหลดครูแล้ว ให้เลือกครูที่กำหนดไว้
+                                    if (classroom.teacher) {
+                                        document.getElementById('teacher_id').value = classroom.teacher.teachers_id || '';
+                                    }
+                                });
+                            } else {
+                                populateTeacherSelect();
+                                // เลือกครูที่กำหนดไว้
+                                if (classroom.teacher) {
+                                    document.getElementById('teacher_id').value = classroom.teacher.teachers_id || '';
+                                }
+                            }
+                        }
                     })
                     .catch(error => {
                         console.error('Error fetching classroom for edit:', error);
@@ -373,6 +415,83 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    // ฟังก์ชันจัดการโหมดแก้ไข
+    function setEditMode(isEditMode) {
+        const levelSelect = document.getElementById('classes_level');
+        const roomNumberInput = document.getElementById('classes_room_number');
+        const statsCard = document.getElementById('classroomStatsCard');
+        const editWarning = document.getElementById('editModeWarning');
+        
+        if (isEditMode) {
+            // ปิดการแก้ไขฟิลด์ระดับชั้นและห้อง
+            levelSelect.disabled = true;
+            roomNumberInput.readOnly = true;
+            
+            // แสดงข้อมูลสถิติและคำเตือน
+            if (statsCard) statsCard.classList.remove('d-none');
+            if (editWarning) editWarning.classList.remove('d-none');
+            
+            // เปลี่ยนสไตล์ให้ดูเป็น readonly
+            levelSelect.classList.add('bg-light');
+            roomNumberInput.classList.add('bg-light');
+        } else {
+            // เปิดการแก้ไขทุกฟิลด์
+            levelSelect.disabled = false;
+            roomNumberInput.readOnly = false;
+            
+            // ซ่อนข้อมูลสถิติและคำเตือน
+            if (statsCard) statsCard.classList.add('d-none');
+            if (editWarning) editWarning.classList.add('d-none');
+            
+            // รีเซ็ตสไตล์
+            levelSelect.classList.remove('bg-light');
+            roomNumberInput.classList.remove('bg-light');
+        }
+    }
+
+    // ฟังก์ชันโหลดข้อมูลสถิติห้องเรียน
+    function loadClassroomStats(classId) {
+        // แสดง loading ในฟิลด์สถิติ
+        const statsFields = ['studentsCount', 'averageScore', 'highRiskStudents', 'lastReport'];
+        statsFields.forEach(fieldId => {
+            const field = document.getElementById(fieldId);
+            if (field) field.value = 'กำลังโหลด...';
+        });
+
+        // เรียก API เพื่อโหลดข้อมูลสถิติ
+        fetch(`/api/classes/${classId}/stats`, {
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const stats = data.data;
+                
+                // เติมข้อมูลสถิติ
+                document.getElementById('studentsCount').value = stats.students_count || '0';
+                document.getElementById('averageScore').value = stats.average_score ? parseFloat(stats.average_score).toFixed(1) : '0.0';
+                document.getElementById('highRiskStudents').value = stats.high_risk_count || '0';
+                document.getElementById('lastReport').value = stats.last_report_date || 'ไม่มีข้อมูล';
+            } else {
+                // แสดงข้อผิดพลาด
+                statsFields.forEach(fieldId => {
+                    const field = document.getElementById(fieldId);
+                    if (field) field.value = 'ไม่สามารถโหลดได้';
+                });
+            }
+        })
+        .catch(error => {
+            console.error('Error loading classroom stats:', error);
+            statsFields.forEach(fieldId => {
+                const field = document.getElementById(fieldId);
+                if (field) field.value = 'เกิดข้อผิดพลาด';
+            });
+        });
+    }
+
     // ฟังก์ชันบันทึกข้อมูลห้องเรียน
     function saveClassroom(formData) {
         const classId = formData.get('classes_id');
@@ -409,9 +528,11 @@ document.addEventListener('DOMContentLoaded', function() {
             if (result.success) {
                 showSuccess(result.message || (isUpdate ? 'แก้ไขข้อมูลห้องเรียนเรียบร้อยแล้ว' : 'เพิ่มห้องเรียนใหม่เรียบร้อยแล้ว'));
                 
-                // ซ่อนฟอร์ม และแสดงรายการ
-                classroomForm.classList.add('d-none');
-                classroomList.classList.remove('d-none');
+                // ปิด Drawer และรีเซ็ตฟอร์ม
+                if (classroomDrawerEl) {
+                    const drawer = bootstrap.Offcanvas.getOrCreateInstance(classroomDrawerEl);
+                    drawer.hide();
+                }
                 formClassroom.reset();
                 
                 // โหลดข้อมูลใหม่
@@ -1023,6 +1144,7 @@ document.addEventListener('DOMContentLoaded', function() {
         classManagementModal.addEventListener('shown.bs.modal', function() {
             fetchClassrooms();
             fetchFilters();
+            // โหลดรายชื่อครูล่วงหน้าเพื่อกันเลือกคนที่ไม่ใช่ครู
             fetchTeachers();
         });
     }
@@ -1035,30 +1157,53 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('classId').value = '';
             document.getElementById('formClassTitle').textContent = 'เพิ่มห้องเรียนใหม่';
             
+            // รีเซ็ตโหมดแก้ไข
+            setEditMode(false);
+            
             // ล้าง validation errors
             formClassroom.querySelectorAll('.is-invalid').forEach(element => {
                 element.classList.remove('is-invalid');
             });
-            
-            // แสดงฟอร์ม ซ่อนรายการ
-            classroomList.classList.add('d-none');
-            classroomForm.classList.remove('d-none');
+
+            // เปิด Drawer สำหรับเพิ่มห้องเรียนใหม่ (รอให้มีรายชื่อครูก่อน)
+            if (classroomDrawerEl) {
+                // แสดงสถานะ loading ใน teacher select
+                const teacherSelect = document.getElementById('teacher_id');
+                if (teacherSelect) {
+                    teacherSelect.innerHTML = '<option value="" disabled selected>กำลังโหลดรายชื่อครู...</option>';
+                }
+                
+                const drawer = bootstrap.Offcanvas.getOrCreateInstance(classroomDrawerEl);
+                drawer.show();
+                
+                // โหลดครูหลังจากเปิด drawer
+                if (!classManager.teachers || classManager.teachers.length === 0) {
+                    fetchTeachers();
+                } else {
+                    // หากมีข้อมูลครูแล้ว ให้เติมทันที
+                    populateTeacherSelect();
+                }
+            }
         });
     }
 
     // กำหนด event ให้กับปุ่มปิดฟอร์ม
     if (btnCloseClassForm) {
         btnCloseClassForm.addEventListener('click', function() {
-            classroomForm.classList.add('d-none');
-            classroomList.classList.remove('d-none');
+            if (classroomDrawerEl) {
+                const drawer = bootstrap.Offcanvas.getOrCreateInstance(classroomDrawerEl);
+                drawer.hide();
+            }
         });
     }
 
     // กำหนด event ให้กับปุ่มยกเลิกในฟอร์ม
     if (btnCancelClass) {
         btnCancelClass.addEventListener('click', function() {
-            classroomForm.classList.add('d-none');
-            classroomList.classList.remove('d-none');
+            if (classroomDrawerEl) {
+                const drawer = bootstrap.Offcanvas.getOrCreateInstance(classroomDrawerEl);
+                drawer.hide();
+            }
         });
     }
 
@@ -1072,6 +1217,19 @@ document.addEventListener('DOMContentLoaded', function() {
                 element.classList.remove('is-invalid');
             });
             
+            // ป้องกันการเลือกค่าที่ไม่ใช่ครู ด้วยการตรวจสอบว่า id อยู่ใน list ของครู
+            const teacherSelect = document.getElementById('teacher_id');
+            const chosenTeacherId = teacherSelect ? teacherSelect.value : '';
+            if (!chosenTeacherId || !classManager.teachers.some(t => String(t.teachers_id) === String(chosenTeacherId))) {
+                if (teacherSelect) {
+                    teacherSelect.classList.add('is-invalid');
+                    const feedback = teacherSelect.nextElementSibling && teacherSelect.nextElementSibling.classList.contains('invalid-feedback')
+                        ? teacherSelect.nextElementSibling : null;
+                    if (feedback) feedback.textContent = 'กรุณาเลือกครูจากรายการที่กำหนด';
+                }
+                return;
+            }
+
             // ตรวจสอบความถูกต้องของฟอร์ม
             if (this.checkValidity()) {
                 // สร้าง FormData

@@ -117,6 +117,8 @@ Route::prefix('api')->middleware('auth')->group(function () {
         Route::delete('/{id}', [ClassroomController::class, 'destroy'])->where('id', '[0-9]+');
         Route::get('/{id}/students', [ClassroomController::class, 'getStudents'])->where('id', '[0-9]+');
         Route::get('/teachers/all', [ClassroomController::class, 'getAllTeachers']);
+    // Filters for levels used by class manager UI
+    Route::get('/filters/all', [ClassroomController::class, 'getFilters']);
         Route::get('/{id}/violations/stats', [ClassroomController::class, 'getViolationStatistics'])->where('id', '[0-9]+');
         Route::get('/{id}/export', [ClassroomController::class, 'exportClassReport'])->where('id', '[0-9]+');
     });

@@ -317,6 +317,7 @@ class ClassroomController extends Controller
     {
         try {
             $teachers = Teacher::join('tb_users', 'tb_teachers.users_id', '=', 'tb_users.users_id')
+                             ->where('tb_users.users_role', 'teacher') // เพิ่มเงื่อนไขให้แสดงเฉพาะครู
                              ->select(
                                  'tb_teachers.teachers_id', 
                                  'tb_users.users_first_name',
@@ -328,6 +329,11 @@ class ClassroomController extends Controller
                              ->orderBy('tb_users.users_first_name')
                              ->get();
                              
+            \Log::info('Teachers fetched for dropdown', [
+                'count' => $teachers->count(),
+                'teachers' => $teachers->toArray()
+            ]);
+                             
             return response()->json([
                 'success' => true,
                 'data' => $teachers,
@@ -335,6 +341,11 @@ class ClassroomController extends Controller
             ]);
             
         } catch (\Exception $e) {
+            \Log::error('Error fetching teachers for dropdown', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
             return response()->json([
                 'success' => false,
                 'message' => 'เกิดข้อผิดพลาดในการดึงข้อมูลครู',
@@ -451,6 +462,59 @@ class ClassroomController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'เกิดข้อผิดพลาดในการสร้างรายงาน',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * ดึงข้อมูลสถิติของห้องเรียน
+     *
+     * @param int $id
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getStats($id)
+    {
+        try {
+            $classroom = ClassRoom::findOrFail($id);
+            
+            // นับจำนวนนักเรียนในห้องเรียน
+            $studentsCount = Student::where('classes_id', $id)->count();
+            
+            // คำนวณคะแนนเฉลี่ยของห้องเรียน
+            $averageScore = Student::where('classes_id', $id)->avg('current_score') ?? 0;
+            
+            // นับนักเรียนเสี่ยงสูง (คะแนนต่ำกว่า 50)
+            $highRiskCount = Student::where('classes_id', $id)
+                                  ->where('current_score', '<', 50)
+                                  ->count();
+            
+            // หาวันที่รายงานล่าสุด
+            $lastReportDate = DB::table('tb_behavior_reports')
+                               ->join('tb_students', 'tb_behavior_reports.student_id', '=', 'tb_students.students_id')
+                               ->where('tb_students.classes_id', $id)
+                               ->max('tb_behavior_reports.created_at');
+            
+            // จัดรูปแบบวันที่
+            $formattedLastReport = $lastReportDate ? 
+                \Carbon\Carbon::parse($lastReportDate)->format('d/m/Y') : 
+                null;
+            
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'students_count' => $studentsCount,
+                    'average_score' => round($averageScore, 1),
+                    'high_risk_count' => $highRiskCount,
+                    'last_report_date' => $formattedLastReport
+                ],
+                'message' => 'ดึงข้อมูลสถิติสำเร็จ'
+            ]);
+            
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'เกิดข้อผิดพลาดในการดึงข้อมูลสถิติ',
                 'error' => $e->getMessage()
             ], 500);
         }
