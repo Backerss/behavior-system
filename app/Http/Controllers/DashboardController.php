@@ -14,6 +14,97 @@ use Carbon\Carbon;
 class DashboardController extends Controller
 {
     /**
+     * อ่าน Laravel log (tail) และส่งกลับในรูปแบบ JSON
+     * Query params: lines (จำนวนบรรทัดล่าสุดที่ต้องการ, ค่าเริ่มต้น 500, สูงสุด 2000)
+     */
+    public function getLaravelLog(Request $request)
+    {
+        try {
+            $path = storage_path('logs/laravel.log');
+
+            if (!file_exists($path)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'ไม่พบไฟล์ log'
+                ], 200);
+            }
+
+            if (!is_readable($path)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'ไม่สามารถอ่านไฟล์ log ได้'
+                ], 200);
+            }
+
+            $maxLines = 2000;
+            $defaultLines = 500;
+            $lines = (int) $request->query('lines', $defaultLines);
+            if ($lines <= 0) { $lines = $defaultLines; }
+            if ($lines > $maxLines) { $lines = $maxLines; }
+
+            [$content, $linesShown] = $this->tailFile($path, $lines);
+            $fileSize = @filesize($path) ?: 0;
+
+            return response()->json([
+                'success' => true,
+                'content' => $content,
+                'file_size' => $fileSize,
+                'lines_shown' => $linesShown,
+            ]);
+        } catch (\Throwable $e) {
+            \Log::error('Error reading laravel.log: '.$e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'เกิดข้อผิดพลาดระหว่างอ่านไฟล์ log'
+            ], 200);
+        }
+    }
+
+    /**
+     * อ่าน N บรรทัดสุดท้ายของไฟล์แบบมีประสิทธิภาพ
+     * @return array{0:string,1:int} [content, linesShown]
+     */
+    private function tailFile(string $filename, int $lines): array
+    {
+        $f = @fopen($filename, 'rb');
+        if ($f === false) {
+            return ['', 0];
+        }
+
+        $buffer = '';
+        $chunkSize = 4096;
+        $pos = -1;
+        $lineCount = 0;
+
+        fseek($f, 0, SEEK_END);
+        $fileSize = ftell($f);
+        $cursor = $fileSize;
+
+        while ($cursor > 0 && $lineCount <= $lines) {
+            $readSize = ($cursor - $chunkSize) >= 0 ? $chunkSize : $cursor;
+            $cursor -= $readSize;
+            fseek($f, $cursor);
+            $chunk = fread($f, $readSize);
+            $buffer = $chunk . $buffer;
+            // นับจำนวนบรรทัดอย่างเร็ว
+            $lineCount = substr_count($buffer, "\n");
+        }
+
+        fclose($f);
+
+        // แยกบรรทัดและตัดเฉพาะท้ายสุดตามจำนวนที่ขอ
+        $linesArr = preg_split("/\r?\n/", rtrim($buffer, "\r\n"));
+        if ($linesArr === false) { $linesArr = []; }
+        $linesShown = 0;
+        if (!empty($linesArr)) {
+            $linesArr = array_slice($linesArr, -$lines);
+            $linesShown = count($linesArr);
+        }
+
+        return [implode("\n", $linesArr), $linesShown];
+    }
+
+    /**
      * ดึงข้อมูลแนวโน้มการบันทึกพฤติกรรมประจำเดือน
      *
      * @return \Illuminate\Http\JsonResponse

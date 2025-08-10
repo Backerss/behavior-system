@@ -2225,3 +2225,181 @@ function saveViolationEdit() {
         saveBtn.innerHTML = originalText;
     });
 }
+
+// Laravel Log Viewer Functions
+document.addEventListener('DOMContentLoaded', function() {
+    // เพิ่ม event listener สำหรับปุ่ม Log
+    const btnViewLog = document.getElementById('btnViewLog');
+    const refreshLogBtn = document.getElementById('refreshLogBtn');
+    
+    if (btnViewLog) {
+        btnViewLog.addEventListener('click', function(e) {
+            e.preventDefault();
+            showLaravelLog();
+        });
+    }
+    
+    if (refreshLogBtn) {
+        refreshLogBtn.addEventListener('click', function() {
+            loadLaravelLog();
+        });
+    }
+});
+
+/**
+ * แสดง Laravel Log Modal และโหลดข้อมูล
+ */
+function showLaravelLog() {
+    const modal = new bootstrap.Modal(document.getElementById('laravelLogModal'));
+    modal.show();
+    loadLaravelLog();
+}
+
+/**
+ * โหลดไฟล์ Laravel Log
+ */
+function loadLaravelLog() {
+    const logContainer = document.getElementById('logContainer');
+    const logInfo = document.getElementById('logInfo');
+    const refreshBtn = document.getElementById('refreshLogBtn');
+    
+    // แสดง loading ที่สวยงาม
+    logContainer.innerHTML = `
+        <div class="text-center" style="color: #7d8590; margin-top: 100px;">
+            <div style="font-size: 24px; margin-bottom: 12px; animation: pulse 2s infinite;">⚡</div>
+            <div style="font-size: 14px;">กำลังโหลดข้อมูล...</div>
+        </div>
+    `;
+    
+    refreshBtn.disabled = true;
+    refreshBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> โหลด...';
+    
+    fetch('/api/dashboard/laravel-log', {
+        method: 'GET',
+        headers: {
+            'Accept': 'application/json',
+            'X-CSRF-TOKEN': behaviorReport.csrfToken
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // ประมวลผลและแสดง log ที่สวยงาม
+            const formattedLog = formatLogContent(data.content);
+            logContainer.innerHTML = formattedLog || `
+                <div class="text-center" style="color: #7d8590; margin-top: 100px;">
+                    <div style="font-size: 24px; margin-bottom: 12px;">📝</div>
+                    <div style="font-size: 14px;">ไฟล์ log ว่างเปล่า</div>
+                </div>
+            `;
+            
+            // อัปเดตข้อมูลไฟล์
+            const fileSize = formatFileSize(data.file_size);
+            logInfo.textContent = `${data.lines_shown} บรรทัด • ${fileSize}`;
+            
+            // เลื่อนไปด้านล่างสุด
+            setTimeout(() => {
+                logContainer.scrollTop = logContainer.scrollHeight;
+            }, 100);
+        } else {
+            logContainer.innerHTML = `
+                <div class="text-center" style="color: #f85149; margin-top: 100px;">
+                    <div style="font-size: 24px; margin-bottom: 12px;">⚠️</div>
+                    <div style="font-size: 14px;">${data.message || 'ไม่สามารถโหลดไฟล์ log ได้'}</div>
+                </div>
+            `;
+            logInfo.textContent = 'เกิดข้อผิดพลาด';
+        }
+    })
+    .catch(error => {
+        console.error('Error loading log:', error);
+        logContainer.innerHTML = `
+            <div class="text-center" style="color: #f85149; margin-top: 100px;">
+                <div style="font-size: 24px; margin-bottom: 12px;">🔌</div>
+                <div style="font-size: 14px;">เกิดข้อผิดพลาดในการเชื่อมต่อ</div>
+            </div>
+        `;
+        logInfo.textContent = 'เกิดข้อผิดพลาด';
+    })
+    .finally(() => {
+        refreshBtn.disabled = false;
+        refreshBtn.innerHTML = '<i class="fas fa-sync-alt me-1"></i> รีเฟรช';
+    });
+}
+
+/**
+ * Format log content ให้สวยงามและอ่านง่าย
+ */
+function formatLogContent(content) {
+    if (!content) return '';
+    
+    // แยกบรรทัดและจัดรูปแบบ
+    const lines = content.split('\n');
+    let formattedHtml = '';
+    
+    lines.forEach(line => {
+        if (!line.trim()) {
+            formattedHtml += '<br>';
+            return;
+        }
+        
+        let className = '';
+        let icon = '';
+        
+        // กำหนดสีและไอคอนตาม log level
+        if (line.includes('[ERROR]') || line.includes('ERROR:')) {
+            className = 'log-error';
+            icon = '🔴 ';
+        } else if (line.includes('[WARNING]') || line.includes('WARNING:')) {
+            className = 'log-warning';
+            icon = '🟡 ';
+        } else if (line.includes('[INFO]') || line.includes('INFO:')) {
+            className = 'log-info';
+            icon = '🔵 ';
+        } else if (line.includes('[DEBUG]') || line.includes('DEBUG:')) {
+            className = 'log-debug';
+            icon = '⚪ ';
+        } else {
+            className = 'log-default';
+        }
+        
+        // Escape HTML และเพิ่ม styling
+        const escapedLine = escapeHtml(line);
+        formattedHtml += `<div class="${className}" style="margin-bottom: 4px; word-wrap: break-word;">${icon}${escapedLine}</div>`;
+    });
+    
+    return `
+        <style>
+            .log-error { color: #ff6b6b; }
+            .log-warning { color: #ffd93d; }
+            .log-info { color: #74c0fc; }
+            .log-debug { color: #b2bec3; }
+            .log-default { color: #e6edf3; }
+            @keyframes pulse {
+                0%, 100% { opacity: 1; }
+                50% { opacity: 0.5; }
+            }
+        </style>
+        ${formattedHtml}
+    `;
+}
+
+/**
+ * Escape HTML characters เพื่อป้องกัน XSS
+ */
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+/**
+ * Format ขนาดไฟล์
+ */
+function formatFileSize(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}

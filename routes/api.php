@@ -49,4 +49,5 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/dashboard/trends', [DashboardController::class, 'getMonthlyTrends']);
     Route::get('/dashboard/violations', [DashboardController::class, 'getViolationTypes']);
     Route::get('/dashboard/stats', [DashboardController::class, 'getMonthlyStats']);
+    Route::get('/dashboard/laravel-log', [DashboardController::class, 'getLaravelLog'])->name('api.dashboard.laravel-log');
 });

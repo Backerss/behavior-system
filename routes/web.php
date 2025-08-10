@@ -126,6 +126,7 @@ Route::prefix('api')->middleware('auth')->group(function () {
         Route::get('/trends', [DashboardController::class, 'getMonthlyTrends']);
         Route::get('/violations', [DashboardController::class, 'getViolationTypes']);
         Route::get('/stats', [DashboardController::class, 'getMonthlyStats']);
+    Route::get('/laravel-log', [DashboardController::class, 'getLaravelLog'])->name('api.dashboard.laravel-log');
     });
 
     // ซิงค์สถานะนักเรียนจาก Google Sheet

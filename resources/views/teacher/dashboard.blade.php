@@ -157,6 +157,20 @@
                                             </div>
                                         </a>
                                     </li>
+                                    <li><hr class="dropdown-divider my-2"></li>
+                                    <li>
+                                        <a class="dropdown-item py-3 px-4" href="#" id="btnViewLog">
+                                            <div class="d-flex align-items-center">
+                                                <div class="bg-warning bg-gradient rounded-circle p-2 me-3">
+                                                    <i class="fas fa-file-alt text-white"></i>
+                                                </div>
+                                                <div>
+                                                    <div class="fw-semibold text-dark">Log</div>
+                                                    <small class="text-muted">ดูไฟล์ Laravel Log</small>
+                                                </div>
+                                            </div>
+                                        </a>
+                                    </li>
                                 </ul>
                             </div>
                             @endif
@@ -2759,6 +2773,36 @@
                         <button type="button" class="btn btn-primary-app" id="saveEditViolationBtn">
                             <i class="fas fa-save me-1"></i> บันทึกการแก้ไข
                         </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Laravel Log Modal -->
+    <div class="modal fade" id="laravelLogModal" tabindex="-1" aria-labelledby="laravelLogModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content" style="border-radius: 12px; border: none; box-shadow: 0 20px 40px rgba(0,0,0,0.15);">
+                <div class="modal-header" style="color: black; border-radius: 12px 12px 0 0; border: none;">
+                    <h5 class="modal-title" id="laravelLogModalLabel" style="font-weight: 500;">
+                        <i class="fas fa-code me-2"></i>System Logs
+                    </h5>
+                    <button type="button" class="btn-close btn-close-black" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-0" style="background: #f8f9fa;">
+                    <div class="d-flex justify-content-between align-items-center px-4 py-3" style="background: white; border-bottom: 1px solid #e9ecef;">
+                        <div class="text-muted">
+                            <small id="logInfo" style="font-size: 13px;">กำลังโหลด...</small>
+                        </div>
+                        <button type="button" class="btn btn-sm" id="refreshLogBtn" style="background: #f1f3f4; border: 1px solid #dadce0; color: #5f6368; border-radius: 6px; font-size: 13px;">
+                            <i class="fas fa-sync-alt me-1"></i> รีเฟรช
+                        </button>
+                    </div>
+                    <div id="logContainer" style="height: 400px; overflow-y: auto; background: #0d1117; color: #e6edf3; font-family: 'SF Mono', Monaco, Consolas, monospace; font-size: 13px; padding: 20px; line-height: 1.5; border-radius: 0 0 12px 12px;">
+                        <div class="text-center" style="color: #7d8590; margin-top: 100px;">
+                            <div style="font-size: 24px; margin-bottom: 12px;">⚡</div>
+                            <div style="font-size: 14px;">กำลังโหลดข้อมูล...</div>
+                        </div>
                     </div>
                 </div>
             </div>
