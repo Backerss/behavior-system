@@ -631,7 +631,6 @@ class DashboardController extends Controller
         }
     }
 
-    // Legacy logic adapted to internal import (Google Sheets references removed)
 
     private function getColumnMapping($sheetType)
     {
