@@ -9,8 +9,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ParentController;
 use App\Http\Controllers\WelcomeController;
 use App\Http\Controllers\NotificationController; // เพิ่มบรรทัดนี้
-use App\Http\Controllers\GoogleSheetsImportController;
-use App\Http\Controllers\StudentStatusSyncController;
+// Removed Google Sheets import and status sync controllers
 
 // หน้าหลัก
 Route::get('/', [WelcomeController::class, 'index'])->name('welcome');
@@ -130,7 +129,7 @@ Route::prefix('api')->middleware('auth')->group(function () {
     });
 
     // ซิงค์สถานะนักเรียนจาก Google Sheet
-    Route::post('/students/status-sync', [StudentStatusSyncController::class, 'sync'])->name('api.students.status-sync');
+    // Removed Google Sheets based student status sync API
     
     // เพิ่มบรรทัดนี้
     Route::get('/students/{id}/report', [App\Http\Controllers\API\StudentReportController::class, 'generatePDF'])->middleware('auth');
@@ -161,14 +160,14 @@ Route::match(['get','post'], '/notifications/parent', [NotificationController::c
     ->middleware('auth')
     ->name('notifications.parent');
 
-// Google Sheets Import Routes (Admin Only)
-Route::prefix('admin')->middleware(['auth'])->group(function () {
-    Route::get('/google-sheets', [GoogleSheetsImportController::class, 'index'])->name('admin.google-sheets');
-    Route::get('/google-sheets/sheets', [GoogleSheetsImportController::class, 'getAvailableSheets'])->name('admin.google-sheets.sheets');
-    Route::get('/google-sheets/preview', [GoogleSheetsImportController::class, 'preview'])->name('admin.google-sheets.preview');
-    Route::post('/google-sheets/import', [GoogleSheetsImportController::class, 'import'])
-        ->middleware(['App\Http\Middleware\ExtendExecutionTime:600', 'clean.json'])
-        ->name('admin.google-sheets.import');
+// Excel Import API (in Dashboard, admin/teacher only)
+Route::prefix('api')->middleware('auth')->group(function () {
+    Route::prefix('import')->group(function () {
+        Route::post('/excel/preview', [App\Http\Controllers\DashboardController::class, 'previewExcelImport'])
+             ->name('api.import.excel.preview');
+    Route::post('/excel/commit', [App\Http\Controllers\DashboardController::class, 'importExcel'])
+         ->name('api.import.excel.commit');
+    });
 });
 
 // Parent notification API routes

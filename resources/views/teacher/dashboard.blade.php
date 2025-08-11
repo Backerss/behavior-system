@@ -131,28 +131,14 @@
                                 </button>
                                 <ul class="dropdown-menu shadow-lg border-0" style="border-radius: 12px; overflow: hidden;">
                                     <li>
-                                        <a class="dropdown-item py-3 px-4" href="#" id="btnSyncStudentStatus">
-                                            <div class="d-flex align-items-center">
-                                                <div class="bg-primary bg-gradient rounded-circle p-2 me-3">
-                                                    <i class="fas fa-rotate text-white"></i>
-                                                </div>
-                                                <div>
-                                                    <div class="fw-semibold text-dark">ซิงค์สถานะนักเรียน</div>
-                                                    <small class="text-muted">อัปเดตจาก Google Sheet</small>
-                                                </div>
-                                            </div>
-                                        </a>
-                                    </li>
-                                    <li><hr class="dropdown-divider my-2"></li>
-                                    <li>
-                                        <a class="dropdown-item py-3 px-4" href="#" data-bs-toggle="modal" data-bs-target="#googleSheetsImportModal">
+                                        <a class="dropdown-item py-3 px-4" href="#" data-bs-toggle="modal" data-bs-target="#excelImportModal">
                                             <div class="d-flex align-items-center">
                                                 <div class="bg-success bg-gradient rounded-circle p-2 me-3">
-                                                    <i class="fab fa-google-drive text-white"></i>
+                                                    <i class="fas fa-file-excel text-white"></i>
                                                 </div>
                                                 <div>
                                                     <div class="fw-semibold text-dark">นำเข้าข้อมูล</div>
-                                                    <small class="text-muted">จาก Google Sheets</small>
+                                                    <small class="text-muted">จากไฟล์ Excel/CSV</small>
                                                 </div>
                                             </div>
                                         </a>
@@ -210,11 +196,22 @@
 
                                         fetch('/api/students/status-sync', {
                                             method: 'POST',
+                                            credentials: 'same-origin', // ส่งคุกกี้ session ไปด้วย
                                             headers: {
-                                                'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').getAttribute('content'),
-                                                'Accept': 'application/json'
+                                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                                                'X-Requested-With': 'XMLHttpRequest',
+                                                'Accept': 'application/json',
+                                                'Content-Type': 'application/json'
                                             }
-                                        }).then(r=>r.json()).then(data=>{
+                                        }).then(async r=>{
+                                            // แปลง response เป็น JSON ถ้าเป็นไปได้ มิฉะนั้นโยนข้อความดิบ
+                                            let data;
+                                            try { data = await r.json(); } catch(e) { data = { success:false, message: 'ไม่สามารถอ่านผลลัพธ์จากเซิร์ฟเวอร์ได้' }; }
+                                            if (!r.ok && !data.success) {
+                                                throw new Error(data.message || ('เกิดข้อผิดพลาด ('+r.status+')'));
+                                            }
+                                            return data;
+                                        }).then(data=>{
                                             if (data.success) {
                                                 const s = data.summary;
                                                 const details = data.details || {};
@@ -813,287 +810,1135 @@
         </div>
     </div>
 
-    <!-- Google Sheets Import Modal (Admin Only) -->
-    @if(auth()->user()->users_role === 'admin')
-        <div class="modal fade" id="googleSheetsImportModal" tabindex="-1" aria-hidden="true">
-            <div class="modal-dialog modal-dialog-centered modal-lg">
-                <div class="modal-content border-0 shadow-lg"
-                    style="border-radius: 16px; background: linear-gradient(135deg, #f8fafb 0%, #ffffff 100%);">
-                    <div class="modal-header border-0 pb-2" style="background: #fff; border-radius: 16px 16px 0 0;">
-                        <h5 class="modal-title text-dark fw-bold">
-                            <i class="fab fa-google-drive me-2"></i> นำเข้าข้อมูลจาก Google Sheets
-                        </h5>
-                        <button type="button" class="btn-close btn-close-dark" data-bs-dismiss="modal"
-                            aria-label="Close"></button>
+    <!-- Excel/CSV Import Modal (Admin/Teacher) -->
+    <div class="modal fade" id="excelImportModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content" style="border: none; border-radius: 16px; box-shadow: 0 8px 32px rgba(0,0,0,0.08);">
+                <div class="modal-header" style="border: none; padding: 32px 32px 0 32px;">
+                    <h5 class="modal-title" style="font-weight: 600; color: #1a1a1a; font-size: 20px;">
+                        <i class="fas fa-file-excel me-2" style="color: #10b981;"></i> นำเข้าข้อมูล Excel/CSV
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" 
+                            style="background: #f3f4f6; border-radius: 8px; opacity: 1; padding: 8px;">
+                    </button>
+                </div>
+                <div class="modal-body" style="padding: 24px 32px;">
+                    <div class="alert" style="background: #f0f9ff; border: 1px solid #e0f2fe; border-radius: 12px; padding: 16px; margin-bottom: 24px;">
+                        <i class="fas fa-info-circle me-2" style="color: #0ea5e9;"></i>
+                        <span style="color: #0c4a6e; font-size: 14px;">รองรับไฟล์ .xls, .xlsx, .csv, .txt (เลือก sheet ได้ถ้ามีหลายแผ่นงาน)</span>
                     </div>
-                    <div class="modal-body px-4 py-4">
-                        <!-- Sheet Selection - Compact Design -->
+                    <form id="excelImportForm" enctype="multipart/form-data" autocomplete="off">
+                        <div class="mb-4">
+                            <label for="excelFile" class="form-label" style="font-weight: 500; color: #374151; margin-bottom: 8px;">เลือกไฟล์ Excel/CSV</label>
+                            <input type="file" class="form-control" id="excelFile" name="file" accept=".xls,.xlsx,.csv,.txt" required
+                                   style="border: 2px dashed #d1d5db; border-radius: 12px; padding: 20px; background: #fafafa; transition: all 0.2s ease;">
+                        </div>
+                        <div class="mb-4 d-none" id="sheetSelectorGroup">
+                            <label for="sheetSelector" class="form-label" style="font-weight: 500; color: #374151; margin-bottom: 8px;">เลือกประเภทข้อมูล (Sheet)</label>
+                            <select class="form-select" id="sheetSelector" 
+                                    style="border: 1px solid #d1d5db; border-radius: 8px; padding: 12px 16px; background: white;">
+                            </select>
+                        </div>
+                    </form>
+                    <div id="excelLoading" class="d-none text-center my-5">
+                        <div class="spinner-border" role="status" style="width: 3rem; height: 3rem; color: #10b981; border-width: 3px;">
+                        </div>
+                        <div class="mt-3" style="color: #6b7280; font-size: 14px;">กำลังอ่านไฟล์และเตรียมข้อมูล...</div>
+                    </div>
+                    <div id="excelPreviewContainer" class="d-none mt-4">
                         <div class="mb-3">
-                            <div class="d-flex align-items-center mb-2">
-                                <div class="bg-primary bg-opacity-10 rounded-circle p-2 me-2"
-                                    style="width: 32px; height: 32px;">
-                                    <i class="fas fa-file-alt text-primary" style="font-size: 14px;"></i>
-                                </div>
-                                <h6 class="mb-0 text-dark">เลือกแผ่นข้อมูล</h6>
-                            </div>
-                            <div id="sheetSelectionContainer" class="ms-4">
-                                <div class="d-flex justify-content-center py-3">
-                                    <div class="spinner-border text-primary" role="status"
-                                        style="width: 1.5rem; height: 1.5rem;">
-                                        <span class="visually-hidden">กำลังโหลด...</span>
-                                    </div>
-                                </div>
-                            </div>
+                            <h6 style="font-weight: 600; color: #374151; margin-bottom: 12px;">ตัวอย่างข้อมูล</h6>
+                            <!-- Tab Navigation -->
+                            <ul class="nav nav-tabs" id="dataTabsNav" role="tablist" style="border-bottom: 2px solid #e5e7eb;">
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link active" id="all-tab" data-bs-toggle="tab" data-bs-target="#all-data" type="button" role="tab" 
+                                            style="border: none; padding: 12px 20px; color: #6b7280; font-weight: 500; border-radius: 8px 8px 0 0;">
+                                        <i class="fas fa-list me-2"></i>ข้อมูลทั้งหมด <span id="allDataCount" class="badge bg-secondary ms-2">0</span>
+                                    </button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="valid-tab" data-bs-toggle="tab" data-bs-target="#valid-data" type="button" role="tab"
+                                            style="border: none; padding: 12px 20px; color: #6b7280; font-weight: 500; border-radius: 8px 8px 0 0;">
+                                        <i class="fas fa-check-circle me-2" style="color: #10b981;"></i>ข้อมูลที่ไม่ซ้ำ <span id="validDataCount" class="badge bg-success ms-2">0</span>
+                                    </button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="duplicate-tab" data-bs-toggle="tab" data-bs-target="#duplicate-data" type="button" role="tab"
+                                            style="border: none; padding: 12px 20px; color: #6b7280; font-weight: 500; border-radius: 8px 8px 0 0;">
+                                        <i class="fas fa-exclamation-triangle me-2" style="color: #f59e0b;"></i>ข้อมูลที่ซ้ำ <span id="duplicateDataCount" class="badge bg-warning ms-2">0</span>
+                                    </button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="error-tab" data-bs-toggle="tab" data-bs-target="#error-data" type="button" role="tab"
+                                            style="border: none; padding: 12px 20px; color: #6b7280; font-weight: 500; border-radius: 8px 8px 0 0;">
+                                        <i class="fas fa-times-circle me-2" style="color: #ef4444;"></i>ข้อมูลที่ผิดพลาด <span id="errorDataCount" class="badge bg-danger ms-2">0</span>
+                                    </button>
+                                </li>
+                            </ul>
                         </div>
-
-                        <!-- Selected Sheet Info - Minimalist -->
-                        <div id="selectedSheetInfo" class="d-none mb-3">
-                            <div class="card border-0 bg-light bg-opacity-50" style="border-radius: 12px;">
-                                <div class="card-body p-3">
-                                    <div class="d-flex align-items-center">
-                                        <i class="fas fa-info-circle text-info me-2"></i>
-                                        <div class="flex-grow-1">
-                                            <div id="sheetDescription" class="text-dark mb-1"></div>
-                                            <div class="d-flex align-items-center">
-                                                <small class="text-muted me-2">คอลัมน์ที่คาดหวัง:</small>
-                                                <span id="expectedColumns"
-                                                    class="badge bg-secondary bg-opacity-75 text-dark"
-                                                    style="font-size: 10px;"></span>
-                                            </div>
-                                        </div>
-                                    </div>
+                        
+                        <!-- Tab Content -->
+                        <div class="tab-content" id="dataTabsContent">
+                            <!-- Tab 1: ข้อมูลทั้งหมด -->
+                            <div class="tab-pane fade show active" id="all-data" role="tabpanel">
+                                <div class="table-responsive" style="max-height: 400px; overflow-y: auto; border: 1px solid #e5e7eb; border-radius: 12px; background: white;">
+                                    <table class="table table-sm align-middle mb-0" id="excelPreviewTable" style="background: white; min-width: 600px;">
+                                        <thead style="background: #f9fafb; border-bottom: 1px solid #e5e7eb;">
+                                        </thead>
+                                        <tbody>
+                                        </tbody>
+                                    </table>
                                 </div>
-                            </div>
-                        </div>
-
-                        <!-- Google Sheets URL Info - Compact -->
-                        <div class="card border-0 bg-gradient mb-3"
-                            style="background: linear-gradient(135deg, #e0f2fe 0%, #f3e5f5 100%); border-radius: 12px;">
-                            <div class="card-body p-3">
-                                <div class="d-flex align-items-center">
-                                    <i class="fab fa-google text-success me-2"></i>
-                                    <div>
-                                        <small class="text-dark d-block">ข้อมูลจาก:</small>
-                                        <a href="https://docs.google.com/spreadsheets/d/1L3O0f5HdX_7cPw2jrQT4IaPsjw_jFD3O0aeH9ZQ499c/edit"
-                                            target="_blank" class="text-primary text-decoration-none fw-medium"
-                                            style="font-size: 13px;">
-                                            Google Sheets ระบบพฤติกรรมนักเรียน
-                                        </a>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Action Button - Modern Style -->
-                        <div class="text-center mb-3">
-                            <button id="previewGoogleSheetsBtn" class="btn btn-primary px-4 py-2 fw-medium"
-                                style="border-radius: 10px; background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); border: none;">
-                                <i class="fas fa-eye me-2"></i> ดูตัวอย่างข้อมูล
-                            </button>
-                            <div id="googleSheetsLoading" class="d-none mt-3">
-                                <div class="d-flex align-items-center justify-content-center">
-                                    <div class="spinner-border text-primary me-2" role="status"
-                                        style="width: 1.25rem; height: 1.25rem;">
-                                        <span class="visually-hidden">กำลังโหลด...</span>
-                                    </div>
-                                    <small class="text-muted">กำลังดึงข้อมูลจาก Google Sheets...</small>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Preview Container - Compact Design -->
-                        <div id="googleSheetsPreviewContainer" class="d-none">
-                            <!-- Summary Cards - Minimalist Grid -->
-                            <div class="row g-2 mb-3">
-                                <div class="col-6 col-md-3">
-                                    <div class="card border-0 h-100"
-                                        style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); border-radius: 12px;">
-                                        <div class="card-body p-3 text-white text-center">
-                                            <i class="fas fa-check-circle mb-2" style="font-size: 1.25rem;"></i>
-                                            <div class="h5 mb-1" id="googleSheetsValidCount">0</div>
-                                            <small style="font-size: 11px;">ข้อมูลถูกต้อง</small>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="col-6 col-md-3">
-                                    <div class="card border-0 h-100"
-                                        style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); border-radius: 12px;">
-                                        <div class="card-body p-3 text-white text-center">
-                                            <i class="fas fa-exclamation-triangle mb-2" style="font-size: 1.25rem;"></i>
-                                            <div class="h5 mb-1" id="googleSheetsDuplicateCount">0</div>
-                                            <small style="font-size: 11px;">ข้อมูลซ้ำ</small>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="col-6 col-md-3">
-                                    <div class="card border-0 h-100"
-                                        style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); border-radius: 12px;">
-                                        <div class="card-body p-3 text-white text-center">
-                                            <i class="fas fa-times-circle mb-2" style="font-size: 1.25rem;"></i>
-                                            <div class="h5 mb-1" id="googleSheetsErrorCount">0</div>
-                                            <small style="font-size: 11px;">ข้อมูลผิดพลาด</small>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="col-6 col-md-3">
-                                    <div class="card border-0 h-100"
-                                        style="background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); border-radius: 12px;">
-                                        <div class="card-body p-3 text-white text-center">
-                                            <i class="fas fa-list mb-2" style="font-size: 1.25rem;"></i>
-                                            <div class="h5 mb-1" id="googleSheetsTotalCount">0</div>
-                                            <small style="font-size: 11px;">รวมทั้งหมด</small>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Data Tabs - Modern Design -->
-                            <div class="card border-0 shadow-sm" style="border-radius: 16px;">
-                                <div class="card-header bg-white border-0 pt-3" style="border-radius: 16px 16px 0 0;">
-                                    <ul class="nav nav-pills nav-fill" id="googleSheetsDataTabs" role="tablist"
-                                        style="background: #f8fafc; border-radius: 10px; padding: 4px;">
-                                        <li class="nav-item" role="presentation">
-                                            <button class="nav-link active" id="valid-tab" data-bs-toggle="tab"
-                                                data-bs-target="#valid" type="button" role="tab"
-                                                style="border-radius: 8px; font-size: 13px; padding: 8px 12px; border: none; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white;">
-                                                <i class="fas fa-check-circle me-1"></i> ข้อมูลถูกต้อง
-                                            </button>
-                                        </li>
-                                        <li class="nav-item" role="presentation">
-                                            <button class="nav-link" id="duplicate-tab" data-bs-toggle="tab"
-                                                data-bs-target="#duplicate" type="button" role="tab"
-                                                style="border-radius: 8px; font-size: 13px; padding: 8px 12px; border: none; color: #6b7280; background: transparent;">
-                                                <i class="fas fa-exclamation-triangle me-1"></i> ข้อมูลซ้ำ
-                                            </button>
-                                        </li>
-                                        <li class="nav-item" role="presentation">
-                                            <button class="nav-link" id="error-tab" data-bs-toggle="tab"
-                                                data-bs-target="#error" type="button" role="tab"
-                                                style="border-radius: 8px; font-size: 13px; padding: 8px 12px; border: none; color: #6b7280; background: transparent;">
-                                                <i class="fas fa-times-circle me-1"></i> ข้อมูลผิดพลาด
-                                            </button>
-                                        </li>
+                                <nav class="mt-4">
+                                    <ul class="pagination justify-content-center" id="excelPagination" style="gap: 4px;">
                                     </ul>
-                                    <style>
-                                        #googleSheetsDataTabs .nav-link:not(.active):hover {
-                                            background: rgba(16, 185, 129, 0.1) !important;
-                                            color: #059669 !important;
-                                        }
-
-                                        #googleSheetsDataTabs .nav-link.active {
-                                            background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
-                                            color: white !important;
-                                        }
-                                    </style>
+                                </nav>
+                            </div>
+                            
+                            <!-- Tab 2: ข้อมูลที่ไม่ซ้ำ -->
+                            <div class="tab-pane fade" id="valid-data" role="tabpanel">
+                                <div class="table-responsive" style="max-height: 400px; overflow-y: auto; border: 1px solid #e5e7eb; border-radius: 12px; background: white;">
+                                    <table class="table table-sm align-middle mb-0" id="validDataTable" style="background: white; min-width: 600px;">
+                                        <thead style="background: #ecfdf5; border-bottom: 1px solid #10b981;">
+                                        </thead>
+                                        <tbody>
+                                        </tbody>
+                                    </table>
                                 </div>
-                                <div class="card-body p-3">
-                                    <div class="tab-content" id="googleSheetsDataTabsContent">
-                                        <!-- Valid Data Tab -->
-                                        <div class="tab-pane fade show active" id="valid" role="tabpanel">
-                                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                                <h6 class="mb-0 text-dark" style="font-size: 14px;">ข้อมูลที่พร้อมนำเข้า
-                                                </h6>
-                                                <div>
-                                                    <button id="selectAllGoogleSheetsValid"
-                                                        class="btn btn-sm btn-outline-primary"
-                                                        style="font-size: 11px; padding: 4px 8px; border-radius: 6px;">เลือกทั้งหมด</button>
-                                                    <button id="deselectAllGoogleSheetsValid"
-                                                        class="btn btn-sm btn-outline-secondary"
-                                                        style="font-size: 11px; padding: 4px 8px; border-radius: 6px;">ยกเลิกทั้งหมด</button>
-                                                </div>
-                                            </div>
-                                            <div style="max-height: 300px; overflow-y: auto; border-radius: 8px;">
-                                                <table class="table table-sm mb-0" id="googleSheetsValidTable"
-                                                    style="font-size: 12px;">
-                                                    <thead class="sticky-top"
-                                                        style="background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%);">
-                                                        <tr>
-                                                            <th style="width: 40px; padding: 8px;"><input type="checkbox"
-                                                                    id="checkAllGoogleSheetsValid"
-                                                                    style="transform: scale(0.9);"></th>
-                                                            <th style="padding: 8px; color: #374151;">แถว</th>
-                                                            <th style="padding: 8px; color: #374151;">ชื่อ</th>
-                                                            <th style="padding: 8px; color: #374151;">นามสกุล</th>
-                                                            <th style="padding: 8px; color: #374151;">อีเมล</th>
-                                                            <th style="padding: 8px; color: #374151;">บทบาท</th>
-                                                            <th style="padding: 8px; color: #374151;">รหัสนักเรียน</th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody></tbody>
-                                                </table>
-                                            </div>
-                                        </div>
-
-                                        <!-- Duplicate Data Tab -->
-                                        <div class="tab-pane fade" id="duplicate" role="tabpanel">
-                                            <h6 class="mb-2 text-dark" style="font-size: 14px;">ข้อมูลที่ซ้ำกับฐานข้อมูล
-                                            </h6>
-                                            <div style="max-height: 300px; overflow-y: auto; border-radius: 8px;">
-                                                <table class="table table-sm mb-0" id="googleSheetsDuplicateTable"
-                                                    style="font-size: 12px;">
-                                                    <thead class="sticky-top"
-                                                        style="background: linear-gradient(135deg, #fefcbf 0%, #fef3c7 100%);">
-                                                        <tr>
-                                                            <th style="padding: 8px; color: #374151;">แถว</th>
-                                                            <th style="padding: 8px; color: #374151;">ชื่อ</th>
-                                                            <th style="padding: 8px; color: #374151;">นามสกุล</th>
-                                                            <th style="padding: 8px; color: #374151;">อีเมล</th>
-                                                            <th style="padding: 8px; color: #374151;">บทบาท</th>
-                                                            <th style="padding: 8px; color: #374151;">ฟิลด์ที่ซ้ำ</th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody></tbody>
-                                                </table>
-                                            </div>
-                                        </div>
-
-                                        <!-- Error Data Tab -->
-                                        <div class="tab-pane fade" id="error" role="tabpanel">
-                                            <h6 class="mb-2 text-dark" style="font-size: 14px;">ข้อมูลที่มีข้อผิดพลาด</h6>
-                                            <div style="max-height: 300px; overflow-y: auto; border-radius: 8px;">
-                                                <table class="table table-sm mb-0" id="googleSheetsErrorTable"
-                                                    style="font-size: 12px;">
-                                                    <thead class="sticky-top"
-                                                        style="background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);">
-                                                        <tr>
-                                                            <th style="padding: 8px; color: #374151;">แถว</th>
-                                                            <th style="padding: 8px; color: #374151;">ชื่อ</th>
-                                                            <th style="padding: 8px; color: #374151;">นามสกุล</th>
-                                                            <th style="padding: 8px; color: #374151;">อีเมล</th>
-                                                            <th style="padding: 8px; color: #374151;">บทบาท</th>
-                                                            <th style="padding: 8px; color: #374151;">ข้อผิดพลาด</th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody></tbody>
-                                                </table>
-                                            </div>
-                                        </div>
-                                    </div>
+                                <nav class="mt-4">
+                                    <ul class="pagination justify-content-center" id="validDataPagination" style="gap: 4px;">
+                                    </ul>
+                                </nav>
+                            </div>
+                            
+                            <!-- Tab 3: ข้อมูลที่ซ้ำ -->
+                            <div class="tab-pane fade" id="duplicate-data" role="tabpanel">
+                                <div class="table-responsive" style="max-height: 400px; overflow-y: auto; border: 1px solid #e5e7eb; border-radius: 12px; background: white;">
+                                    <table class="table table-sm align-middle mb-0" id="duplicateDataTable" style="background: white; min-width: 600px;">
+                                        <thead style="background: #fef3c7; border-bottom: 1px solid #f59e0b;">
+                                        </thead>
+                                        <tbody>
+                                        </tbody>
+                                    </table>
                                 </div>
+                                <nav class="mt-4">
+                                    <ul class="pagination justify-content-center" id="duplicateDataPagination" style="gap: 4px;">
+                                    </ul>
+                                </nav>
+                            </div>
+                            
+                            <!-- Tab 4: ข้อมูลที่ผิดพลาด -->
+                            <div class="tab-pane fade" id="error-data" role="tabpanel">
+                                <div class="table-responsive" style="max-height: 400px; overflow-y: auto; border: 1px solid #e5e7eb; border-radius: 12px; background: white;">
+                                    <table class="table table-sm align-middle mb-0" id="errorDataTable" style="background: white; min-width: 600px;">
+                                        <thead style="background: #fef2f2; border-bottom: 1px solid #ef4444;">
+                                        </thead>
+                                        <tbody>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <nav class="mt-4">
+                                    <ul class="pagination justify-content-center" id="errorDataPagination" style="gap: 4px;">
+                                    </ul>
+                                </nav>
                             </div>
                         </div>
                     </div>
-                    <div class="modal-footer border-0 pt-2 pb-3" style="background: #f8fafb;">
-                        <button type="button" class="btn btn-light px-3 py-2" data-bs-dismiss="modal"
-                            style="border-radius: 8px; color: #6b7280; font-weight: 500;">ปิด</button>
-                        <button id="importGoogleSheetsBtn" class="btn px-4 py-2 fw-medium" disabled
-                            style="border-radius: 8px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); border: none; color: white;">
-                            <i class="fas fa-download me-2"></i> นำเข้าข้อมูลที่เลือก
-                        </button>
-                        <div id="googleSheetsImportLoading" class="d-none ms-3">
-                            <div class="d-flex align-items-center">
-                                <div class="spinner-border spinner-border-sm text-success me-2" role="status"
-                                    style="width: 1rem; height: 1rem;">
-                                    <span class="visually-hidden">กำลังนำเข้า...</span>
-                                </div>
-                                <small class="text-muted">กำลังนำเข้าข้อมูล...</small>
+                    <div class="d-flex justify-content-between align-items-center mt-4 pt-3" style="border-top: 1px solid #e5e7eb;">
+                        <div class="d-flex align-items-center gap-2">
+                            <div style="color: #6b7280; font-size: 14px;">
+                                <i class="fas fa-check-circle me-1" style="color: #10b981;"></i>
+                                เลือกแถวที่ต้องการนำเข้า
+                            </div>
+                            <button id="selectAllDataBtn" class="btn btn-sm d-none" 
+                                    style="background: #e0f2fe; color: #0891b2; border: 1px solid #38bdf8; border-radius: 8px; padding: 8px 16px; font-size: 13px; font-weight: 500;">
+                                <i class="fas fa-check-double me-1"></i>เลือกทั้งหมด
+                            </button>
+                            <button id="clearSelectionBtn" class="btn btn-sm d-none" 
+                                    style="background: #fef2f2; color: #dc2626; border: 1px solid #f87171; border-radius: 8px; padding: 8px 16px; font-size: 13px; font-weight: 500;">
+                                <i class="fas fa-times me-1"></i>ล้างการเลือก
+                            </button>
+                        </div>
+                        <div class="d-flex gap-3">
+                            <button id="importValidOnlyBtn" class="btn d-none" 
+                                    style="background: #10b981; color: white; border: none; border-radius: 10px; padding: 10px 20px; font-weight: 600; font-size: 13px; box-shadow: 0 2px 4px rgba(16, 185, 129, 0.2);">
+                                <i class="fas fa-shield-check me-2"></i>นำเข้าข้อมูลที่ปลอดภัย
+                            </button>
+                            <button id="importExcelBtn" class="btn d-none" 
+                                    style="background: #3b82f6; color: white; border: none; border-radius: 10px; padding: 12px 24px; font-weight: 600; font-size: 14px; box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2);">
+                                <i class="fas fa-download me-2"></i>นำเข้าข้อมูลที่เลือก
+                            </button>
+                        </div>
+                    </div>
+                </div>
+</div> <!-- ปิด .modal-content, .modal-dialog, .modal, ... -->
+
+    <!-- Duplicate Data Modal -->
+    <div class="modal fade" id="duplicateDataModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-xl modal-dialog-centered">
+            <div class="modal-content" style="border: none; border-radius: 16px; box-shadow: 0 8px 32px rgba(0,0,0,0.08);">
+                <div class="modal-header" style="border: none; padding: 32px 32px 0 32px;">
+                    <h5 class="modal-title" style="font-weight: 600; color: #1a1a1a; font-size: 20px;">
+                        <i class="fas fa-exclamation-triangle me-2" style="color: #f59e0b;"></i> ข้อมูลที่ซ้ำกัน
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" 
+                            style="background: #f3f4f6; border-radius: 8px; opacity: 1; padding: 8px;">
+                    </button>
+                </div>
+                <div class="modal-body" style="padding: 24px 32px;">
+                    <div class="alert" style="background: #fef3c7; border: 1px solid #fcd34d; border-radius: 12px; padding: 16px; margin-bottom: 24px;">
+                        <i class="fas fa-info-circle me-2" style="color: #92400e;"></i>
+                        <span style="color: #92400e; font-size: 14px;">พบข้อมูลที่ซ้ำกันในระบบ กรุณาตรวจสอบก่อนนำเข้า</span>
+                    </div>
+                    
+                    <div id="duplicateDataContent">
+                        <div id="duplicateDataLoading" class="text-center py-4">
+                            <div class="spinner-border" style="color: #f59e0b;" role="status"></div>
+                            <div class="mt-2" style="color: #6b7280; font-size: 14px;">กำลังตรวจสอบข้อมูลซ้ำ...</div>
+                        </div>
+                        
+                        <div id="duplicateDataResults" class="d-none">
+                            <div class="table-responsive">
+                                <table class="table table-sm align-middle" style="background: white;">
+                                    <thead style="background: #f9fafb; border-bottom: 1px solid #e5e7eb;">
+                                        <tr>
+                                            <th style="padding: 12px 16px; font-weight: 500; color: #374151;">แถว</th>
+                                            <th style="padding: 12px 16px; font-weight: 500; color: #374151;">ชื่อ-นามสกุล</th>
+                                            <th style="padding: 12px 16px; font-weight: 500; color: #374151;">ข้อมูลที่ซ้ำ</th>
+                                            <th style="padding: 12px 16px; font-weight: 500; color: #374151;">รายละเอียด</th>
+                                            <th style="padding: 12px 16px; font-weight: 500; color: #374151;">การจัดการ</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="duplicateDataTableBody">
+                                    </tbody>
+                                </table>
                             </div>
                         </div>
                     </div>
                 </div>
+                <div class="modal-footer" style="border: none; padding: 24px 32px;">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ปิด</button>
+                    <button type="button" class="btn" id="importWithoutDuplicatesBtn" style="background: #10b981; color: white;">
+                        <i class="fas fa-download me-2"></i>นำเข้าเฉพาะข้อมูลที่ไม่ซ้ำ
+                    </button>
+                </div>
             </div>
         </div>
-    @endif
+    </div>
+
+<!-- SheetJS & Excel Preview Script (ย้ายออกมานอก modal-content) -->
+</div> <!-- ปิด .modal-content, .modal-dialog, .modal, ... -->
+
+<!-- SheetJS & Excel Preview Script (ย้ายออกมานอก modal-content) -->
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script>
+// Dynamic Excel/CSV preview with loading, sheet selector, pagination, and smart data type UI
+document.addEventListener('DOMContentLoaded', function () {
+    // Variables และ DOM elements สำหรับการจัดการข้อมูล
+    const excelFileInput = document.getElementById('excelFile');
+    const previewContainer = document.getElementById('excelPreviewContainer');
+    const previewTable = document.getElementById('excelPreviewTable');
+    const validDataTable = document.getElementById('validDataTable');
+    const duplicateDataTable = document.getElementById('duplicateDataTable');
+    const errorDataTable = document.getElementById('errorDataTable');
+    const importBtn = document.getElementById('importExcelBtn');
+    const importValidOnlyBtn = document.getElementById('importValidOnlyBtn');
+    const loadingDiv = document.getElementById('excelLoading');
+    const sheetSelectorGroup = document.getElementById('sheetSelectorGroup');
+    const sheetSelector = document.getElementById('sheetSelector');
+    const pagination = document.getElementById('excelPagination');
+    
+    // ข้อมูลแยกตามประเภท
+    let allData = [];
+    let validData = [];
+    let duplicateData = [];
+    let errorData = [];
+    let selectedRows = new Set();
+    
+    let previewData = [];
+    let currentPage = 1;
+    let pageSize = 20;
+    let totalPages = 1;
+    let workbook = null;
+    let sheetNames = [];
+
+    // ฟังก์ชันรีเซ็ต modal ให้อยู่สภาพเดิมเมื่อปิด
+    function resetExcelImportModal() {
+        // เคลียร์ไฟล์ที่เลือก
+        if (excelFileInput) {
+            excelFileInput.value = '';
+            excelFileInput.style.borderColor = '#d1d5db';
+            excelFileInput.style.background = '#fafafa';
+        }
+        // ซ่อนตัวอย่าง/ตัวเลือก sheet / ปุ่มต่างๆ
+        previewContainer.classList.add('d-none');
+        sheetSelectorGroup.classList.add('d-none');
+        if (importBtn) importBtn.classList.add('d-none');
+        if (importValidOnlyBtn) importValidOnlyBtn.classList.add('d-none');
+        const selectAllBtn = document.getElementById('selectAllDataBtn');
+        if (selectAllBtn) selectAllBtn.classList.add('d-none');
+        const clearSelectionBtn = document.getElementById('clearSelectionBtn');
+        if (clearSelectionBtn) clearSelectionBtn.classList.add('d-none');
+        // รีเซ็ตข้อมูลและตัวแปรทั้งหมด
+        allData = [];
+        validData = [];
+        duplicateData = [];
+        errorData = [];
+        previewData = [];
+        selectedRows.clear();
+        currentPage = 1;
+        totalPages = 1;
+        workbook = null;
+        sheetNames = [];
+        // ล้างตารางทุกตัว
+        if (previewTable) { previewTable.querySelector('thead').innerHTML=''; previewTable.querySelector('tbody').innerHTML=''; }
+        if (validDataTable) { validDataTable.querySelector('thead').innerHTML=''; validDataTable.querySelector('tbody').innerHTML=''; }
+        if (duplicateDataTable) { duplicateDataTable.querySelector('thead').innerHTML=''; duplicateDataTable.querySelector('tbody').innerHTML=''; }
+        if (errorDataTable) { errorDataTable.querySelector('thead').innerHTML=''; errorDataTable.querySelector('tbody').innerHTML=''; }
+        // รีเซ็ต badge count
+        const counters = ['allDataCount','validDataCount','duplicateDataCount','errorDataCount'];
+        counters.forEach(id => { const el = document.getElementById(id); if (el) el.textContent = '0'; });
+        // รีเซ็ตปุ่ม import text
+        if (importBtn) importBtn.textContent = 'นำเข้าข้อมูลที่เลือก';
+    }
+
+    // ผูก event เมื่อ modal ปิด
+    const excelImportModalEl = document.getElementById('excelImportModal');
+    if (excelImportModalEl) {
+        excelImportModalEl.addEventListener('hidden.bs.modal', function() {
+            resetExcelImportModal();
+        });
+    }
+
+    if (excelFileInput) {
+        // เพิ่ม styling เมื่อ hover และ drag
+        excelFileInput.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            this.style.borderColor = '#10b981';
+            this.style.background = '#f0f9ff';
+        });
+        excelFileInput.addEventListener('dragleave', function(e) {
+            this.style.borderColor = '#d1d5db';
+            this.style.background = '#fafafa';
+        });
+        excelFileInput.addEventListener('change', function (e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            loadingDiv.classList.remove('d-none');
+            previewContainer.classList.add('d-none');
+            importBtn.classList.add('d-none');
+            sheetSelectorGroup.classList.add('d-none');
+            if (importValidOnlyBtn) importValidOnlyBtn.classList.add('d-none');
+            const clearSelectionBtn = document.getElementById('clearSelectionBtn');
+            if (clearSelectionBtn) clearSelectionBtn.classList.add('d-none');
+            const reader = new FileReader();
+            reader.onload = function (evt) {
+                let data = evt.target.result;
+                try {
+                    if (file.name.endsWith('.xls') || file.name.endsWith('.xlsx')) {
+                        workbook = XLSX.read(data, { type: 'binary' });
+                    } else {
+                        workbook = XLSX.read(data, { type: 'string', raw: true });
+                    }
+                } catch (err) {
+                    Swal.fire('ผิดพลาด', 'ไม่สามารถอ่านไฟล์นี้ได้', 'error');
+                    loadingDiv.classList.add('d-none');
+                    return;
+                }
+                sheetNames = workbook.SheetNames;
+                sheetSelector.innerHTML = '';
+                sheetNames.forEach((name, idx) => {
+                    sheetSelector.innerHTML += `<option value="${name}">${name}</option>`;
+                });
+                sheetSelectorGroup.classList.remove('d-none');
+                loadSheet(sheetNames[0]);
+                // รอ 2 วินาทีให้ผู้ใช้รู้สึกว่าระบบกำลังประมวลผล จากนั้นวิเคราะห์อัตโนมัติ
+                setTimeout(() => {
+                    analyzeData();
+                }, 2000);
+            };
+            if (file.name.endsWith('.xls') || file.name.endsWith('.xlsx')) {
+                reader.readAsBinaryString(file);
+            } else {
+                reader.readAsText(file);
+            }
+        });
+    }
+
+    if (sheetSelector) {
+        sheetSelector.addEventListener('change', function () {
+            // แสดง loading ใหม่และซ่อนทุกอย่างระหว่างเปลี่ยน sheet
+            selectedRows.clear();
+            previewContainer.classList.add('d-none');
+            if (importBtn) importBtn.classList.add('d-none');
+            if (importValidOnlyBtn) importValidOnlyBtn.classList.add('d-none');
+            const selectAllBtn = document.getElementById('selectAllDataBtn');
+            if (selectAllBtn) selectAllBtn.classList.add('d-none');
+            const clearSelectionBtn = document.getElementById('clearSelectionBtn');
+            if (clearSelectionBtn) clearSelectionBtn.classList.add('d-none');
+            loadingDiv.classList.remove('d-none');
+            // โหลดข้อมูล raw ของ sheet ที่เลือก (ยังไม่ render จนกว่าวิเคราะห์เสร็จ)
+            loadSheet(sheetSelector.value);
+            // หน่วง 300ms ป้องกัน UX กระตุก แล้ววิเคราะห์ใหม่
+            setTimeout(() => {
+                analyzeData();
+            }, 300);
+        });
+    }
+
+    function loadSheet(sheetName) {
+        const sheet = workbook.Sheets[sheetName];
+        // ดึงข้อมูลทุก row
+        let allRows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+        // กรองเฉพาะ row ที่มีข้อมูลจริง (ไม่นับ row ที่ว่างเปล่าทั้งแถว)
+        previewData = allRows.filter((row, idx) => {
+            if (idx === 0) return true; // header always keep
+            // ถ้ามี cell ใด cell หนึ่งใน row นี้ไม่ว่าง ให้แสดง row นี้
+            return row.some(cell => cell !== undefined && cell !== null && String(cell).trim() !== '');
+        });
+        currentPage = 1;
+        selectedRows.clear(); // ล้างการเลือกเมื่อโหลด sheet ใหม่
+        // ไม่แสดง preview และปุ่มต่างๆ ทันที รอให้ analysis เสร็จก่อน
+    }
+    
+    // ฟังก์ชันวิเคราะห์ข้อมูลและแยกประเภท
+    function analyzeData() {
+        const sheetName = sheetSelector.value;
+        const mapping = getColumnMapping(sheetName);
+        
+        allData = [];
+        validData = [];
+        duplicateData = [];
+        errorData = [];
+        
+        // เตรียมข้อมูลสำหรับส่งไป backend วิเคราะห์
+        const dataToAnalyze = [];
+        for (let i = 1; i < previewData.length; i++) {
+            const rowData = previewData[i];
+            const mappedData = mapRowData(rowData, previewData[0], mapping, sheetName);
+            
+            if (mappedData) {
+                allData.push({
+                    row_number: i + 1,
+                    data: mappedData,
+                    original_row: rowData
+                });
+                dataToAnalyze.push({
+                    row_number: i + 1,
+                    data: mappedData,
+                    original_row: rowData
+                });
+            } else {
+                errorData.push({
+                    row_number: i + 1,
+                    data: rowData,
+                    errors: ['ข้อมูลไม่ครบถ้วน (ขาดชื่อหรือนามสกุล)']
+                });
+            }
+        }
+        
+        // ส่งข้อมูลไป backend วิเคราะห์
+        fetch('/api/import/excel/preview', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            },
+            body: JSON.stringify({
+                sheet_type: sheetName,
+                preview_data: dataToAnalyze
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // แยกข้อมูลตามผลการวิเคราะห์
+                if (data.valid_data) {
+                    validData = data.valid_data;
+                }
+                if (data.duplicate_data) {
+                    duplicateData = data.duplicate_data;
+                }
+                if (data.error_data) {
+                    errorData = [...errorData, ...data.error_data];
+                }
+                
+                // อัปเดต badge count
+                updateTabCounts();
+                
+                // แสดงข้อมูลใน tabs
+                renderTabData();
+                
+                // แสดงปุ่ม import
+                if (validData.length > 0) {
+                    importValidOnlyBtn.classList.remove('d-none');
+                }
+                importBtn.classList.remove('d-none');
+                
+                // แสดง preview และปุ่มต่างๆ หลังวิเคราะห์เสร็จ
+                renderPreviewTable();
+                previewContainer.classList.remove('d-none');
+                updateImportButtonText();
+                
+                // แสดงปุ่มเสริม
+                const selectAllBtn = document.getElementById('selectAllDataBtn');
+                const clearSelectionBtn = document.getElementById('clearSelectionBtn');
+                if (selectAllBtn) selectAllBtn.classList.remove('d-none');
+                if (clearSelectionBtn) clearSelectionBtn.classList.remove('d-none');
+                
+                // ซ่อน loading หลังแสดงข้อมูลเสร็จ
+                loadingDiv.classList.add('d-none');
+            }
+        })
+        .catch(error => {
+            console.error('Analysis error:', error);
+            // ซ่อน loading เมื่อเกิดข้อผิดพลาด
+            loadingDiv.classList.add('d-none');
+            Swal.fire('ข้อผิดพลาด', 'เกิดข้อผิดพลาดในการวิเคราะห์ข้อมูล', 'error');
+        });
+    }
+    
+    // ฟังก์ชันอัปเดตจำนวนข้อมูลใน tabs
+    function updateTabCounts() {
+        document.getElementById('allDataCount').textContent = allData.length;
+        document.getElementById('validDataCount').textContent = validData.length;
+        document.getElementById('duplicateDataCount').textContent = duplicateData.length;
+        document.getElementById('errorDataCount').textContent = errorData.length;
+    }
+    
+    // ฟังก์ชันแสดงข้อมูลใน tabs
+    function renderTabData() {
+        // Tab ข้อมูลที่ไม่ซ้ำ
+        renderDataTable(validDataTable, validData, 'valid');
+        
+        // Tab ข้อมูลที่ซ้ำ
+        renderDataTable(duplicateDataTable, duplicateData, 'duplicate');
+        
+        // Tab ข้อมูลที่ผิดพลาด
+        renderDataTable(errorDataTable, errorData, 'error');
+    }
+    
+    // ฟังก์ชันแสดงข้อมูลในตาราง
+    function renderDataTable(table, data, type) {
+        if (!data || data.length === 0) {
+            table.querySelector('thead').innerHTML = '';
+            table.querySelector('tbody').innerHTML = `
+                <tr><td colspan="100%" class="text-center py-4 text-muted">ไม่มีข้อมูล</td></tr>
+            `;
+            return;
+        }
+        
+        // สร้าง header
+        const headers = previewData[0] || [];
+        let thead = '<tr>';
+        if (type !== 'error') {
+            thead += '<th style="width:40px; padding: 12px 8px;"><input type="checkbox" class="selectAllTab" style="transform: scale(1.1);"></th>';
+        }
+        thead += '<th style="width:60px; padding: 12px 8px;">แถว</th>';
+        headers.forEach(header => {
+            thead += `<th style="padding: 12px 16px; font-weight: 500; font-size: 13px;">${header || ''}</th>`;
+        });
+        if (type === 'duplicate') {
+            thead += '<th style="padding: 12px 16px;">ฟิลด์ที่ซ้ำ</th>';
+        }
+        if (type === 'error') {
+            thead += '<th style="padding: 12px 16px;">ข้อผิดพลาด</th>';
+        }
+        thead += '</tr>';
+        table.querySelector('thead').innerHTML = thead;
+        
+        // สร้าง body
+        let tbody = '';
+        data.forEach(item => {
+            tbody += '<tr style="border-bottom: 1px solid #f3f4f6;">';
+            if (type !== 'error') {
+                tbody += `<td style="padding: 12px 8px;"><input type="checkbox" class="rowCheckbox" data-row="${item.row_number}" style="transform: scale(1.1);"></td>`;
+            }
+            tbody += `<td style="padding: 12px 8px; font-weight: 500;">${item.row_number}</td>`;
+            
+            const rowData = item.original_row || item.data;
+            if (Array.isArray(rowData)) {
+                rowData.forEach(cell => {
+                    tbody += `<td style="padding: 12px 16px; font-size: 13px;">${cell || ''}</td>`;
+                });
+            } else if (typeof rowData === 'object') {
+                headers.forEach(header => {
+                    const value = rowData[header] || '';
+                    tbody += `<td style="padding: 12px 16px; font-size: 13px;">${value}</td>`;
+                });
+            }
+            
+            if (type === 'duplicate' && item.duplicate_fields) {
+                const duplicateText = item.duplicate_fields.map(field => {
+                    const fieldNames = {
+                        'email': 'อีเมล',
+                        'student_id': 'รหัสนักเรียน',
+                        'teacher_id': 'รหัสครู',
+                        'phone': 'เบอร์โทรศัพท์'
+                    };
+                    return fieldNames[field] || field;
+                }).join(', ');
+                tbody += `<td style="padding: 12px 16px;"><span class="badge bg-warning">${duplicateText}</span></td>`;
+            }
+            
+            if (type === 'error' && item.errors) {
+                tbody += `<td style="padding: 12px 16px;"><span class="text-danger small">${item.errors.join(', ')}</span></td>`;
+            }
+            
+            tbody += '</tr>';
+        });
+        table.querySelector('tbody').innerHTML = tbody;
+    }
+
+    // ใช้ selectedRows ที่ประกาศไว้ตอนต้น (ลบการประกาศซ้ำเพื่อป้องกัน SyntaxError)
+
+    function renderPreviewTable() {
+        previewTable.querySelector('thead').innerHTML = '';
+        previewTable.querySelector('tbody').innerHTML = '';
+        if (!previewData.length) return;
+        // pagination
+        totalPages = Math.ceil((previewData.length - 1) / pageSize) || 1;
+        // เพิ่ม checkbox header
+        let thead = '<tr>';
+        thead += '<th style="width:40px; padding: 12px 8px; border-bottom: 1px solid #e5e7eb;"><input type="checkbox" id="selectAllRows" style="transform: scale(1.1); accent-color: #10b981;"></th>';
+        previewData[0].forEach(cell => {
+            thead += `<th style="padding: 12px 16px; font-weight: 500; color: #374151; font-size: 13px; border-bottom: 1px solid #e5e7eb;">${cell ?? ''}</th>`;
+        });
+        thead += '</tr>';
+        previewTable.querySelector('thead').innerHTML = thead;
+        let tbody = '';
+        const start = 1 + (currentPage - 1) * pageSize;
+        const end = Math.min(start + pageSize, previewData.length);
+        for (let i = start; i < end; i++) {
+            const rowId = i; // ใช้ index จริงใน previewData
+            tbody += '<tr style="border-bottom: 1px solid #f3f4f6;">';
+            tbody += `<td style="padding: 12px 8px;"><input type="checkbox" class="rowCheckbox" data-row="${rowId}" ${selectedRows.has(rowId) ? 'checked' : ''} style="transform: scale(1.1); accent-color: #10b981;"></td>`;
+            previewData[i].forEach(cell => {
+                tbody += `<td style="padding: 12px 16px; color: #374151; font-size: 13px;">${cell ?? ''}</td>`;
+            });
+            tbody += '</tr>';
+        }
+        previewTable.querySelector('tbody').innerHTML = tbody;
+        // handle select all
+        const selectAll = previewTable.querySelector('#selectAllRows');
+        if (selectAll) {
+            // ถ้าเลือกครบทุก row ในหน้านี้ ให้ selectAll เป็น checked
+            let allChecked = true;
+            for (let i = start; i < end; i++) {
+                if (!selectedRows.has(i)) { allChecked = false; break; }
+            }
+            selectAll.checked = allChecked;
+            selectAll.addEventListener('change', function() {
+                for (let i = start; i < end; i++) {
+                    if (this.checked) selectedRows.add(i);
+                    else selectedRows.delete(i);
+                }
+                renderPreviewTable();
+                updateImportButtonText();
+            });
+        }
+        // handle row checkbox
+        previewTable.querySelectorAll('.rowCheckbox').forEach(cb => {
+            cb.addEventListener('change', function() {
+                const rowIdx = parseInt(this.getAttribute('data-row'));
+                if (this.checked) selectedRows.add(rowIdx);
+                else selectedRows.delete(rowIdx);
+                // ไม่ต้อง render ใหม่เพื่อความลื่นไหล
+                updateImportButtonText();
+            });
+        });
+        renderPagination();
+    }
+
+    // ฟังก์ชันอัปเดตข้อความปุ่ม import
+    function updateImportButtonText() {
+        if (selectedRows.size > 0) {
+            importBtn.textContent = `นำเข้าข้อมูล ${selectedRows.size} รายการ`;
+            importBtn.classList.remove('d-none');
+        } else {
+            importBtn.textContent = 'นำเข้าข้อมูลที่เลือก';
+            importBtn.classList.add('d-none');
+        }
+    }
+
+    // เพิ่ม event listener สำหรับปุ่ม import
+    if (importBtn) {
+        importBtn.addEventListener('click', function() {
+            if (selectedRows.size === 0) {
+                Swal.fire('แจ้งเตือน', 'กรุณาเลือกข้อมูลที่ต้องการนำเข้า', 'warning');
+                return;
+            }
+            
+            performImport();
+        });
+    }
+
+    // ปุ่มยกเลิกการเลือกทั้งหมด
+    const clearSelectionBtn = document.getElementById('clearSelectionBtn');
+    if (clearSelectionBtn) {
+        clearSelectionBtn.addEventListener('click', function() {
+            selectedRows.clear();
+            updateImportButtonText();
+            renderPreviewTable();
+            Swal.fire({
+                toast: true,
+                position: 'top-end',
+                icon: 'info',
+                title: 'ล้างการเลือกทั้งหมดแล้ว',
+                showConfirmButton: false,
+                timer: 1500,
+                timerProgressBar: true
+            });
+        });
+    }
+    
+    // เพิ่ม event listener สำหรับปุ่มนำเข้าเฉพาะข้อมูลที่ไม่ซ้ำ
+    if (importValidOnlyBtn) {
+        importValidOnlyBtn.addEventListener('click', function() {
+            performImport(validData);
+        });
+    }
+    
+    // เพิ่ม event listener สำหรับปุ่มเลือกทั้งหมด
+    const selectAllDataBtn = document.getElementById('selectAllDataBtn');
+    if (selectAllDataBtn) {
+        selectAllDataBtn.addEventListener('click', function() {
+            for (let i = 1; i < previewData.length; i++) {
+                selectedRows.add(i);
+            }
+            renderPreviewTable();
+            updateImportButtonText();
+            Swal.fire({
+                toast: true,
+                position: 'top-end',
+                icon: 'success',
+                title: `เลือกทั้งหมด ${previewData.length - 1} แถว`,
+                showConfirmButton: false,
+                timer: 1500,
+                timerProgressBar: true
+            });
+        });
+    }
+
+    // เพิ่ม event listener สำหรับปุ่มตรวจสอบข้อมูลซ้ำ
+    const checkDuplicatesBtn = document.getElementById('checkDuplicatesBtn');
+    if (checkDuplicatesBtn) {
+        checkDuplicatesBtn.addEventListener('click', function() {
+            checkForDuplicates();
+        });
+    }
+
+    // ฟังก์ชันตรวจสอบข้อมูลซ้ำ
+    function checkForDuplicates() {
+        const sheetName = sheetSelector.value;
+        const mapping = getColumnMapping(sheetName);
+        
+        // เตรียมข้อมูลทั้งหมดสำหรับตรวจสอบ
+        const allData = [];
+        for (let i = 1; i < previewData.length; i++) {
+            const rowData = previewData[i];
+            const mappedData = mapRowData(rowData, previewData[0], mapping, sheetName);
+            
+            if (mappedData) {
+                allData.push({
+                    row_number: i + 1,
+                    data: mappedData,
+                    original_row: rowData
+                });
+            }
+        }
+
+        // แสดง modal และส่งข้อมูลไปตรวจสอบ
+        const duplicateModal = new bootstrap.Modal(document.getElementById('duplicateDataModal'));
+        duplicateModal.show();
+        
+        // แสดง loading
+        document.getElementById('duplicateDataLoading').classList.remove('d-none');
+        document.getElementById('duplicateDataResults').classList.add('d-none');
+        
+        // ส่งข้อมูลไปตรวจสอบที่ backend
+        fetch('/api/import/excel/preview', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            },
+            body: JSON.stringify({
+                sheet_type: sheetName,
+                preview_data: allData
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('duplicateDataLoading').classList.add('d-none');
+            
+            if (data.success && data.duplicate_data && data.duplicate_data.length > 0) {
+                displayDuplicateData(data.duplicate_data);
+                document.getElementById('duplicateDataResults').classList.remove('d-none');
+            } else {
+                document.getElementById('duplicateDataContent').innerHTML = `
+                    <div class="text-center py-4">
+                        <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
+                        <h5>ไม่พบข้อมูลซ้ำ</h5>
+                        <p class="text-muted">ข้อมูลทั้งหมดสามารถนำเข้าได้</p>
+                    </div>
+                `;
+            }
+        })
+        .catch(error => {
+            console.error('Duplicate check error:', error);
+            document.getElementById('duplicateDataLoading').classList.add('d-none');
+            document.getElementById('duplicateDataContent').innerHTML = `
+                <div class="text-center py-4 text-danger">
+                    <i class="fas fa-exclamation-circle fa-2x mb-3"></i>
+                    <p>เกิดข้อผิดพลาดในการตรวจสอบข้อมูลซ้ำ</p>
+                </div>
+            `;
+        });
+    }
+
+    // ฟังก์ชันแสดงข้อมูลซ้ำ
+    function displayDuplicateData(duplicates) {
+        const tbody = document.getElementById('duplicateDataTableBody');
+        tbody.innerHTML = '';
+        
+        duplicates.forEach(item => {
+            const row = document.createElement('tr');
+            row.style.borderBottom = '1px solid #f3f4f6';
+            
+            const duplicateFields = item.duplicate_fields || [];
+            const duplicateText = duplicateFields.map(field => {
+                const fieldNames = {
+                    'email': 'อีเมล',
+                    'student_id': 'รหัสนักเรียน',
+                    'teacher_id': 'รหัสครู',
+                    'phone': 'เบอร์โทรศัพท์'
+                };
+                return fieldNames[field] || field;
+            }).join(', ');
+            
+            row.innerHTML = `
+                <td style="padding: 12px 16px; color: #374151;">${item.row_number}</td>
+                <td style="padding: 12px 16px; color: #374151;">
+                    ${item.data.first_name || ''} ${item.data.last_name || ''}
+                </td>
+                <td style="padding: 12px 16px;">
+                    <span class="badge" style="background: #fef3c7; color: #92400e; padding: 4px 8px; border-radius: 6px; font-size: 11px;">
+                        ${duplicateText}
+                    </span>
+                </td>
+                <td style="padding: 12px 16px;">
+                    <button class="btn btn-sm btn-outline-info" onclick="showDuplicateDetails(${JSON.stringify(item).replace(/"/g, '&quot;')})">
+                        <i class="fas fa-eye"></i> ดูรายละเอียด
+                    </button>
+                </td>
+                <td style="padding: 12px 16px;">
+                    <button class="btn btn-sm btn-outline-danger" onclick="removeDuplicateRow(${item.row_number - 1})">
+                        <i class="fas fa-times"></i> ไม่นำเข้า
+                    </button>
+                </td>
+            `;
+            
+            tbody.appendChild(row);
+        });
+    }
+
+    // ฟังก์ชันแสดงรายละเอียดข้อมูลซ้ำ
+    window.showDuplicateDetails = function(item) {
+        const details = Object.entries(item.data)
+            .filter(([key, value]) => value)
+            .map(([key, value]) => `<strong>${key}:</strong> ${value}`)
+            .join('<br>');
+            
+        Swal.fire({
+            title: `รายละเอียดแถว ${item.row_number}`,
+            html: details,
+            icon: 'info',
+            width: '600px'
+        });
+    };
+
+    // ฟังก์ชันลบ row ที่ซ้ำออกจากการเลือก
+    window.removeDuplicateRow = function(rowIndex) {
+        selectedRows.delete(rowIndex);
+        renderPreviewTable();
+        updateImportButtonText();
+        
+        Swal.fire({
+            title: 'ลบออกจากการเลือกแล้ว',
+            text: `แถว ${rowIndex + 1} จะไม่ถูกนำเข้า`,
+            icon: 'success',
+            timer: 1500,
+            showConfirmButton: false
+        });
+    };
+
+    // ฟังก์ชันดำเนินการ import
+    function performImport(dataToImport = null) {
+        let selectedData = [];
+        
+        if (dataToImport) {
+            // ใช้ข้อมูลที่ส่งมา (เช่น validData)
+            selectedData = dataToImport.map(item => ({
+                row_number: item.row_number,
+                data: item.data
+            }));
+        } else {
+            // ใช้ข้อมูลที่เลือกจาก table หลัก
+            const sheetName = sheetSelector.value;
+            const mapping = getColumnMapping(sheetName);
+            
+            selectedRows.forEach(rowIdx => {
+                if (rowIdx > 0 && rowIdx < previewData.length) { // ไม่รวม header
+                    const rowData = previewData[rowIdx];
+                    const mappedData = mapRowData(rowData, previewData[0], mapping, sheetName);
+                    
+                    if (mappedData) {
+                        selectedData.push({
+                            row_number: rowIdx + 1,
+                            data: mappedData
+                        });
+                    }
+                }
+            });
+        }
+        
+        if (selectedData.length === 0) {
+            Swal.fire('ข้อผิดพลาด', 'ไม่พบข้อมูลที่ถูกต้องสำหรับการนำเข้า', 'error');
+            return;
+        }
+        
+        // แสดง loading และส่งข้อมูล
+        Swal.fire({
+            title: 'กำลังนำเข้าข้อมูล...',
+            html: `กำลังประมวลผล ${selectedData.length} รายการ`,
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+        
+        // ส่งข้อมูลไป backend
+        fetch('/api/import/excel/commit', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            },
+            body: JSON.stringify({
+                selected_data: selectedData
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                if (data.results.success_count === 0) {
+                    Swal.fire({
+                        title: 'ไม่สามารถนำเข้าข้อมูลได้',
+                        html: `<div class="text-danger mb-2"><i class="fas fa-times-circle"></i> ไม่สำเร็จ: 0 รายการ<br>กรุณาตรวจสอบข้อมูลนำเข้าอีกครั้ง</div>
+                        ${data.results.errors && data.results.errors.length > 0 ? '<div class="mt-2"><small>' + data.results.errors.slice(0, 5).join('<br>') + '</small></div>' : ''}`,
+                        icon: 'error',
+                        confirmButtonText: 'ตกลง'
+                    });
+                } else {
+                    Swal.fire({
+                        title: 'นำเข้าข้อมูลสำเร็จ!',
+                        html: `
+                            <div class="text-success mb-2">
+                                <i class="fas fa-check-circle"></i> สำเร็จ: ${data.results.success_count} รายการ
+                            </div>
+                            ${data.results.error_count > 0 ? 
+                                `<div class="text-danger">
+                                    <i class="fas fa-exclamation-circle"></i> ข้อผิดพลาด: ${data.results.error_count} รายการ
+                                </div>` : ''
+                            }
+                            ${data.results.errors && data.results.errors.length > 0 ? 
+                                '<div class="mt-2"><small>' + data.results.errors.slice(0, 5).join('<br>') + '</small></div>' : ''
+                            }
+                        `,
+                        icon: 'success',
+                        confirmButtonText: 'ตกลง'
+                    }).then(() => {
+                        // ปิด modal และรีเฟรชหน้า
+                        const modal = bootstrap.Modal.getInstance(document.getElementById('excelImportModal'));
+                        modal.hide();
+                        location.reload();
+                    });
+                }
+            } else {
+                Swal.fire('ข้อผิดพลาด', data.error || 'เกิดข้อผิดพลาดในการนำเข้าข้อมูล', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Import error:', error);
+            Swal.fire('ข้อผิดพลาด', 'เกิดข้อผิดพลาดในการเชื่อมต่อ', 'error');
+        });
+    }
+
+    // เพิ่ม event listener สำหรับปุ่มนำเข้าเฉพาะข้อมูลที่ไม่ซ้ำ
+    const importWithoutDuplicatesBtn = document.getElementById('importWithoutDuplicatesBtn');
+    if (importWithoutDuplicatesBtn) {
+        importWithoutDuplicatesBtn.addEventListener('click', function() {
+            // ปิด duplicate modal ก่อน
+            const duplicateModal = bootstrap.Modal.getInstance(document.getElementById('duplicateDataModal'));
+            duplicateModal.hide();
+            
+            // เอาเฉพาะข้อมูลที่ไม่ซ้ำมา import
+            performImport();
+        });
+    }
+
+    function renderPagination() {
+        pagination.innerHTML = '';
+        if (totalPages <= 1) return;
+        let html = '';
+        html += `<li class="page-item${currentPage === 1 ? ' disabled' : ''}">
+                    <a class="page-link" href="#" data-page="prev" 
+                       style="border: 1px solid #e5e7eb; border-radius: 6px; margin-right: 4px; padding: 8px 12px; color: #6b7280; text-decoration: none;">
+                       &laquo;
+                    </a>
+                 </li>`;
+        for (let i = 1; i <= totalPages; i++) {
+            if (i === 1 || i === totalPages || Math.abs(i - currentPage) <= 2) {
+                const isActive = i === currentPage;
+                html += `<li class="page-item${isActive ? ' active' : ''}">
+                            <a class="page-link" href="#" data-page="${i}" 
+                               style="border: 1px solid ${isActive ? '#10b981' : '#e5e7eb'}; 
+                                      border-radius: 6px; margin-right: 4px; padding: 8px 12px; 
+                                      color: ${isActive ? 'white' : '#6b7280'}; 
+                                      background: ${isActive ? '#10b981' : 'white'}; 
+                                      text-decoration: none;">
+                               ${i}
+                            </a>
+                         </li>`;
+            } else if (i === 2 && currentPage > 4) {
+                html += '<li class="page-item disabled"><span class="page-link" style="border: none; color: #9ca3af;">...</span></li>';
+            } else if (i === totalPages - 1 && currentPage < totalPages - 3) {
+                html += '<li class="page-item disabled"><span class="page-link" style="border: none; color: #9ca3af;">...</span></li>';
+            }
+        }
+        html += `<li class="page-item${currentPage === totalPages ? ' disabled' : ''}">
+                    <a class="page-link" href="#" data-page="next" 
+                       style="border: 1px solid #e5e7eb; border-radius: 6px; padding: 8px 12px; color: #6b7280; text-decoration: none;">
+                       &raquo;
+                    </a>
+                 </li>`;
+        pagination.innerHTML = html;
+        // event
+        pagination.querySelectorAll('a.page-link').forEach(a => {
+            a.addEventListener('click', function (e) {
+                e.preventDefault();
+                let page = this.getAttribute('data-page');
+                if (page === 'prev' && currentPage > 1) currentPage--;
+                else if (page === 'next' && currentPage < totalPages) currentPage++;
+                else if (!isNaN(parseInt(page))) currentPage = parseInt(page);
+                renderPreviewTable();
+            });
+            // เพิ่ม hover effect
+            a.addEventListener('mouseenter', function() {
+                if (!this.closest('.disabled') && !this.closest('.active')) {
+                    this.style.background = '#f3f4f6';
+                }
+            });
+            a.addEventListener('mouseleave', function() {
+                if (!this.closest('.active')) {
+                    this.style.background = 'white';
+                }
+            });
+        });
+    }
+
+    // ฟังก์ชัน mapping ข้อมูลตาม column
+    function getColumnMapping(sheetName) {
+        const baseMapping = {
+            'first_name': ['ชื่อจริง', 'ชื่อ', 'first_name', 'firstname', 'fname', 'f_name', 'name'],
+            'last_name': ['นามสกุล', 'last_name', 'lastname', 'surname', 'lname', 'l_name'],
+            'email': ['อีเมลล์', 'อีเมล', 'email', 'e-mail', 'mail'],
+            'phone': ['โทร', 'เบอร์โทรศัพท์', 'เบอร์โทร', 'เบอร์', 'phone', 'telephone', 'mobile']
+        };
+
+        const roleMapping = {
+            'student': Object.assign({}, baseMapping, {
+                'student_id': ['รหัสนักเรียน', 'student_id', 'รหัส', 'id', 'รหัสประจำตัว'],
+                'date_of_birth': ['วันเกิด', 'date_of_birth', 'birthday', 'birth_date', 'dob'],
+                'gender': ['เพศ', 'gender', 'sex'],
+                'grade_level': ['ระดับชั้น', 'ระดับ', 'ชั้น', 'grade', 'level', 'class_level'],
+                'classroom': ['ห้อง', 'ห้องเรียน', 'classroom', 'class', 'room'],
+                'status': ['สถานะ', 'status']
+            }),
+            'teacher': Object.assign({}, baseMapping, {
+                'teacher_id': ['รหัสครู', 'teacher_id', 'รหัส', 'id', 'รหัสประจำตัว'],
+                'title': ['คำนำหน้า', 'title', 'prefix', 'คำนำหน้าชื่อ'],
+                'position': ['ตำแหน่ง', 'position', 'job_title', 'title_position'],
+                'subject_group': ['กลุ่มสาระการเรียนรู้', 'กลุ่มสาระ', 'subject_group', 'learning_area'],
+                'subjects': ['วิชาที่สอน', 'วิชา', 'subject', 'subjects', 'teaching_subject']
+            }),
+            'guardian': Object.assign({}, baseMapping, {
+                'title': ['คำนำหน้า', 'คำนำหน้าชื่อ', 'title', 'prefix', 'นาย', 'นาง', 'นางสาว'],
+                'guardian_id': ['รหัสผู้ปกครอง', 'guardian_id', 'รหัส', 'id', 'รหัสประจำตัว'],
+                'relationship': ['ความสัมพันธ์', 'relationship', 'relation'],
+                'line_id': ['ไอดีไลน์', 'line_id', 'line', 'ไลน์', 'ID Line'],
+                'contact_method': ['ช่องทางติดต่อที่ใช้บ่อยที่สุด', 'ช่องทางติดต่อที่ง่ายที่สุด', 'contact_method', 'preferred_contact', 'ช่องทางติดต่อ'],
+                'student_codes': ['รหัสนักเรียนที่ดูแล', 'รหัสนักเรียน', 'student_codes', 'student_id', 'รหัสลูก', 'รหัสบุตร', 'รหัสนักเรียนภายใต้ความดูแล']
+            })
+        };
+
+        // ตรวจจาก sheet name ว่าเป็นประเภทไหน
+        const sheetLower = sheetName.toLowerCase();
+        if (sheetLower.includes('student') || sheetLower.includes('นักเรียน')) {
+            return roleMapping.student;
+        } else if (sheetLower.includes('teacher') || sheetLower.includes('ครู')) {
+            return roleMapping.teacher;
+        } else if (sheetLower.includes('guardian') || sheetLower.includes('ผู้ปกครอง') || sheetLower.includes('parent')) {
+            return roleMapping.guardian;
+        }
+        
+        // default เป็น student
+        return roleMapping.student;
+    }
+
+    // ฟังก์ชัน map ข้อมูลแต่ละแถวตาม header
+    function mapRowData(rowData, headers, mapping, sheetName) {
+        const mappedData = {};
+        
+        // กำหนด role ตาม sheet name
+        const sheetLower = sheetName.toLowerCase();
+        if (sheetLower.includes('teacher') || sheetLower.includes('ครู')) {
+            mappedData.role = 'teacher';
+        } else if (sheetLower.includes('guardian') || sheetLower.includes('ผู้ปกครอง') || sheetLower.includes('parent')) {
+            mappedData.role = 'guardian';
+        } else {
+            mappedData.role = 'student';
+        }
+
+        // map แต่ละ column
+        headers.forEach((header, index) => {
+            if (header && rowData[index] !== undefined && rowData[index] !== null && String(rowData[index]).trim() !== '') {
+                const headerLower = header.toLowerCase().trim();
+                
+                // หาใน mapping ว่า header นี้ตรงกับ field ไหน
+                for (const [field, aliases] of Object.entries(mapping)) {
+                    if (aliases.some(alias => alias.toLowerCase() === headerLower || headerLower.includes(alias.toLowerCase()))) {
+                        mappedData[field] = String(rowData[index]).trim();
+                        break;
+                    }
+                }
+            }
+        });
+
+        // ตรวจสอบข้อมูลขั้นต้น
+        if (!mappedData.first_name || !mappedData.last_name) {
+            return null; // ข้อมูลไม่ครบ
+        }
+
+        return mappedData;
+    }
+});
+</script>
+</script>
+            </div>
+        </div>
+    </div>
 
     <!-- New Violation Modal -->
     <div class="modal fade" id="newViolationModal" tabindex="-1" aria-hidden="true">
@@ -2402,18 +3247,6 @@
     <!-- Archived Students JS -->
     <script src="/js/archived-students.js"></script>
 
-    <!-- Google Sheets Import JavaScript (Admin Only) -->
-    @if(auth()->user()->users_role === 'admin')
-        <script>
-            // Set up routes for Google Sheets functionality
-            window.adminGoogleSheetsRoutes = {
-                sheets: '{{ route("admin.google-sheets.sheets") }}',
-                preview: '{{ route("admin.google-sheets.preview") }}',
-                import: '{{ route("admin.google-sheets.import") }}'
-            };
-        </script>
-        <script src="/js/google-sheets-import.js"></script>
-    @endif
 
     <!-- Archived Students Sidebar -->
     <div id="archivedStudentsSidebar" class="sidebar-overlay">
