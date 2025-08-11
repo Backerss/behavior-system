@@ -11,8 +11,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <!-- Google Font: Prompt -->
     <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <!-- Chart.js -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.min.css">
+    <!-- Chart.js: ไม่มีไฟล์ CSS ที่จำเป็น จึงเอา link ที่โหลดไม่ได้ออก -->
     <!-- App CSS -->
     <link href="/css/app.css" rel="stylesheet">
     <!-- Dashboard CSS -->
@@ -189,7 +188,7 @@
                                         
                                         Swal.fire({
                                             title: 'กำลังซิงค์สถานะ...',
-                                            html: '<div class="py-2 text-muted small">ดึงข้อมูลจาก Google Sheet และตรวจสอบความแตกต่าง</div>',
+                                            html: '<div class="py-2 text-muted small">นำเข้าข้อมูลจากไฟล์ Excel/CSV และตรวจสอบความแตกต่าง</div>',
                                             allowOutsideClick: false,
                                             didOpen: () => { Swal.showLoading(); }
                                         });

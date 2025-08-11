@@ -9,7 +9,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ParentController;
 use App\Http\Controllers\WelcomeController;
 use App\Http\Controllers\NotificationController; // เพิ่มบรรทัดนี้
-// Removed Google Sheets import and status sync controllers
+// Import/export functionality now uses Excel/CSV instead
 
 // หน้าหลัก
 Route::get('/', [WelcomeController::class, 'index'])->name('welcome');
@@ -128,8 +128,7 @@ Route::prefix('api')->middleware('auth')->group(function () {
     Route::get('/laravel-log', [DashboardController::class, 'getLaravelLog'])->name('api.dashboard.laravel-log');
     });
 
-    // ซิงค์สถานะนักเรียนจาก Google Sheet
-    // Removed Google Sheets based student status sync API
+    // Student status sync removed (legacy functionality)
     
     // เพิ่มบรรทัดนี้
     Route::get('/students/{id}/report', [App\Http\Controllers\API\StudentReportController::class, 'generatePDF'])->middleware('auth');

@@ -631,7 +631,7 @@ class DashboardController extends Controller
         }
     }
 
-    // ----------------- Logic ด้านล่างนี้คัดลอกจากระบบเดิมและปรับให้ไม่อ้างอิง Google Sheets -----------------
+    // Legacy logic adapted to internal import (Google Sheets references removed)
 
     private function getColumnMapping($sheetType)
     {
@@ -758,9 +758,35 @@ class DashboardController extends Controller
                 $rowData['date_of_birth'] = null;
                 if (!isset($rowData['phone']) || empty($rowData['phone'])) { $rowData['phone'] = null; }
                 if (!isset($rowData['line_id']) || empty($rowData['line_id'])) { $rowData['line_id'] = null; }
+                // Normalize preferred contact method (support Thai synonyms)
                 if (!isset($rowData['contact_method']) || empty($rowData['contact_method'])) { $rowData['contact_method'] = 'phone'; }
-                else { $validMethods = ['line', 'email', 'phone']; $method = strtolower(trim($rowData['contact_method'])); $rowData['contact_method'] = in_array($method, $validMethods) ? $method : 'phone'; }
-                if (isset($rowData['student_codes']) && !empty($rowData['student_codes'])) { $rowData['student_codes'] = trim($rowData['student_codes']); }
+                else {
+                    $rawMethod = mb_strtolower(trim($rowData['contact_method']));
+                    $mapping = [
+                        'โทรศัพท์' => 'phone', 'เบอร์' => 'phone', 'เบอร์โทร' => 'phone', 'phone' => 'phone', 'tel' => 'phone', 'telephone' => 'phone', 'สายตรง' => 'phone',
+                        'อีเมล' => 'email', 'เมล' => 'email', 'email' => 'email', 'e-mail' => 'email',
+                        'ไลน์' => 'line', 'line' => 'line', 'lineid' => 'line', 'line id' => 'line', 'id line' => 'line', 'ไอดีไลน์' => 'line'
+                    ];
+                    if (isset($mapping[$rawMethod])) { $rowData['contact_method'] = $mapping[$rawMethod]; }
+                    else { $valid = ['phone','email','line']; $rowData['contact_method'] = in_array($rawMethod,$valid) ? $rawMethod : 'phone'; }
+                }
+                // Clean and normalize list of student codes (allow comma/semicolon separated)
+                if (isset($rowData['student_codes']) && !empty($rowData['student_codes'])) {
+                    Log::info('Raw student_codes before processing', [
+                        'raw_value' => $rowData['student_codes'],
+                        'type' => gettype($rowData['student_codes'])
+                    ]);
+                    
+                    $codes = preg_split('/[;,，]+/', $rowData['student_codes']);
+                    $codes = array_unique(array_filter(array_map(function($c){ return trim(preg_replace('/[^0-9]/','',$c)); }, $codes)));
+                    $rowData['student_codes'] = implode(',', $codes);
+                    
+                    Log::info('Processed student_codes', [
+                        'original' => $rowData['student_codes'],
+                        'split_codes' => $codes,
+                        'final' => $rowData['student_codes']
+                    ]);
+                }
                 break;
         }
 
@@ -887,6 +913,40 @@ class DashboardController extends Controller
             if (isset($data['teacher_id']) && !empty($data['teacher_id'])) { $existingTeacher = Teacher::where('teachers_employee_code', $data['teacher_id'])->first(); if ($existingTeacher) { $isDuplicate = true; $duplicateFields[] = 'teacher_id'; } }
         } elseif ($mappedRole === 'guardian') {
             if (isset($data['contact_method']) && !empty($data['contact_method'])) { $validMethods = ['phone', 'email', 'line']; $method = strtolower(trim($data['contact_method'])); if (!in_array($method, $validMethods)) { $data['contact_method'] = 'phone'; } }
+            
+            // Validate student codes if provided
+            if (isset($data['student_codes']) && !empty($data['student_codes'])) {
+                Log::info('Validating student_codes for guardian', [
+                    'student_codes' => $data['student_codes'],
+                    'row_number' => $rowNumber
+                ]);
+                
+                $studentCodesArray = explode(',', $data['student_codes']);
+                $validCodes = [];
+                $invalidCodes = [];
+                
+                foreach ($studentCodesArray as $code) {
+                    $cleanCode = trim($code);
+                    if (!empty($cleanCode)) {
+                        $student = Student::where('students_student_code', $cleanCode)->first();
+                        if ($student) {
+                            $validCodes[] = $cleanCode;
+                        } else {
+                            $invalidCodes[] = $cleanCode;
+                        }
+                    }
+                }
+                
+                if (!empty($invalidCodes)) {
+                    $errors[] = 'ไม่พบรหัสนักเรียนในระบบ: ' . implode(', ', $invalidCodes);
+                }
+                
+                Log::info('Student codes validation result', [
+                    'valid_codes' => $validCodes,
+                    'invalid_codes' => $invalidCodes,
+                    'row_number' => $rowNumber
+                ]);
+            }
         }
 
         if (isset($data['phone']) && !empty($data['phone'])) { $phone = preg_replace('/[^\d]/', '', $data['phone']); if (strlen($phone) < 9 || strlen($phone) > 15) { $errors[] = 'เบอร์โทรศัพท์ต้องมี 9-15 หลัก'; } }
@@ -898,6 +958,23 @@ class DashboardController extends Controller
     private function importDataToDatabase($selectedData)
     {
         $successCount = 0; $errorCount = 0; $errors = [];
+
+        // จัดลำดับให้ student มาก่อน guardian เพื่อให้สร้างความสัมพันธ์ได้ (ภายใน transaction มองเห็นได้)
+        $rolePriority = ['student' => 1, 'teacher' => 2, 'admin' => 2, 'guardian' => 3];
+        usort($selectedData, function($a, $b) use ($rolePriority) {
+            $ra = $a['data']['role'] ?? 'z';
+            $rb = $b['data']['role'] ?? 'z';
+            $pa = $rolePriority[$ra] ?? 99; $pb = $rolePriority[$rb] ?? 99;
+            if ($pa === $pb) { return 0; }
+            return $pa <=> $pb;
+        });
+
+        Log::info('Import ordering summary', [
+            'total' => count($selectedData),
+            'students' => collect($selectedData)->where('data.role','student')->count(),
+            'teachers' => collect($selectedData)->where('data.role','teacher')->count(),
+            'guardians' => collect($selectedData)->where('data.role','guardian')->count()
+        ]);
         $chunkSize = config('import.google_sheets.chunk_size', 50);
         $chunks = array_chunk($selectedData, $chunkSize);
         foreach ($chunks as $chunkIndex => $chunk) {
@@ -906,6 +983,42 @@ class DashboardController extends Controller
                 foreach ($chunk as $item) {
                     try {
                         $userData = $item['data'];
+                        // Final guardian normalization (ป้องกันกรณี preview ไม่ normalize)
+                        if (($userData['role'] ?? null) === 'guardian') {
+                            // Map Thai contact method values to enum
+                            if (!empty($userData['contact_method'])) {
+                                $cm = mb_strtolower(trim($userData['contact_method']));
+                                $map = [
+                                    'โทร' => 'phone','โทรศัพท์' => 'phone','เบอร์' => 'phone','เบอร์โทร' => 'phone','phone' => 'phone','tel'=>'phone','telephone'=>'phone',
+                                    'อีเมล' => 'email','เมล' => 'email','email'=>'email','e-mail'=>'email',
+                                    'ไลน์'=>'line','line'=>'line','lineid'=>'line','line id'=>'line','id line'=>'line','ไอดีไลน์'=>'line'
+                                ];
+                                $userData['contact_method'] = $map[$cm] ?? (in_array($cm,['phone','email','line']) ? $cm : 'phone');
+                            } else { $userData['contact_method'] = 'phone'; }
+                            // Recover student_codes if misplaced into guardian_id field
+                            if (empty($userData['student_codes']) && !empty($userData['guardian_id'])) {
+                                $candidate = trim($userData['guardian_id']);
+                                if (preg_match('/^(\d+[\s,;，]*\d+.*)$/u', $candidate) && strpos($candidate, ',') !== false) {
+                                    // Looks like multiple codes
+                                    $recovered = preg_split('/[;,，]+/', $candidate);
+                                    $recovered = array_filter(array_map(fn($c)=>trim($c), $recovered));
+                                    // Heuristic: codes length 6-10 digits typical
+                                    $filtered = [];
+                                    foreach ($recovered as $code) {
+                                        $numeric = preg_replace('/[^0-9]/','',$code);
+                                        if (strlen($numeric) >= 5 && strlen($numeric) <= 12) { $filtered[] = $numeric; }
+                                    }
+                                    if (count($filtered) >= 1) {
+                                        $userData['student_codes'] = implode(',', array_unique($filtered));
+                                        Log::info('Recovered student_codes from guardian_id field', [
+                                            'row' => $item['row_number'],
+                                            'guardian_original_id_value' => $candidate,
+                                            'recovered_codes' => $userData['student_codes']
+                                        ]);
+                                    }
+                                }
+                            }
+                        }
                         $userBirthdate = null;
                         if ($userData['role'] !== 'guardian' && isset($userData['date_of_birth']) && !empty($userData['date_of_birth']) && $userData['date_of_birth'] !== null) {
                             $dateValue = $userData['date_of_birth'];
@@ -939,8 +1052,15 @@ class DashboardController extends Controller
                         $this->createRoleSpecificData($user, $userData);
                         $successCount++;
                     } catch (\Exception $e) {
-                        $errorCount++; $errors[] = "แถว {$item['row_number']}: " . $e->getMessage();
-                        Log::error('Import row error', ['row' => $item['row_number'], 'error' => $e->getMessage(), 'data' => isset($userData) ? $userData : null]);
+                        $errorCount++;
+                        $friendly = $this->translateCommitError($e, $item['row_number'], isset($userData)?$userData:[]);
+                        $errors[] = $friendly;
+                        Log::error('Import row error', [
+                            'row' => $item['row_number'],
+                            'raw_error' => $e->getMessage(),
+                            'friendly_error' => $friendly,
+                            'data' => isset($userData) ? $userData : null
+                        ]);
                     }
                 }
                 DB::commit();
@@ -950,6 +1070,51 @@ class DashboardController extends Controller
                 foreach ($chunk as $item) { $errorCount++; $errors[] = "แถว {$item['row_number']}: ไม่สามารถบันทึกข้อมูลได้เนื่องจากข้อผิดพลาดในระบบ"; }
             }
             if ($chunkIndex < count($chunks) - 1) { usleep(config('import.google_sheets.chunk_delay', 100000)); }
+        }
+
+        // Second pass: ensure guardian relationships (เผื่อบาง guardian อยู่คนละ chunk กับ student)
+        try {
+            $guardianItems = array_filter($selectedData, function($item){ return ($item['data']['role'] ?? null) === 'guardian' && !empty($item['data']['student_codes']); });
+            $linked = 0; $missing = [];
+            if (empty($guardianItems)) {
+                Log::info('Second-pass: no guardian items with student_codes found', [
+                    'guardian_total_in_selection' => collect($selectedData)->where('data.role','guardian')->count()
+                ]);
+            }
+            foreach ($guardianItems as $gItem) {
+                $codes = explode(',', $gItem['data']['student_codes']);
+                $guardianUser = User::where('users_email', $gItem['data']['email'])->first();
+                if (!$guardianUser) { continue; }
+                $guardianModel = Guardian::where('user_id', $guardianUser->users_id)->first();
+                Log::info('Second-pass linking guardian', [
+                    'guardian_email' => $gItem['data']['email'],
+                    'codes' => $codes,
+                    'guardian_model_found' => (bool)$guardianModel
+                ]);
+                if (!$guardianModel) { continue; }
+                foreach ($codes as $code) {
+                    $code = trim($code); if ($code==='') continue;
+                    $student = Student::where('students_student_code', $code)->first();
+                    if ($student) {
+                        $exists = DB::table('tb_guardian_student')->where('guardian_id',$guardianModel->guardians_id)->where('student_id',$student->students_id)->exists();
+                        if (!$exists) {
+                            DB::table('tb_guardian_student')->insert([
+                                'guardian_id' => $guardianModel->guardians_id,
+                                'student_id' => $student->students_id,
+                                'guardian_student_created_at' => now()
+                            ]);
+                            $linked++;
+                        }
+                    } else { $missing[] = $code; }
+                }
+            }
+            Log::info('Guardian relationship second-pass summary', [
+                'processed_guardians' => count($guardianItems),
+                'relationships_created' => $linked,
+                'missing_student_codes' => array_values(array_unique($missing))
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Guardian relationship second-pass failed', ['error' => $e->getMessage()]);
         }
 
         return ['success_count' => $successCount, 'error_count' => $errorCount, 'errors' => $errors];
@@ -997,6 +1162,11 @@ class DashboardController extends Controller
                 ]);
                 break;
             case 'guardian':
+                Log::info('Creating guardian role-specific data', [
+                    'user_id' => $user->users_id,
+                    'incoming_student_codes' => $userData['student_codes'] ?? null,
+                    'raw_user_data_keys' => array_keys($userData)
+                ]);
                 $guardian = Guardian::create([
                     'user_id' => $user->users_id,
                     'guardians_relationship_to_student' => 'ผู้ปกครอง',
@@ -1008,25 +1178,106 @@ class DashboardController extends Controller
                     'updated_at' => now()
                 ]);
 
+                // Process student codes to create relationships
                 if (!empty($userData['student_codes'])) {
-                    $studentCodesArray = array_map('trim', explode(',', $userData['student_codes']));
+                    $studentCodesRaw = $userData['student_codes'];
+                    Log::info('Processing student codes for guardian', [
+                        'guardian_id' => $guardian->guardians_id,
+                        'raw_codes' => $studentCodesRaw,
+                        'user_data' => $userData
+                    ]);
+                    
+                    // Split by comma and clean up codes
+                    $studentCodesArray = array_map('trim', explode(',', $studentCodesRaw));
+                    $studentCodesArray = array_filter($studentCodesArray, function($code) {
+                        return !empty($code) && strlen(trim($code)) > 0;
+                    });
+                    
+                    Log::info('Cleaned student codes array', [
+                        'guardian_id' => $guardian->guardians_id,
+                        'codes_array' => $studentCodesArray,
+                        'count' => count($studentCodesArray)
+                    ]);
+                    
                     foreach ($studentCodesArray as $studentCode) {
-                        if (!empty($studentCode)) {
-                            $student = Student::where('students_student_code', $studentCode)->first();
+                        $cleanCode = trim($studentCode);
+                        if (!empty($cleanCode)) {
+                            $student = Student::where('students_student_code', $cleanCode)->first();
+                            
+                            Log::info('Looking for student', [
+                                'code' => $cleanCode,
+                                'found' => $student ? true : false,
+                                'student_id' => $student ? $student->students_id : null
+                            ]);
+                            
                             if ($student) {
-                                $exists = DB::table('tb_guardian_student')->where('guardian_id', $guardian->guardians_id)->where('student_id', $student->students_id)->exists();
+                                $exists = DB::table('tb_guardian_student')
+                                    ->where('guardian_id', $guardian->guardians_id)
+                                    ->where('student_id', $student->students_id)
+                                    ->exists();
+                                    
                                 if (!$exists) {
                                     DB::table('tb_guardian_student')->insert([
                                         'guardian_id' => $guardian->guardians_id,
                                         'student_id' => $student->students_id,
                                         'guardian_student_created_at' => now()
                                     ]);
+                                    
+                                    Log::info('Created guardian-student relationship', [
+                                        'guardian_id' => $guardian->guardians_id,
+                                        'student_id' => $student->students_id,
+                                        'student_code' => $cleanCode
+                                    ]);
+                                } else {
+                                    Log::info('Guardian-student relationship already exists', [
+                                        'guardian_id' => $guardian->guardians_id,
+                                        'student_id' => $student->students_id,
+                                        'student_code' => $cleanCode
+                                    ]);
                                 }
+                            } else {
+                                Log::warning('Student not found for code', [
+                                    'code' => $cleanCode,
+                                    'guardian_id' => $guardian->guardians_id
+                                ]);
                             }
                         }
                     }
+                } else {
+                    Log::info('No student codes provided for guardian', [
+                        'guardian_id' => $guardian->guardians_id,
+                        'user_data_keys' => array_keys($userData)
+                    ]);
                 }
                 break;
         }
     }
-}
+
+    // End createRoleSpecificData method
+
+    private function translateCommitError(\Exception $e, $rowNumber, $userData = [])
+        {
+            $msg = $e->getMessage();
+            $lower = mb_strtolower($msg);
+
+            if (strpos($lower, 'guardians_preferred_contact_method') !== false && strpos($lower, 'data truncated') !== false) {
+                return "แถว {$rowNumber}: ช่องทางการติดต่อของผู้ปกครองไม่ถูกต้อง (รองรับ: โทรศัพท์, อีเมล, ไลน์) ระบบตั้งค่าเป็นค่าเริ่มต้น 'โทรศัพท์' กรุณาตรวจสอบไฟล์.";
+            }
+            if (strpos($lower, 'duplicate') !== false && strpos($lower, 'entry') !== false) {
+                if (preg_match('/Duplicate entry \'([^\']+)\' for key \'([^\']+)\'/i', $msg, $m)) {
+                    $value = $m[1]; $key = $m[2];
+                    if (strpos($key,'users_email') !== false || strpos($key,'email') !== false) {
+                        return "แถว {$rowNumber}: อีเมล '{$value}' มีอยู่แล้วในระบบ";
+                    }
+                    if (strpos($key,'students_student_code') !== false || strpos($key,'student') !== false) {
+                        return "แถว {$rowNumber}: รหัสนักเรียน '{$value}' มีอยู่แล้วในระบบ";
+                    }
+                }
+                return "แถว {$rowNumber}: ข้อมูลซ้ำกับที่มีอยู่ในระบบ กรุณาตรวจสอบ";
+            }
+            if (strpos($lower,'sqlstate') !== false || strpos($lower,'sql: insert') !== false) {
+                return "แถว {$rowNumber}: ไม่สามารถบันทึกข้อมูล (รูปแบบข้อมูลไม่ถูกต้องหรือมีข้อมูลที่ขัดแย้ง)";
+            }
+            return "แถว {$rowNumber}: ไม่สามารถบันทึกข้อมูล - " . $msg;
+        }
+    }

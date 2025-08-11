@@ -14,7 +14,7 @@ class UserSeeder extends Seeder
     public function run(): void
     {
         $users = [
-            // Admin user only (for Google Sheets import functionality)
+            // Admin user only (for system administration)
             ['users_id' => 1, 'users_name_prefix' => 'นาย', 'users_first_name' => 'ผู้ดูแลระบบ', 'users_last_name' => 'Admin', 'users_email' => 'admin@school.ac.th', 'users_phone_number' => '0800000000', 'users_password' => '$2y$12$Yq98CXdMRT3w20RJM2vyYuyhS918XgHt2afpZKqQqrDYXJ5V447w.', 'users_role' => 'admin', 'users_birthdate' => '1990-01-01'],
         ];
 
