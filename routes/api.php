@@ -46,21 +46,6 @@ Route::middleware(['auth'])->group(function () {
     Route::put('/violations/{id}', [ViolationController::class, 'update']);
     Route::delete('/violations/{id}', [ViolationController::class, 'destroy']);
 
-    // Class routes
-    Route::prefix('classes')->group(function () {
-        Route::get('/', [ClassroomController::class, 'index']);
-        Route::post('/', [ClassroomController::class, 'store']);
-        Route::get('/{id}', [ClassroomController::class, 'show'])->where('id', '[0-9]+');
-        Route::put('/{id}', [ClassroomController::class, 'update'])->where('id', '[0-9]+');
-        Route::delete('/{id}', [ClassroomController::class, 'destroy'])->where('id', '[0-9]+');
-        Route::get('/{id}/students', [ClassroomController::class, 'getStudents'])->where('id', '[0-9]+');
-        Route::get('/{id}/stats', [ClassroomController::class, 'getStats'])->where('id', '[0-9]+');
-        Route::get('/teachers/all', [ClassroomController::class, 'getAllTeachers']);
-        Route::get('/filters/all', [ClassroomController::class, 'getFilters']);
-        Route::get('/{id}/violations/stats', [ClassroomController::class, 'getViolationStatistics'])->where('id', '[0-9]+');
-        Route::get('/{id}/export', [ClassroomController::class, 'exportClassReport'])->where('id', '[0-9]+');
-    });
-
     Route::get('/dashboard/trends', [DashboardController::class, 'getMonthlyTrends']);
     Route::get('/dashboard/violations', [DashboardController::class, 'getViolationTypes']);
     Route::get('/dashboard/stats', [DashboardController::class, 'getMonthlyStats']);

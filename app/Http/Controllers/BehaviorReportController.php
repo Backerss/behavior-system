@@ -62,11 +62,10 @@ class BehaviorReportController extends Controller
                 ], 403);
             }
 
-            // หา teacher จาก user ที่ login
+            // ต้องเป็นครูที่มีข้อมูลใน tb_teachers เท่านั้น
             $teacher = DB::table('tb_teachers')
                 ->where('users_id', $user->users_id)
                 ->first();
-
             if (!$teacher) {
                 return response()->json([
                     'success' => false,
@@ -525,11 +524,14 @@ class BehaviorReportController extends Controller
 
             // ตรวจสอบสิทธิ์ในการลบ (เฉพาะครูที่บันทึกหรือ admin)
             $user = Auth::user();
-            if ($user->users_role !== 'admin' && $behaviorReport->teacher_id !== $user->users_id) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'คุณไม่มีสิทธิ์ลบรายงานนี้'
-                ], 403);
+            if ($user->users_role !== 'admin') {
+                $currentTeacherId = DB::table('tb_teachers')->where('users_id', $user->users_id)->value('teachers_id');
+                if (!$currentTeacherId || (int)$behaviorReport->teacher_id !== (int)$currentTeacherId) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'คุณไม่มีสิทธิ์ลบรายงานนี้'
+                    ], 403);
+                }
             }
 
             // เริ่ม transaction

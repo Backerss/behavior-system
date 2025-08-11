@@ -1615,7 +1615,65 @@
                         </nav>
                     </div>
 
+                    <!-- ฟอร์มเพิ่ม/แก้ไขห้องเรียน (ซ่อนไว้ก่อน) -->
+                    <div class="card d-none" id="classroomForm">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h5 class="card-title mb-0" id="formClassTitle">เพิ่มห้องเรียนใหม่</h5>
+                                <button type="button" class="btn-close" id="btnCloseClassForm"></button>
+                            </div>
 
+                            <form id="formClassroom">
+                                <input type="hidden" id="classId" name="classes_id">
+
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="classes_level" class="form-label">ระดับชั้น <span
+                                                class="text-danger">*</span></label>
+                                        <select class="form-select" id="classes_level" name="classes_level" required
+                                            autocomplete="off">
+                                            <option value="" selected disabled>เลือกระดับชั้น</option>
+                                            <option value="ม.1">ม.1</option>
+                                            <option value="ม.2">ม.2</option>
+                                            <option value="ม.3">ม.3</option>
+                                            <option value="ม.4">ม.4</option>
+                                            <option value="ม.5">ม.5</option>
+                                            <option value="ม.6">ม.6</option>
+                                        </select>
+                                        <div class="invalid-feedback">กรุณาเลือกระดับชั้น</div>
+                                    </div>
+
+                                    <div class="col-md-6 mb-3">
+                                        <label for="classes_room_number" class="form-label">ห้อง <span
+                                                class="text-danger">*</span></label>
+                                        <input type="text" class="form-control" id="classes_room_number"
+                                            name="classes_room_number" placeholder="ระบุเลขห้อง เช่น 1, 2, 3, ..."
+                                            required maxlength="5" autocomplete="off">
+                                        <div class="invalid-feedback">กรุณาระบุเลขห้อง</div>
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="teacher_id" class="form-label">ครูประจำชั้น <span
+                                                class="text-danger">*</span></label>
+                                        <select class="form-select" id="teacher_id" name="teacher_id" required
+                                            autocomplete="off">
+                                            <option value="" selected disabled>เลือกครูประจำชั้น</option>
+                                            <!-- จะถูกเติมโดย JavaScript -->
+                                        </select>
+                                        <div class="invalid-feedback">กรุณาเลือกครูประจำชั้น</div>
+                                    </div>
+                                </div>
+
+                                <div class="d-flex justify-content-end">
+                                    <button type="button" class="btn btn-secondary me-2"
+                                        id="btnCancelClass">ยกเลิก</button>
+                                    <button type="submit" class="btn btn-primary-app" id="btnSaveClass">บันทึก</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
                 </div>
                 <div class="modal-footer border-0 pt-0">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ปิด</button>
@@ -2748,137 +2806,6 @@
                     </div>
                 </div>
             </div>
-        </div>
-    </div>
-
-    <!-- Classroom Management Drawer -->
-    <div class="offcanvas offcanvas-end" tabindex="-1" id="classroomDrawer" aria-labelledby="classroomDrawerLabel" style="width: 520px; z-index: 1056;">
-        <div class="offcanvas-header border-bottom bg-light">
-            <h5 class="offcanvas-title" id="classroomDrawerLabel">
-                <i class="fas fa-school me-2 text-primary"></i>
-                <span id="formClassTitle">เพิ่มห้องเรียนใหม่</span>
-            </h5>
-            <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas" aria-label="Close" id="btnCloseClassForm"></button>
-        </div>
-        <div class="offcanvas-body">
-            <form id="formClassroom" novalidate>
-                <input type="hidden" id="classId" name="classes_id">
-
-                <!-- ข้อมูลพื้นฐานห้องเรียน -->
-                <div class="card mb-3" id="basicInfoCard">
-                    <div class="card-header bg-light">
-                        <h6 class="mb-0">
-                            <i class="fas fa-info-circle me-2 text-primary"></i>ข้อมูลพื้นฐานห้องเรียน
-                        </h6>
-                    </div>
-                    <div class="card-body">
-                        <div class="row">
-                            <div class="col-12 mb-3">
-                                <label for="classes_level" class="form-label">ระดับชั้น <span class="text-danger">*</span></label>
-                                <select class="form-select" id="classes_level" name="classes_level" required autocomplete="off">
-                                    <option value="" selected disabled>เลือกระดับชั้น</option>
-                                    <option value="ม.1">ม.1</option>
-                                    <option value="ม.2">ม.2</option>
-                                    <option value="ม.3">ม.3</option>
-                                    <option value="ม.4">ม.4</option>
-                                    <option value="ม.5">ม.5</option>
-                                    <option value="ม.6">ม.6</option>
-                                </select>
-                                <div class="invalid-feedback">กรุณาเลือกระดับชั้น</div>
-                            </div>
-
-                            <div class="col-12 mb-3">
-                                <label for="classes_room_number" class="form-label">ห้อง <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control" id="classes_room_number" name="classes_room_number" placeholder="ระบุเลขห้อง เช่น 1, 2, 3, ..." required maxlength="5" autocomplete="off">
-                                <div class="invalid-feedback">กรุณาระบุเลขห้อง</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- ข้อมูลครูประจำชั้น -->
-                <div class="card mb-3">
-                    <div class="card-header bg-light">
-                        <h6 class="mb-0">
-                            <i class="fas fa-chalkboard-teacher me-2 text-primary"></i>ครูประจำชั้น
-                        </h6>
-                    </div>
-                    <div class="card-body">
-                        <div class="col-12 mb-3">
-                            <label for="teacher_id" class="form-label">ครูประจำชั้น <span class="text-danger">*</span></label>
-                            <select class="form-select" id="teacher_id" name="teacher_id" required autocomplete="off">
-                                <option value="" selected disabled>กำลังโหลดรายชื่อครู...</option>
-                                <!-- จะถูกเติมโดย JavaScript -->
-                            </select>
-                            <div class="invalid-feedback">กรุณาเลือกครูประจำชั้น</div>
-                            <small class="text-muted d-block mt-1">
-                                <i class="fas fa-info-circle me-1"></i>
-                                จะแสดงเฉพาะบัญชีที่เป็นครูเท่านั้น
-                            </small>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- ข้อมูลสถิติห้องเรียน (แสดงเฉพาะในโหมดแก้ไข) -->
-                <div class="card mb-3 d-none" id="classroomStatsCard">
-                    <div class="card-header bg-light">
-                        <h6 class="mb-0">
-                            <i class="fas fa-chart-bar me-2 text-primary"></i>สถิติห้องเรียน
-                        </h6>
-                    </div>
-                    <div class="card-body">
-                        <div class="row">
-                            <div class="col-6 mb-3">
-                                <label class="form-label">จำนวนนักเรียน</label>
-                                <div class="input-group">
-                                    <input type="text" class="form-control" id="studentsCount" readonly>
-                                    <span class="input-group-text">คน</span>
-                                </div>
-                            </div>
-                            <div class="col-6 mb-3">
-                                <label class="form-label">คะแนนเฉลี่ย</label>
-                                <div class="input-group">
-                                    <input type="text" class="form-control" id="averageScore" readonly>
-                                    <span class="input-group-text">คะแนน</span>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-6 mb-3">
-                                <label class="form-label">นักเรียนเสี่ยงสูง</label>
-                                <div class="input-group">
-                                    <input type="text" class="form-control" id="highRiskStudents" readonly>
-                                    <span class="input-group-text">คน</span>
-                                </div>
-                            </div>
-                            <div class="col-6 mb-3">
-                                <label class="form-label">รายงานล่าสุด</label>
-                                <input type="text" class="form-control" id="lastReport" readonly>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- คำเตือนสำหรับโหมดแก้ไข -->
-                <div class="alert alert-warning d-none" id="editModeWarning">
-                    <div class="d-flex align-items-center">
-                        <i class="fas fa-exclamation-triangle me-2"></i>
-                        <div>
-                            <strong>โหมดแก้ไขข้อมูลห้องเรียน</strong>
-                            <br><small>สามารถแก้ไขได้เฉพาะครูประจำชั้นเท่านั้น เพื่อความปลอดภัยของข้อมูล</small>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="d-flex justify-content-end gap-2 pt-3 border-top">
-                    <button type="button" class="btn btn-outline-secondary" id="btnCancelClass" data-bs-dismiss="offcanvas">
-                        <i class="fas fa-times me-1"></i>ยกเลิก
-                    </button>
-                    <button type="submit" class="btn btn-primary-app" id="btnSaveClass">
-                        <i class="fas fa-save me-1"></i>บันทึก
-                    </button>
-                </div>
-            </form>
         </div>
     </div>
 
