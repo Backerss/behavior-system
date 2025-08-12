@@ -31,6 +31,7 @@ Route::middleware(['auth'])->group(function () {
 // Student API routes อื่นๆ ใช้ auth สำหรับ web session
 Route::middleware(['auth'])->group(function () {
     Route::get('/students/{id}', [StudentApiController::class, 'show']);
+    Route::put('/students/{id}', [StudentApiController::class, 'update']);
     
     // Behavior Report routes
     Route::get('/behavior-reports/recent', [BehaviorReportController::class, 'getRecentReports']);

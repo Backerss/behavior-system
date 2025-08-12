@@ -88,6 +88,7 @@ Route::middleware('auth')->group(function () {
 Route::prefix('api')->middleware('auth')->group(function () {
     // Student routes
     Route::get('/students/{id}', [App\Http\Controllers\StudentApiController::class, 'show']);
+    Route::put('/students/{id}', [App\Http\Controllers\StudentApiController::class, 'update']);
     
     // Behavior Report routes
     Route::prefix('behavior-reports')->group(function () {

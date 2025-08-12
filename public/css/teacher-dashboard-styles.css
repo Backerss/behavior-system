@@ -1,3 +1,13 @@
+/* Medium modal width for Class Management */
+.modal-md {
+    max-width: 700px; /* between default (~500-600) and lg (900) */
+}
+
+@media (min-width: 992px) {
+    .modal-md {
+        max-width: 720px;
+    }
+}
 /* Teacher Dashboard Custom Styles */
 
 /* Hide console errors from broken images */

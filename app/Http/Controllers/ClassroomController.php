@@ -13,7 +13,9 @@ use Illuminate\Support\Facades\DB;
 class ClassroomController extends Controller
 {
     /**
-     * แสดงรายการห้องเรียนทั้งหมด
+     * แสดงรายการห้องเรียนทั้งหมด (เฉพาะห้องที่มีนักเรียน)
+     * - ครู: เห็นได้เฉพาะห้องของตัวเอง
+     * - แอดมิน: เห็นได้ทุกห้อง
      *
      * @param Request $request
      * @return \Illuminate\Http\JsonResponse
@@ -21,12 +23,36 @@ class ClassroomController extends Controller
     {
         try {
             // ระบุให้โหลด teacher และ teacher.user มาด้วย
-            $query = ClassRoom::with(['teacher', 'teacher.user']);
+            $query = ClassRoom::with(['teacher', 'teacher.user'])
+                               ->has('students'); // แสดงเฉพาะห้องที่มีนักเรียน
             
             $searchTerm = $request->get('search', '');
             $academicYear = $request->get('academicYear', '');
             $level = $request->get('level', '');
             $perPage = $request->get('perPage', 10);
+
+            // แยกสิทธิ์การเห็นข้อมูล
+            $user = auth()->user();
+            if ($user && $user->users_role === 'teacher') {
+                // หา teacher id จาก users_id
+                $teacher = Teacher::where('users_id', $user->users_id)->first();
+                if ($teacher) {
+                    $query->where('teachers_id', $teacher->teachers_id);
+                } else {
+                    // ถ้าไม่พบ teacher mapping ให้คืนลิสต์ว่าง
+                    return response()->json([
+                        'success' => true,
+                        'data' => [
+                            'data' => [],
+                            'current_page' => 1,
+                            'last_page' => 1,
+                            'per_page' => (int)$perPage,
+                            'total' => 0
+                        ],
+                        'message' => 'ดึงข้อมูลสำเร็จ'
+                    ]);
+                }
+            }
             
             // ค้นหาตาม search term
             if (!empty($searchTerm)) {
@@ -44,8 +70,10 @@ class ClassroomController extends Controller
                 $query->where('classes_level', $level);
             }
             
-            $classes = $query->orderBy('classes_level')
-                               ->orderBy('classes_room_number')
+            // เรียงตามระดับชั้น (กำหนดลำดับแน่นอน) แล้วตามเลขห้อง (ตัวเลข)
+            $classes = $query
+                               ->orderByRaw("FIELD(classes_level, 'ม.1','ม.2','ม.3','ม.4','ม.5','ม.6')")
+                               ->orderByRaw('CAST(classes_room_number AS UNSIGNED)')
                                ->paginate($perPage);
             
             return response()->json([
@@ -64,7 +92,7 @@ class ClassroomController extends Controller
     }
 
     /**
-     * บันทึกข้อมูลห้องเรียนใหม่
+     * บันทึกข้อมูลห้องเรียนใหม่ (เฉพาะแอดมิน)
      *
      * @param Request $request
      * @return \Illuminate\Http\JsonResponse
@@ -72,6 +100,14 @@ class ClassroomController extends Controller
     public function store(Request $request)
     {
         try {
+            // เฉพาะ admin เท่านั้น
+            if (!auth()->check() || auth()->user()->users_role !== 'admin') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'ไม่มีสิทธิ์ดำเนินการ'
+                ], 403);
+            }
+
             $validator = Validator::make($request->all(), [
                 'classes_level' => 'required|string|max:10',
                 'classes_room_number' => 'required|string|max:5',
@@ -124,6 +160,7 @@ class ClassroomController extends Controller
 
     /**
      * แสดงข้อมูลห้องเรียนตาม ID
+     * - ครูดูได้เฉพาะห้องของตัวเอง
      *
      * @param int $id
      * @return \Illuminate\Http\JsonResponse
@@ -132,7 +169,21 @@ class ClassroomController extends Controller
     {
         try {
             // แก้จาก Classroom เป็น ClassRoom
-            $classroom = ClassRoom::with(['teacher', 'teacher.user'])->findOrFail($id);
+            $classroom = ClassRoom::with(['teacher', 'teacher.user'])
+                                  ->withCount('students')
+                                  ->findOrFail($id);
+
+            // เฉพาะครูให้ดูได้เฉพาะห้องตัวเอง
+            $user = auth()->user();
+            if ($user && $user->users_role === 'teacher') {
+                $teacher = Teacher::where('users_id', $user->users_id)->first();
+                if (!$teacher || $classroom->teachers_id !== $teacher->teachers_id) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'ไม่มีสิทธิ์เข้าถึงข้อมูลห้องเรียนนี้'
+                    ], 403);
+                }
+            }
             
             return response()->json([
                 'success' => true,
@@ -150,7 +201,7 @@ class ClassroomController extends Controller
     }
 
     /**
-     * อัพเดทข้อมูลห้องเรียน
+     * อัพเดทข้อมูลห้องเรียน (เฉพาะแอดมิน) — อนุญาตให้เปลี่ยนครูประจำชั้นเท่านั้น
      *
      * @param Request $request
      * @param int $id
@@ -159,13 +210,18 @@ class ClassroomController extends Controller
     public function update(Request $request, $id)
     {
         try {
+            // เฉพาะ admin เท่านั้น
+            if (!auth()->check() || auth()->user()->users_role !== 'admin') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'ไม่มีสิทธิ์ดำเนินการ'
+                ], 403);
+            }
+
+            // อนุญาตเฉพาะ teacher_id
             $validator = Validator::make($request->all(), [
-                'classes_level' => 'required|string|max:10',
-                'classes_room_number' => 'required|string|max:5',
                 'teacher_id' => 'required|exists:tb_teachers,teachers_id',
             ], [
-                'classes_level.required' => 'กรุณาระบุระดับชั้น',
-                'classes_room_number.required' => 'กรุณาระบุหมายเลขห้องเรียน',
                 'teacher_id.required' => 'กรุณาเลือกครูประจำชั้น',
                 'teacher_id.exists' => 'ไม่พบข้อมูลครูที่เลือก',
             ]);
@@ -180,23 +236,7 @@ class ClassroomController extends Controller
             
             // แก้จาก Classroom เป็น ClassRoom
             $classroom = ClassRoom::findOrFail($id);
-            
-            // ตรวจสอบว่ามีห้องเรียนซ้ำหรือไม่ ยกเว้นห้องเรียนปัจจุบัน
-            $existingClassroom = ClassRoom::where('classes_level', $request->classes_level)
-                                    ->where('classes_room_number', $request->classes_room_number)
-                                    ->where('classes_id', '!=', $id)
-                                    ->first();
-                                    
-            if ($existingClassroom) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'ห้องเรียนนี้มีอยู่ในระบบแล้ว',
-                ], 422);
-            }
-            
-            // อัพเดทข้อมูล
-            $classroom->classes_level = $request->classes_level;
-            $classroom->classes_room_number = $request->classes_room_number;
+            // อัพเดทเฉพาะครูประจำชั้นเท่านั้น
             $classroom->teachers_id = $request->teacher_id;
             $classroom->save();
             
@@ -216,7 +256,7 @@ class ClassroomController extends Controller
     }
 
     /**
-     * ลบห้องเรียน
+     * ลบห้องเรียน (เฉพาะแอดมิน)
      *
      * @param int $id
      * @return \Illuminate\Http\JsonResponse
@@ -224,6 +264,13 @@ class ClassroomController extends Controller
     public function destroy($id)
     {
         try {
+            // เฉพาะ admin เท่านั้น
+            if (!auth()->check() || auth()->user()->users_role !== 'admin') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'ไม่มีสิทธิ์ดำเนินการ'
+                ], 403);
+            }
             // แก้จาก Classroom เป็น ClassRoom
             $classroom = ClassRoom::findOrFail($id);
             
@@ -257,6 +304,7 @@ class ClassroomController extends Controller
 
     /**
      * ดึงข้อมูลนักเรียนในห้องเรียน
+     * - ครูดูได้เฉพาะห้องของตัวเอง
      *
      * @param int $id
      * @param Request $request
@@ -266,6 +314,18 @@ class ClassroomController extends Controller
     {
         try {
             $classroom = ClassRoom::findOrFail($id); // Ensure ClassRoom model is used
+
+            // เฉพาะครูให้ดูได้เฉพาะห้องตัวเอง
+            $user = auth()->user();
+            if ($user && $user->users_role === 'teacher') {
+                $teacher = Teacher::where('users_id', $user->users_id)->first();
+                if (!$teacher || $classroom->teachers_id !== $teacher->teachers_id) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'ไม่มีสิทธิ์เข้าถึงข้อมูลห้องเรียนนี้'
+                    ], 403);
+                }
+            }
             $searchTerm = $request->get('search', '');
             $perPage = $request->get('perPage', 10); // Default to 10 students per page
             

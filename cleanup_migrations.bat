@@ -1,0 +1,5 @@
+cd "C:\Users\AsanR\OneDrive\Desktop\วิจัยแก้ม\behavior-system\database\migrations"
+del "2025_07_11_000001_add_database_indexes.php"
+del "2025_07_27_154107_update_classes_table_remove_academic_year_and_add_stable_data.php"
+del "2025_08_12_162444_update_students_status_values.php"
+echo "Migration files deleted successfully"

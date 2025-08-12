@@ -2222,125 +2222,6 @@ document.addEventListener('DOMContentLoaded', function () {
         </div>
     </div>
 
-    <!-- Student Detail Modal -->
-    <div class="modal fade" id="studentDetailModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered modal-lg">
-            <div class="modal-content">
-                <div class="modal-header border-0 pb-0">
-                    <h5 class="modal-title">ข้อมูลนักเรียน</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <!-- Loading State -->
-                    <div id="studentDetailLoading" class="text-center py-5">
-                        <div class="spinner-border text-primary" role="status">
-                            <span class="visually-hidden">กำลังโหลด...</span>
-                        </div>
-                        <p class="mt-2 text-muted">กำลังโหลดข้อมูลนักเรียน...</p>
-                    </div>
-
-                    <!-- Error State -->
-                    <div id="studentDetailError" class="text-center py-5 text-danger" style="display: none;">
-                        <i class="fas fa-exclamation-circle fa-2x mb-3"></i>
-                        <p>เกิดข้อผิดพลาดในการโหลดข้อมูล</p>
-                        <button class="btn btn-outline-primary btn-sm"
-                            onclick="retryLoadStudentDetail()">ลองใหม่</button>
-                    </div>
-
-                    <!-- Content -->
-                    <div id="studentDetailContent" style="display: none;">
-                        <div class="row">
-                            <div class="col-md-4 mb-3 mb-md-0">
-                                <div class="text-center">
-                                    <img id="studentProfileImage" class="rounded-circle" width="100" height="100"
-                                        alt="รูปโปรไฟล์">
-                                    <h5 id="studentFullName" class="mt-3 mb-1"></h5>
-                                    <span id="studentClassBadge" class="badge bg-primary-app"></span>
-                                    <hr>
-                                    <div class="d-grid gap-2 mt-3">
-                                        <button class="btn btn-primary-app"
-                                            onclick="openNewViolationModal()">บันทึกพฤติกรรม</button>
-                                        <button id="printReportBtn" class="btn btn-outline-secondary"
-                                            onclick="printStudentReport(event)">พิมพ์รายงาน</button>
-                                        <button id="notifyParentBtn" class="btn btn-warning" style="display: none;">
-                                            <i class="fas fa-bell me-1"></i> แจ้งเตือนผู้ปกครอง
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-8">
-                                <div class="row mb-3">
-                                    <div class="col-6">
-                                        <label class="form-label fw-bold">รหัสนักเรียน</label>
-                                        <p id="studentCode"></p>
-                                    </div>
-                                    <div class="col-6">
-                                        <label class="form-label fw-bold">ชั้นเรียน</label>
-                                        <p id="studentClass"></p>
-                                    </div>
-                                </div>
-                                <div class="row mb-3">
-                                    <div class="col-6">
-                                        <label class="form-label fw-bold">เลขประจำตัวประชาชน</label>
-                                        <p id="studentIdNumber"></p>
-                                    </div>
-                                    <div class="col-6">
-                                        <label class="form-label fw-bold">วันเกิด</label>
-                                        <p id="studentBirthdate"></p>
-                                    </div>
-                                </div>
-                                <div class="row mb-3">
-                                    <div class="col-6">
-                                        <label class="form-label fw-bold">ชื่อผู้ปกครอง</label>
-                                        <p id="guardianName"></p>
-                                    </div>
-                                    <div class="col-6">
-                                        <label class="form-label fw-bold">เบอร์โทรผู้ปกครอง</label>
-                                        <p id="guardianPhone"></p>
-                                    </div>
-                                </div>
-
-                                <h6 class="mt-4">สถิติคะแนนความประพฤติ</h6>
-                                <div style="position: relative; margin-bottom: 25px; margin-top: 30px;">
-                                    <div id="scoreIcon" style="position: absolute; top: -10px; z-index: 1000; 
-                                                background-color: white; width: 40px; height: 40px; 
-                                                border-radius: 50%; box-shadow: 0 3px 10px rgba(0,0,0,0.4); 
-                                                display: flex; align-items: center; justify-content: center; 
-                                                border: 3px solid white;">
-                                        <img src="{{ asset('images/smile.png') }}" style="height: 30px; width: 30px;"
-                                            alt="👍">
-                                    </div>
-                                    <div class="progress" style="height: 20px;">
-                                        <div id="scoreProgressBar" class="progress-bar" role="progressbar"></div>
-                                    </div>
-                                </div>
-
-                                <h6 class="mt-4">ประวัติการกระทำผิดล่าสุด</h6>
-                                <div class="table-responsive">
-                                    <table class="table table-sm table-borderless">
-                                        <thead class="table-light">
-                                            <tr>
-                                                <th>วันที่</th>
-                                                <th>ประเภท</th>
-                                                <th>คะแนนที่หัก</th>
-                                                <th>บันทึกโดย</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody id="behaviorHistoryTable">
-                                            <!-- ข้อมูลจะถูกเติมด้วย JavaScript -->
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-footer border-0 pt-0">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ปิด</button>
-                </div>
-            </div>
-        </div>
-    </div>
 
     <!-- Violation Detail Modal -->
     <div class="modal fade" id="violationDetailModal" tabindex="-1" aria-hidden="true">
@@ -2395,88 +2276,60 @@ document.addEventListener('DOMContentLoaded', function () {
     <!-- Class Management Modal -->
     <div class="modal fade" id="classManagementModal" tabindex="-1" aria-labelledby="classManagementModalLabel"
         role="dialog">
-        <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-md modal-fullscreen-sm-down">
             <div class="modal-content">
-                <div class="modal-header border-0 pb-0">
-                    <h5 class="modal-title" id="classManagementModalLabel">จัดการห้องเรียน</h5>
+                <div class="modal-header border-0 pb-2">
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-school text-primary me-2 fs-5"></i>
+                        <h5 class="modal-title mb-0" id="classManagementModalLabel">จัดการห้องเรียน</h5>
+                    </div>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <div class="modal-body">
-                    <!-- การค้นหาและการเพิ่มใหม่ -->
-                    <div class="d-flex justify-content-between mb-3">
-                        <div class="input-group" style="max-width: 300px;">
-                            <input type="text" class="form-control" id="classroomSearch" placeholder="ค้นหาห้องเรียน..."
-                                autocomplete="off">
-                            <button class="btn btn-primary-app" type="button" id="btnSearchClass"><i
-                                    class="fas fa-search"></i></button>
-                        </div>
-                        <button class="btn btn-primary-app" id="btnShowAddClass">
-                            <i class="fas fa-plus me-2"></i>เพิ่มห้องเรียนใหม่
-                        </button>
+                <div class="modal-body p-0">
+                    <!-- Navigation Tabs -->
+                    <div class="border-bottom bg-light px-4 py-3">
+                        <ul class="nav nav-pills nav-fill" id="classManagementTabs" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active" id="classroom-list-tab" data-bs-toggle="pill" 
+                                    data-bs-target="#classroom-list-panel" type="button" role="tab">
+                                    <i class="fas fa-list me-2"></i>รายการห้องเรียน
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="classroom-detail-tab" data-bs-toggle="pill" 
+                                    data-bs-target="#classroom-detail-panel" type="button" role="tab" disabled>
+                                    <i class="fas fa-info-circle me-2"></i>รายละเอียดห้องเรียน
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="classroom-form-tab" data-bs-toggle="pill" 
+                                    data-bs-target="#classroom-form-panel" type="button" role="tab" disabled>
+                                    <i class="fas fa-edit me-2"></i>เพิ่ม/แก้ไขห้องเรียน
+                                </button>
+                            </li>
+                        </ul>
                     </div>
 
-                    <!-- ตัวกรองข้อมูล -->
-                    <div class="card mb-3">
-                        <div class="card-body">
-                            <div class="row g-2">
-                                <div class="col-md-6">
-                                    <label class="form-label">ระดับชั้น</label>
-                                    <select class="form-select form-select-sm" id="filterLevel" autocomplete="off">
-                                        <option value="">ทั้งหมด</option>
-                                        <!-- จะถูกเติมโดย JavaScript -->
-                                    </select>
-                                </div>
-                                <div class="col-md-4 d-flex align-items-end">
-                                    <button class="btn btn-sm btn-outline-secondary w-100" id="btnApplyFilter">
-                                        <i class="fas fa-filter me-1"></i> กรองข้อมูล
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- ส่วนแสดงรายการห้องเรียน -->
-                    <div id="classroomList" class="mb-4">
-                        <div class="table-responsive">
-                            <table class="table table-hover align-middle">
-                                <thead class="table-light">
-                                    <tr>
-                                        <th style="width: 20%">ชั้นเรียน</th>
-                                        <th style="width: 35%">ครูประจำชั้น</th>
-                                        <th style="width: 15%">จัดการ</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <!-- จะถูกเติมโดย JavaScript -->
-                                </tbody>
-                            </table>
-                        </div>
-                        <!-- Pagination -->
-                        <nav>
-                            <ul class="pagination pagination-sm justify-content-end mt-3 mb-0">
-                                <!-- จะถูกเติมโดย JavaScript -->
-                            </ul>
-                        </nav>
-                    </div>
-
-                    <!-- ฟอร์มเพิ่ม/แก้ไขห้องเรียน (ซ่อนไว้ก่อน) -->
-                    <div class="card d-none" id="classroomForm">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between align-items-center mb-3">
-                                <h5 class="card-title mb-0" id="formClassTitle">เพิ่มห้องเรียนใหม่</h5>
-                                <button type="button" class="btn-close" id="btnCloseClassForm"></button>
-                            </div>
-
-                            <form id="formClassroom">
-                                <input type="hidden" id="classId" name="classes_id">
-
-                                <div class="row">
-                                    <div class="col-md-6 mb-3">
-                                        <label for="classes_level" class="form-label">ระดับชั้น <span
-                                                class="text-danger">*</span></label>
-                                        <select class="form-select" id="classes_level" name="classes_level" required
-                                            autocomplete="off">
-                                            <option value="" selected disabled>เลือกระดับชั้น</option>
+                    <!-- Tab Content -->
+                    <div class="tab-content" id="classManagementTabContent">
+                        
+                        <!-- Classroom List Panel -->
+                        <div class="tab-pane fade show active" id="classroom-list-panel" role="tabpanel">
+                            <div class="p-4">
+                                <!-- Quick Actions Bar -->
+                                <div class="row mb-4">
+                                    <div class="col-md-6">
+                                        <div class="input-group">
+                                            <span class="input-group-text bg-light border-end-0">
+                                                <i class="fas fa-search text-muted"></i>
+                                            </span>
+                                            <input type="text" class="form-control border-start-0" id="classroomSearch" 
+                                                placeholder="ค้นหาห้องเรียน ครูประจำชั้น..." autocomplete="off">
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <select class="form-select" id="filterLevel" autocomplete="off">
+                                            <option value="">ทุกระดับชั้น</option>
                                             <option value="ม.1">ม.1</option>
                                             <option value="ม.2">ม.2</option>
                                             <option value="ม.3">ม.3</option>
@@ -2484,115 +2337,228 @@ document.addEventListener('DOMContentLoaded', function () {
                                             <option value="ม.5">ม.5</option>
                                             <option value="ม.6">ม.6</option>
                                         </select>
-                                        <div class="invalid-feedback">กรุณาเลือกระดับชั้น</div>
                                     </div>
-
-                                    <div class="col-md-6 mb-3">
-                                        <label for="classes_room_number" class="form-label">ห้อง <span
-                                                class="text-danger">*</span></label>
-                                        <input type="text" class="form-control" id="classes_room_number"
-                                            name="classes_room_number" placeholder="ระบุเลขห้อง เช่น 1, 2, 3, ..."
-                                            required maxlength="5" autocomplete="off">
-                                        <div class="invalid-feedback">กรุณาระบุเลขห้อง</div>
+                                    @if(auth()->user()->users_role === 'admin')
+                                    <div class="col-md-3">
+                                        <button class="btn btn-primary w-100" id="btnShowAddClass">
+                                            <i class="fas fa-plus me-2"></i>เพิ่มห้องเรียนใหม่
+                                        </button>
                                     </div>
+                                    @endif
                                 </div>
 
-                                <div class="row">
-                                    <div class="col-md-6 mb-3">
-                                        <label for="teacher_id" class="form-label">ครูประจำชั้น <span
-                                                class="text-danger">*</span></label>
-                                        <select class="form-select" id="teacher_id" name="teacher_id" required
-                                            autocomplete="off">
-                                            <option value="" selected disabled>เลือกครูประจำชั้น</option>
+                                <!-- Classrooms Grid -->
+                                <div id="classroomList">
+                                    <div class="row g-3" id="classroomGrid">
+                                        <!-- จะถูกเติมโดย JavaScript -->
+                                    </div>
+                                    
+                                    <!-- Pagination -->
+                                    <nav class="mt-4">
+                                        <ul class="pagination justify-content-center mb-0">
                                             <!-- จะถูกเติมโดย JavaScript -->
-                                        </select>
-                                        <div class="invalid-feedback">กรุณาเลือกครูประจำชั้น</div>
-                                    </div>
+                                        </ul>
+                                    </nav>
                                 </div>
-
-                                <div class="d-flex justify-content-end">
-                                    <button type="button" class="btn btn-secondary me-2"
-                                        id="btnCancelClass">ยกเลิก</button>
-                                    <button type="submit" class="btn btn-primary-app" id="btnSaveClass">บันทึก</button>
-                                </div>
-                            </form>
+                            </div>
                         </div>
-                    </div>
-                </div>
-                <div class="modal-footer border-0 pt-0">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ปิด</button>
-                </div>
-            </div>
-        </div>
-    </div>
 
-    <!-- Class Detail Modal -->
-    <div class="modal fade" id="classDetailModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered modal-lg">
-            <div class="modal-content">
-                <div class="modal-header border-0 pb-0">
-                    <h5 class="modal-title">รายละเอียดห้องเรียน <span class="class-title"></span></h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <!-- Loading Indicator -->
-                    <div id="classDetailLoading" class="text-center py-5 d-none">
-                        <div class="spinner-border text-primary" role="status">
-                            <span class="visually-hidden">กำลังโหลด...</span>
-                        </div>
-                        <p class="mt-2 text-muted">กำลังโหลดข้อมูล...</p>
-                    </div>
-
-                    <div id="classDetailContent">
-                        <div class="row mb-4">
-                            <div class="col-md-6">
-                                <div class="card h-100 shadow-sm border-0">
-                                    <div class="card-body">
-                                        <h6 class="card-title d-flex align-items-center">
-                                            <i class="fas fa-info-circle me-2 text-primary"></i>ข้อมูลห้องเรียน
-                                        </h6>
-                                        <hr>
-                                        <div class="row mb-2">
-                                            <div class="col-sm-5 text-muted">ชั้นเรียน:</div>
-                                            <div class="col-sm-7 fw-medium" id="class-level-room"></div>
-                                        </div>
-                                        <div class="row mb-2">
-                                            <div class="col-sm-5 text-muted">ครูประจำชั้น:</div>
-                                            <div class="col-sm-7 fw-medium" id="class-teacher-name"></div>
-                                        </div>
-                                        <div class="row mb-2">
-                                            <div class="col-sm-5 text-muted">จำนวนนักเรียน:</div>
-                                            <div class="col-sm-7 fw-medium" id="class-students-count"></div>
-                                        </div>
-                                        <div class="row mb-2">
-                                            <div class="col-sm-5 text-muted">คะแนนเฉลี่ย:</div>
-                                            <div class="col-sm-7">
-                                                <div class="d-flex align-items-center">
-                                                    <span class="fw-medium me-2" id="class-avg-score">-</span>
-                                                    <div class="progress flex-grow-1" style="height: 6px;">
-                                                        <div class="progress-bar bg-success" role="progressbar"
-                                                            id="class-avg-score-bar" style="width: 0%"></div>
+                        <!-- Classroom Detail Panel -->
+                        <div class="tab-pane fade" id="classroom-detail-panel" role="tabpanel">
+                            <div class="p-4">
+                                <!-- Classroom Header -->
+                                <div class="row mb-4">
+                                    <div class="col-12">
+                                        <div class="card border-0 bg-gradient-primary text-white">
+                                            <div class="card-body text-dark">
+                                                <div class="row align-items-center">
+                                                    <div class="col-md-8">
+                                                        <h4 class="card-title mb-1" id="detail-classroom-name">ม.1/1</h4>
+                                                        <p class="card-text mb-0 opacity-75" id="detail-teacher-name">ครูประจำชั้น: ยังไม่ได้กำหนด</p>
                                                     </div>
+                                                    @if(auth()->user()->users_role === 'admin')
+                                                    <div class="col-md-4 text-end">
+                                                        <div class="btn-group" role="group">
+                                                            <button class="btn btn-light btn-sm" id="btnEditClassFromDetail">
+                                                                <i class="fas fa-edit me-1"></i>แก้ไข
+                                                            </button>
+                                                            <button class="btn btn-outline-light btn-sm" id="btnDeleteClassFromDetail">
+                                                                <i class="fas fa-trash me-1"></i>ลบ
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                    @endif
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
+
+                                <!-- Statistics Cards -->
+                                <div class="row mb-4">
+                                    <div class="col-md-3 col-sm-6 mb-3">
+                                        <div class="card border-0 shadow-sm h-100">
+                                            <div class="card-body text-center">
+                                                <div class="text-primary mb-2">
+                                                    <i class="fas fa-users fa-2x"></i>
+                                                </div>
+                                                <h5 class="card-title mb-1" id="detail-student-count">0</h5>
+                                                <p class="card-text text-muted small mb-0">นักเรียนทั้งหมด</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3 col-sm-6 mb-3">
+                                        <div class="card border-0 shadow-sm h-100">
+                                            <div class="card-body text-center">
+                                                <div class="text-success mb-2">
+                                                    <i class="fas fa-chart-line fa-2x"></i>
+                                                </div>
+                                                <h5 class="card-title mb-1" id="detail-avg-score">100</h5>
+                                                <p class="card-text text-muted small mb-0">คะแนนเฉลี่ย</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3 col-sm-6 mb-3">
+                                        <div class="card border-0 shadow-sm h-100">
+                                            <div class="card-body text-center">
+                                                <div class="text-warning mb-2">
+                                                    <i class="fas fa-exclamation-triangle fa-2x"></i>
+                                                </div>
+                                                <h5 class="card-title mb-1" id="detail-violations-month">0</h5>
+                                                <p class="card-text text-muted small mb-0">การกระทำผิดเดือนนี้</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3 col-sm-6 mb-3">
+                                        <div class="card border-0 shadow-sm h-100">
+                                            <div class="card-body text-center">
+                                                <div class="text-info mb-2">
+                                                    <i class="fas fa-medal fa-2x"></i>
+                                                </div>
+                                                <h5 class="card-title mb-1" id="detail-good-behavior">0</h5>
+                                                <p class="card-text text-muted small mb-0">พฤติกรรมดีเดือนนี้</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Students List -->
+                                <div class="card shadow-sm border-0">
+                                    <div class="card-header bg-white border-bottom">
+                                        <div class="row align-items-center">
+                                            <div class="col-md-6">
+                                                <h6 class="mb-0">
+                                                    <i class="fas fa-users me-2 text-primary"></i>รายชื่อนักเรียน
+                                                </h6>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="input-group input-group-sm">
+                                                    <input type="text" class="form-control" id="studentSearchInDetail" 
+                                                        placeholder="ค้นหานักเรียน...">
+                                                    <button class="btn btn-primary" type="button" id="btnStudentSearch">
+                                                        <i class="fas fa-search"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="card-body p-0">
+                                        <div class="table-responsive">
+                                            <table class="table table-hover align-middle mb-0">
+                                                <thead class="table-light">
+                                                    <tr>
+                                                        <th style="width: 10%">เลขที่</th>
+                                                        <th style="width: 15%">รหัสนักเรียน</th>
+                                                        <th style="width: 30%">ชื่อ-สกุล</th>
+                                                        <th style="width: 15%">คะแนน</th>
+                                                        <th style="width: 15%">สถานะ</th>
+                                                        <th style="width: 15%">จัดการ</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody id="detail-students-list">
+                                                    <!-- ข้อมูลจะถูกเติมโดย JavaScript -->
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                    <div class="card-footer bg-white">
+                                        <nav>
+                                            <ul class="pagination pagination-sm justify-content-center mb-0" id="detail-student-pagination">
+                                                <!-- การแบ่งหน้าจะถูกสร้างโดย JavaScript -->
+                                            </ul>
+                                        </nav>
+                                    </div>
+                                </div>
                             </div>
-                            <div class="col-md-6">
-                                <div class="card h-100 shadow-sm border-0">
-                                    <div class="card-body">
-                                        <h6 class="card-title d-flex align-items-center">
-                                            <i class="fas fa-chart-pie me-2 text-primary"></i>สถิติการกระทำผิด
-                                        </h6>
-                                        <hr>
-                                        <div id="chart-container"
-                                            class="d-flex justify-content-center align-items-center"
-                                            style="height: 200px;">
-                                            <canvas id="classViolationChart"></canvas>
-                                            <div id="no-violations-message" class="text-center text-muted d-none">
-                                                <i class="fas fa-info-circle fa-2x mb-2"></i>
-                                                <p>ไม่พบข้อมูลการกระทำผิดในห้องเรียนนี้</p>
+                        </div>
+
+                        <!-- Classroom Form Panel -->
+                        <div class="tab-pane fade" id="classroom-form-panel" role="tabpanel">
+                            <div class="p-4">
+                                <div class="row justify-content-center">
+                                    <div class="col-lg-8">
+                                        <div class="card shadow-sm border-0">
+                                            <div class="card-header bg-white border-bottom">
+                                                <h6 class="mb-0" id="formClassTitle">
+                                                    <i class="fas fa-plus me-2 text-primary"></i>เพิ่มห้องเรียนใหม่
+                                                </h6>
+                                            </div>
+                                            <div class="card-body">
+                                                <form id="formClassroom">
+                                                    <input type="hidden" id="classId" name="classes_id">
+
+                                                    <div class="row mb-3">
+                                                        <div class="col-md-6">
+                                                            <label for="classes_level" class="form-label">
+                                                                ระดับชั้น <span class="text-danger">*</span>
+                                                            </label>
+                                                            <select class="form-select" id="classes_level" name="classes_level" required>
+                                                                <option value="" selected disabled>เลือกระดับชั้น</option>
+                                                                <option value="ม.1">ม.1</option>
+                                                                <option value="ม.2">ม.2</option>
+                                                                <option value="ม.3">ม.3</option>
+                                                                <option value="ม.4">ม.4</option>
+                                                                <option value="ม.5">ม.5</option>
+                                                                <option value="ม.6">ม.6</option>
+                                                            </select>
+                                                            <div class="invalid-feedback">กรุณาเลือกระดับชั้น</div>
+                                                        </div>
+                                                        <div class="col-md-6">
+                                                            <label for="classes_room_number" class="form-label">
+                                                                ห้อง <span class="text-danger">*</span>
+                                                            </label>
+                                                            <input type="text" class="form-control" id="classes_room_number"
+                                                                name="classes_room_number" placeholder="ระบุเลขห้อง เช่น 1, 2, 3"
+                                                                required maxlength="5">
+                                                            <div class="invalid-feedback">กรุณาระบุเลขห้อง</div>
+                                                        </div>
+                                                    </div>
+
+                                                    <div class="mb-3">
+                                                        <label for="teacher_id" class="form-label">
+                                                            ครูประจำชั้น <span class="text-danger">*</span>
+                                                        </label>
+                                                        <select class="form-select" id="teacher_id" name="teacher_id" required>
+                                                            <option value="" selected disabled>เลือกครูประจำชั้น</option>
+                                                            <!-- จะถูกเติมโดย JavaScript -->
+                                                        </select>
+                                                        <div class="invalid-feedback">กรุณาเลือกครูประจำชั้น</div>
+                                                    </div>
+
+                                                    <div class="d-flex justify-content-between">
+                                                        <button type="button" class="btn btn-outline-secondary" id="btnBackToList">
+                                                            <i class="fas fa-arrow-left me-2"></i>กลับสู่รายการ
+                                                        </button>
+                                                        <div>
+                                                            <button type="button" class="btn btn-light me-2" id="btnCancelClassForm">
+                                                                ยกเลิก
+                                                            </button>
+                                                            <button type="submit" class="btn btn-primary" id="btnSaveClass">
+                                                                <i class="fas fa-save me-2"></i>บันทึก
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </form>
                                             </div>
                                         </div>
                                     </div>
@@ -2600,59 +2566,11 @@ document.addEventListener('DOMContentLoaded', function () {
                             </div>
                         </div>
 
-                        <div class="card shadow-sm border-0">
-                            <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
-                                <h6 class="mb-0 d-flex align-items-center">
-                                    <i class="fas fa-users me-2 text-primary"></i>รายชื่อนักเรียน
-                                    <span class="badge bg-primary-app rounded-pill ms-2"
-                                        id="student-count-badge">0</span>
-                                </h6>
-                                <div class="d-flex">
-                                    <div class="input-group input-group-sm" style="width: 250px;">
-                                        <input type="text" class="form-control" id="studentSearch"
-                                            placeholder="ค้นหานักเรียน...">
-                                        <button class="btn btn-sm btn-primary-app" id="btnSearchStudent">
-                                            <i class="fas fa-search"></i>
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="card-body p-0">
-                                <div class="table-responsive">
-                                    <table class="table table-hover align-middle mb-0">
-                                        <thead class="table-light">
-                                            <tr>
-                                                <th style="width: 8%">เลขที่</th>
-                                                <th style="width: 15%">รหัสนักเรียน</th>
-                                                <th style="width: 32%">ชื่อ-สกุล</th>
-                                                <th style="width: 25%">คะแนนคงเหลือ</th>
-                                                <th style="width: 20%">จัดการ</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody id="students-list">
-                                            <!-- ข้อมูลจะถูกเติมโดย JavaScript -->
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                            <div class="card-footer bg-white">
-                                <nav>
-                                    <ul class="pagination pagination-sm justify-content-end mb-0"
-                                        id="student-pagination">
-                                        <!-- การแบ่งหน้าจะถูกสร้างโดย JavaScript -->
-                                    </ul>
-                                </nav>
-                            </div>
-                        </div>
                     </div>
                 </div>
-                <div class="modal-footer border-0 pt-0">
-                    <button type="button" class="btn btn-outline-primary me-auto" id="btnExportClassReport">
-                        <i class="fas fa-file-export me-1"></i> ส่งออกรายงาน
-                    </button>
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ปิด</button>
-                    <button type="button" class="btn btn-primary-app" id="btnEditClassDetail">
-                        <i class="fas fa-edit me-1"></i> แก้ไขข้อมูลห้องเรียน
+                <div class="modal-footer border-0 pt-2 bg-light">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-2"></i>ปิด
                     </button>
                 </div>
             </div>
@@ -2663,24 +2581,272 @@ document.addEventListener('DOMContentLoaded', function () {
     <div class="modal fade" id="deleteClassModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-sm">
             <div class="modal-content">
-                <div class="modal-header border-0 pb-0">
-                    <h5 class="modal-title">ยืนยันการลบ</h5>
+                <div class="modal-header border-0 pb-2">
+                    <h5 class="modal-title text-danger">
+                        <i class="fas fa-exclamation-triangle me-2"></i>ยืนยันการลบ
+                    </h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <div class="modal-body text-center">
-                    <i class="fas fa-exclamation-triangle text-warning fa-3x mb-3"></i>
-                    <h5>ยืนยันการลบห้องเรียนนี้?</h5>
-                    <p class="text-muted">การลบห้องเรียนอาจส่งผลกระทบต่อข้อมูลนักเรียน และข้อมูลพฤติกรรมที่บันทึกไว้</p>
+                <div class="modal-body text-center py-4">
+                    <div class="mb-3">
+                        <i class="fas fa-trash-alt text-danger" style="font-size: 3rem;"></i>
+                    </div>
+                    <h6 class="mb-2">ยืนยันการลบห้องเรียน</h6>
+                    <p class="text-muted mb-3" id="deleteClassMessage">
+                        คุณต้องการลบห้องเรียน <strong id="deleteClassName"></strong> หรือไม่?
+                    </p>
+                    <div class="alert alert-warning text-start">
+                        <small><i class="fas fa-info-circle me-1"></i> การลบห้องเรียนอาจส่งผลกระทบต่อข้อมูลนักเรียนและข้อมูลพฤติกรรมที่บันทึกไว้</small>
+                    </div>
                     <input type="hidden" id="deleteClassId">
                 </div>
                 <div class="modal-footer border-0 pt-0">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
-                    <button type="button" class="btn btn-danger" id="confirmDeleteClass">ยืนยันการลบ</button>
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">ยกเลิก</button>
+                    <button type="button" class="btn btn-danger" id="confirmDeleteClass">
+                        <i class="fas fa-trash me-1"></i>ยืนยันการลบ
+                    </button>
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- Student Detail Modal -->
+    <div class="modal fade" id="studentDetailModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header border-0 pb-2">
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-user-graduate text-primary me-2 fs-5"></i>
+                        <h5 class="modal-title mb-0" id="studentDetailModalLabel">ข้อมูลนักเรียน</h5>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- Student Info Display Mode -->
+                    <div id="studentDisplayMode">
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <div class="card border-0 bg-gradient-primary text-white">
+                                    <div class="card-body">
+                                        <div class="row align-items-center">
+                                            <div class="col-md-8">
+                                                <h4 class="card-title mb-1" id="display-student-name">-</h4>
+                                                <p class="card-text mb-0 opacity-75">รหัสนักเรียน: <span id="display-student-code">-</span></p>
+                                            </div>
+                                            <div class="col-md-4 text-end">
+                                                <button class="btn btn-light btn-sm" id="btnEditStudent">
+                                                    <i class="fas fa-edit me-1"></i>แก้ไข
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label text-muted small">ชื่อ</label>
+                                <p class="h6" id="display-first-name">-</p>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label text-muted small">นามสกุล</label>
+                                <p class="h6" id="display-last-name">-</p>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label text-muted small">อีเมล</label>
+                                <p class="h6" id="display-email">-</p>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label text-muted small">เบอร์โทรศัพท์</label>
+                                <p class="h6" id="display-phone">-</p>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label text-muted small">คะแนนปัจจุบัน</label>
+                                <p class="h6" id="display-score">-</p>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label text-muted small">ห้องเรียน</label>
+                                <p class="h6" id="display-classroom">-</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Student Edit Mode is now in a separate modal -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Student Edit Sidebar (Offcanvas) -->
+    <div class="offcanvas offcanvas-end" tabindex="-1" id="studentEditSidebar" aria-labelledby="studentEditSidebarLabel" style="width: 480px;">
+        <div class="offcanvas-header bg-primary-app text-white">
+            <div class="d-flex align-items-center">
+                <div class="bg-white bg-opacity-20 rounded-circle p-2 me-3">
+                    <i class="fas fa-user-edit fs-5"></i>
+                </div>
+                <div>
+                    <h5 class="offcanvas-title mb-0" id="studentEditSidebarLabel">แก้ไขข้อมูลนักเรียน</h5>
+                    <small class="opacity-75" id="se-student-name-header">-</small>
+                </div>
+            </div>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+        </div>
+        <div class="offcanvas-body p-0">
+            <!-- Student Profile Summary -->
+            <div class="bg-light border-bottom p-3">
+                <div class="d-flex align-items-center">
+                    <div class="bg-primary-app bg-opacity-10 rounded-circle p-2 me-3">
+                        <i class="fas fa-user text-primary-app fs-4"></i>
+                    </div>
+                    <div class="flex-grow-1">
+                        <div class="row g-2">
+                            <div class="col-6">
+                                <small class="text-muted d-block">รหัสนักเรียน</small>
+                                <span class="fw-semibold" id="se-header-student-code">-</span>
+                            </div>
+                            <div class="col-6">
+                                <small class="text-muted d-block">คะแนนปัจจุบัน</small>
+                                <span class="fw-semibold">
+                                    <span id="se-header-score">-</span>/100
+                                    <i class="fas fa-circle text-success ms-1" style="font-size: 0.5rem;" id="se-score-indicator"></i>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <form id="studentEditForm" class="p-3">
+                <input type="hidden" id="se-student-id">
+
+                <!-- Personal Information Section -->
+                <div class="mb-4">
+                    <h6 class="text-primary-app mb-3">
+                        <i class="fas fa-user me-2"></i>ข้อมูลส่วนตัว
+                    </h6>
+                    
+                    <div class="row g-3 mb-3">
+                        <div class="col-12">
+                            <label for="se-first-name" class="form-label fw-semibold">
+                                ชื่อ <span class="text-danger">*</span>
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-user"></i></span>
+                                <input type="text" class="form-control" id="se-first-name" name="users_first_name" required>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <label for="se-last-name" class="form-label fw-semibold">
+                                นามสกุล <span class="text-danger">*</span>
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-user"></i></span>
+                                <input type="text" class="form-control" id="se-last-name" name="users_last_name" required>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Contact Information Section -->
+                <div class="mb-4">
+                    <h6 class="text-primary-app mb-3">
+                        <i class="fas fa-address-book me-2"></i>ข้อมูลติดต่อ
+                    </h6>
+                    
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label for="se-email" class="form-label fw-semibold">อีเมล</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-envelope"></i></span>
+                                <input type="email" class="form-control" id="se-email" name="users_email" placeholder="example@email.com">
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <label for="se-phone" class="form-label fw-semibold">เบอร์โทรศัพท์</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-phone"></i></span>
+                                <input type="tel" class="form-control" id="se-phone" name="users_phone_number" placeholder="08X-XXX-XXXX">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                @if(auth()->user()->users_role === 'admin')
+                <!-- Status Section - Admin Only -->
+                <div class="mb-4">
+                    <h6 class="text-primary-app mb-3">
+                        <i class="fas fa-cog me-2"></i>การจัดการสถานะ
+                    </h6>
+                    
+                    <div class="col-12">
+                        <label for="se-status" class="form-label fw-semibold">สถานะนักเรียน</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-graduation-cap"></i></span>
+                            <select class="form-select" id="se-status" name="students_status">
+                                <option value="active">ศึกษาอยู่</option>
+                                <option value="suspended">พักการเรียน</option>
+                                <option value="expelled">ย้ายสถานศึกษา</option>
+                                <option value="graduate">จบการศึกษา</option>
+                            </select>
+                        </div>
+                        <small class="text-muted mt-1 d-block">
+                            <i class="fas fa-info-circle me-1"></i>เฉพาะแอดมินเท่านั้นที่สามารถเปลี่ยนสถานะได้
+                        </small>
+                    </div>
+                </div>
+                @else
+                <!-- Status Display - Teacher View -->
+                <div class="mb-4">
+                    <h6 class="text-primary-app mb-3">
+                        <i class="fas fa-eye me-2"></i>สถานะนักเรียน
+                    </h6>
+                    
+                    <div class="col-12">
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-graduation-cap"></i></span>
+                            <input type="text" class="form-control bg-light" id="se-status-readonly" readonly disabled>
+                        </div>
+                        <small class="text-muted mt-1 d-block">
+                            <i class="fas fa-lock me-1"></i>เฉพาะแอดมินเท่านั้นที่สามารถเปลี่ยนสถานะได้
+                        </small>
+                    </div>
+                </div>
+                @endif
+
+                <!-- Read-only Information -->
+                <div class="mb-4">
+                    <h6 class="text-muted mb-3">
+                        <i class="fas fa-lock me-2"></i>ข้อมูลที่ไม่สามารถแก้ไขได้
+                    </h6>
+                    
+                    <div class="row g-3">
+                        <div class="col-6">
+                            <label for="se-student-code" class="form-label fw-semibold text-muted">รหัสนักเรียน</label>
+                            <input type="text" class="form-control bg-light border-0" id="se-student-code" readonly disabled>
+                        </div>
+                        <div class="col-6">
+                            <label for="se-score" class="form-label fw-semibold text-muted">คะแนนปัจจุบัน</label>
+                            <input type="text" class="form-control bg-light border-0" id="se-score" readonly>
+                        </div>
+                    </div>
+                    <small class="text-muted mt-2 d-block">
+                        <i class="fas fa-info-circle me-1"></i>รหัสนักเรียนและคะแนนจะถูกคำนวณโดยระบบอัตโนมัติ
+                    </small>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="d-grid gap-2 pt-3 border-top">
+                    <button type="submit" class="btn btn-primary btn-lg" id="btnSaveStudent">
+                        <i class="fas fa-save me-2"></i>บันทึกการเปลี่ยนแปลง
+                    </button>
+                    <button type="button" class="btn btn-light" data-bs-dismiss="offcanvas">
+                        <i class="fas fa-times me-2"></i>ยกเลิก
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
     <!-- Monthly Report Modal -->
     <div class="modal fade" id="monthlyReportModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
@@ -3095,8 +3261,8 @@ document.addEventListener('DOMContentLoaded', function () {
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- Dashboard JS -->
     <script src="/js/teacher-dashboard.js"></script>
-    <script src="/js/violation-manager.js"></script>
-    <script src="/js/class-manager.js"></script>
+    <script src="/js/violation-manager.js?v={{ filemtime(public_path('js/violation-manager.js')) }}"></script>
+    <script src="/js/class-manager.js?v={{ filemtime(public_path('js/class-manager.js')) }}"></script>
     <!-- Risk Students Report Modal -->
     <div class="modal fade" id="riskStudentsReportModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
@@ -3236,12 +3402,46 @@ document.addEventListener('DOMContentLoaded', function () {
     <script src="https://code.jquery.com/jquery-3.7.1.js"
         integrity="sha256-eKhayi8LEQwp4NKxN+CfCh+3qOVUtJn3QNZ0TciWLP4=" crossorigin="anonymous"></script>
 
-    <script src="/js/class-detail.js"></script>
+    <script src="/js/class-detail.js?v={{ filemtime(public_path('js/class-detail.js')) }}"></script>
+    <script>
+        // Ensure only one modal/offcanvas is visible at a time for a clean UI
+        document.addEventListener('DOMContentLoaded', function(){
+            document.addEventListener('show.bs.modal', function (event) {
+                var newModal = event.target;
+                document.querySelectorAll('.modal.show').forEach(function(m){
+                    if(m !== newModal){
+                        var inst = bootstrap.Modal.getInstance(m) || bootstrap.Modal.getOrCreateInstance(m);
+                        inst.hide();
+                    }
+                });
+                // Hide any open offcanvas when a modal opens
+                document.querySelectorAll('.offcanvas.show').forEach(function(oc){
+                    var off = bootstrap.Offcanvas.getInstance(oc) || bootstrap.Offcanvas.getOrCreateInstance(oc);
+                    off.hide();
+                });
+            });
+            document.addEventListener('show.bs.offcanvas', function(event){
+                var newCanvas = event.target;
+                // Hide open modals when opening an offcanvas
+                document.querySelectorAll('.modal.show').forEach(function(m){
+                    var inst = bootstrap.Modal.getInstance(m) || bootstrap.Modal.getOrCreateInstance(m);
+                    inst.hide();
+                });
+                // Hide other offcanvas panels as well
+                document.querySelectorAll('.offcanvas.show').forEach(function(oc){
+                    if(oc !== newCanvas){
+                        var off = bootstrap.Offcanvas.getInstance(oc) || bootstrap.Offcanvas.getOrCreateInstance(oc);
+                        off.hide();
+                    }
+                });
+            });
+        });
+    </script>
     <!-- เพิ่ม behavior report script -->
-    <script src="/js/behavior-report.js"></script>
+    <script src="/js/behavior-report.js?v={{ filemtime(public_path('js/behavior-report.js')) }}"></script>
     <!-- Reports JS -->
-    <script src="/js/reports.js"></script>
-    <script src="/js/student-filter.js"></script>
+    <script src="/js/reports.js?v={{ filemtime(public_path('js/reports.js')) }}"></script>
+    <script src="/js/student-filter.js?v={{ filemtime(public_path('js/student-filter.js')) }}"></script>
     <script src="/js/parent-notification.js"></script>
     <!-- Archived Students JS -->
     <script src="/js/archived-students.js"></script>
