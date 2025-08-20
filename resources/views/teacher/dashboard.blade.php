@@ -436,14 +436,17 @@
                         <div class="col-12">
                             <div class="card">
                                 <div class="card-header bg-white d-flex justify-content-between align-items-center">
-                                    <h5 class="card-title mb-0">รายชื่อนักเรียน</h5>
+                                    <h5 class="card-title mb-0">รายชื่อนักเรียน <span id="studentCountLabel" class="text-muted small">({{ $studentsTotal }} คน)</span></h5>
                                     <div class="d-flex">
-                                        <div class="input-group me-2">
-                                            <input type="text" class="form-control form-control-sm"
-                                                placeholder="ค้นหานักเรียน...">
-                                            <button class="btn btn-sm btn-primary-app"><i
-                                                    class="fas fa-search"></i></button>
-                                        </div>
+                                        <form id="studentSearchForm" method="GET" action="{{ route('teacher.dashboard') }}" class="d-flex">
+                                            <div class="input-group me-2">
+                                                <input type="text" id="studentSearchInput" name="search" class="form-control form-control-sm"
+                                                       value="{{ request('search') }}" placeholder="ค้นหานักเรียน..." autocomplete="off">
+                                                <button type="button" id="studentSearchBtn" class="btn btn-sm btn-primary-app">
+                                                    <i class="fas fa-search"></i>
+                                                </button>
+                                            </div>
+                                        </form>
                                         <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal"
                                             data-bs-target="#studentFilterModal">
                                             <i class="fas fa-filter"></i>
@@ -465,7 +468,7 @@
                                             </thead>
                                             <tbody>
                                                 @forelse($students as $student)
-                                                                <tr>
+                                                                <tr data-student-row="1">
                                                                     <td>{{ $student->students_student_code ?? '-' }}</td>
                                                                     <td>
                                                                         <div class="d-flex align-items-center">
@@ -535,7 +538,7 @@
                                                     </td>
                                                     </tr>
                                                 @empty
-                                        <tr>
+                                        <tr data-empty-row="1">
                                             <td colspan="6" class="text-center py-4">
                                                 <div class="text-muted">
                                                     <i class="fas fa-info-circle fa-2x mb-3"></i>
@@ -546,13 +549,15 @@
                                     @endforelse
                                     </tbody>
                                     </table>
+                                    <!-- Quick search and AJAX pagination logic moved to /js/student-filter.js -->
                                 </div>
                             </div>
                             <div class="card-footer bg-white">
-                                <nav>
-                                    {{ $students->links('pagination::bootstrap-4') }}
+                                <nav id="studentsPagination">
+                                    {{ $students->appends(request()->query())->links('pagination::bootstrap-4') }}
                                 </nav>
                             </div>
+                            <!-- Pagination AJAX logic moved to /js/student-filter.js -->
                         </div>
                     </div>
                 </div>
@@ -848,28 +853,24 @@
                         <div class="mb-3">
                             <h6 style="font-weight: 600; color: #374151; margin-bottom: 12px;">ตัวอย่างข้อมูล</h6>
                             <!-- Tab Navigation -->
-                            <ul class="nav nav-tabs" id="dataTabsNav" role="tablist" style="border-bottom: 2px solid #e5e7eb;">
+                <ul class="nav nav-tabs chip-tabs" id="dataTabsNav" role="tablist">
                                 <li class="nav-item" role="presentation">
-                                    <button class="nav-link active" id="all-tab" data-bs-toggle="tab" data-bs-target="#all-data" type="button" role="tab" 
-                                            style="border: none; padding: 12px 20px; color: #6b7280; font-weight: 500; border-radius: 8px 8px 0 0;">
+                    <button class="nav-link chip-link active" id="all-tab" data-bs-toggle="tab" data-bs-target="#all-data" type="button" role="tab">
                                         <i class="fas fa-list me-2"></i>ข้อมูลทั้งหมด <span id="allDataCount" class="badge bg-secondary ms-2">0</span>
                                     </button>
                                 </li>
                                 <li class="nav-item" role="presentation">
-                                    <button class="nav-link" id="valid-tab" data-bs-toggle="tab" data-bs-target="#valid-data" type="button" role="tab"
-                                            style="border: none; padding: 12px 20px; color: #6b7280; font-weight: 500; border-radius: 8px 8px 0 0;">
+                    <button class="nav-link chip-link" id="valid-tab" data-bs-toggle="tab" data-bs-target="#valid-data" type="button" role="tab">
                                         <i class="fas fa-check-circle me-2" style="color: #10b981;"></i>ข้อมูลที่ไม่ซ้ำ <span id="validDataCount" class="badge bg-success ms-2">0</span>
                                     </button>
                                 </li>
                                 <li class="nav-item" role="presentation">
-                                    <button class="nav-link" id="duplicate-tab" data-bs-toggle="tab" data-bs-target="#duplicate-data" type="button" role="tab"
-                                            style="border: none; padding: 12px 20px; color: #6b7280; font-weight: 500; border-radius: 8px 8px 0 0;">
+                    <button class="nav-link chip-link" id="duplicate-tab" data-bs-toggle="tab" data-bs-target="#duplicate-data" type="button" role="tab">
                                         <i class="fas fa-exclamation-triangle me-2" style="color: #f59e0b;"></i>ข้อมูลที่ซ้ำ <span id="duplicateDataCount" class="badge bg-warning ms-2">0</span>
                                     </button>
                                 </li>
                                 <li class="nav-item" role="presentation">
-                                    <button class="nav-link" id="error-tab" data-bs-toggle="tab" data-bs-target="#error-data" type="button" role="tab"
-                                            style="border: none; padding: 12px 20px; color: #6b7280; font-weight: 500; border-radius: 8px 8px 0 0;">
+                    <button class="nav-link chip-link" id="error-tab" data-bs-toggle="tab" data-bs-target="#error-data" type="button" role="tab">
                                         <i class="fas fa-times-circle me-2" style="color: #ef4444;"></i>ข้อมูลที่ผิดพลาด <span id="errorDataCount" class="badge bg-danger ms-2">0</span>
                                     </button>
                                 </li>
@@ -2439,54 +2440,6 @@ document.addEventListener('DOMContentLoaded', function () {
                                                 <p class="card-text text-muted small mb-0">พฤติกรรมดีเดือนนี้</p>
                                             </div>
                                         </div>
-                                    </div>
-                                </div>
-
-                                <!-- Students List -->
-                                <div class="card shadow-sm border-0">
-                                    <div class="card-header bg-white border-bottom">
-                                        <div class="row align-items-center">
-                                            <div class="col-md-6">
-                                                <h6 class="mb-0">
-                                                    <i class="fas fa-users me-2 text-primary"></i>รายชื่อนักเรียน
-                                                </h6>
-                                            </div>
-                                            <div class="col-md-6">
-                                                <div class="input-group input-group-sm">
-                                                    <input type="text" class="form-control" id="studentSearchInDetail" 
-                                                        placeholder="ค้นหานักเรียน...">
-                                                    <button class="btn btn-primary" type="button" id="btnStudentSearch">
-                                                        <i class="fas fa-search"></i>
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="card-body p-0">
-                                        <div class="table-responsive">
-                                            <table class="table table-hover align-middle mb-0">
-                                                <thead class="table-light">
-                                                    <tr>
-                                                        <th style="width: 10%">เลขที่</th>
-                                                        <th style="width: 15%">รหัสนักเรียน</th>
-                                                        <th style="width: 30%">ชื่อ-สกุล</th>
-                                                        <th style="width: 15%">คะแนน</th>
-                                                        <th style="width: 15%">สถานะ</th>
-                                                        <th style="width: 15%">จัดการ</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody id="detail-students-list">
-                                                    <!-- ข้อมูลจะถูกเติมโดย JavaScript -->
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                    </div>
-                                    <div class="card-footer bg-white">
-                                        <nav>
-                                            <ul class="pagination pagination-sm justify-content-center mb-0" id="detail-student-pagination">
-                                                <!-- การแบ่งหน้าจะถูกสร้างโดย JavaScript -->
-                                            </ul>
-                                        </nav>
                                     </div>
                                 </div>
                             </div>

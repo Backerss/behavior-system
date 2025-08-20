@@ -189,20 +189,27 @@ class AuthController extends Controller
             ->orderBy('classes_room_number')
             ->get();
             
-        // ดึงข้อมูลรายชื่อนักเรียน (กรองเฉพาะสถานะ active)
+    // จำนวนทั้งหมดของนักเรียนที่ยัง active (ใช้สำหรับแสดงนับรวมทั้งหมด ไม่ใช่แค่ที่เห็นในหน้านี้)
+    $studentsTotal = Student::where('students_status', 'active')->count();
+
+    // ดึงข้อมูลรายชื่อนักเรียน (กรองเฉพาะสถานะ active)
         $students = Student::with(['user', 'classroom'])
             ->where('students_status', 'active') // กรองเฉพาะนักเรียนที่ยังคงเรียนอยู่
             ->when(request('search'), function($query) {
                 $search = request('search');
-                return $query->whereHas('user', function($subquery) use ($search) {
-                    $subquery->where('users_first_name', 'like', "%{$search}%")
-                        ->orWhere('users_last_name', 'like', "%{$search}%");
-                })->orWhere('students_student_code', 'like', "%{$search}%");
+                return $query->where(function($q) use ($search) {
+                    $q->whereHas('user', function($subquery) use ($search) {
+                        $subquery->where('users_first_name', 'like', "%{$search}%")
+                                ->orWhere('users_last_name', 'like', "%{$search}%");
+                    })
+                    ->orWhere('students_student_code', 'like', "%{$search}%");
+                });
             })
             ->when(request('class'), function($query) {
                 return $query->where('class_id', request('class'));
             })
-            ->paginate(15);
+            ->paginate(15)
+            ->withQueryString();
             
         // ดึงข้อมูลนักเรียนที่จบการศึกษา (สำหรับแฟ้มประวัติ)
         $graduatedStudents = Student::with(['user', 'classroom'])
@@ -215,7 +222,8 @@ class AuthController extends Controller
                 })->orWhere('students_student_code', 'like', "%{$search}%");
             })
             ->orderBy('updated_at', 'desc')
-            ->paginate(10, ['*'], 'graduated_page');
+            ->paginate(10, ['*'], 'graduated_page')
+            ->withQueryString();
         
         // ข้อมูลสำหรับกราฟแนวโน้ม 6 เดือน
         $trendData = $this->getViolationTrend();
@@ -236,6 +244,7 @@ class AuthController extends Controller
             'recentViolations',
             'classes',
             'students',
+            'studentsTotal',
             'graduatedStudents',
             'trendData',
             'typesData',

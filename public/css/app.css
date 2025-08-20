@@ -399,6 +399,60 @@ h1 .text-accent-app:after {
   animation: slideOutRight 0.3s ease-in forwards;
 }
 
+/* Chip-styled tabs for import preview */
+.chip-tabs {
+  border-bottom: none !important;
+  display: flex;
+  gap: 8px;
+  flex-wrap: nowrap; /* keep in single line */
+  overflow-x: auto; /* allow horizontal scroll on small screens */
+  padding-bottom: 4px;
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
+.chip-tabs::-webkit-scrollbar { display: none; }
+
+.chip-tabs .nav-item { white-space: nowrap; }
+
+.chip-link {
+  border: 1px solid #e5e7eb !important;
+  border-radius: 999px !important; /* pill */
+  background: #ffffff !important;
+  color: #374151 !important;
+  padding: 8px 14px !important;
+  font-weight: 500 !important;
+  transition: all .15s ease;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+}
+.chip-link .badge { vertical-align: middle; }
+
+.chip-link:hover { 
+  background: #f9fafb !important; 
+  box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+}
+
+.chip-link.active {
+  background: #111827 !important;
+  color: #ffffff !important;
+  border-color: #111827 !important;
+}
+
+.chip-link.active .badge.bg-secondary { background-color: #4b5563 !important; }
+.chip-link.active .badge.bg-success { background-color: #10b981 !important; }
+.chip-link.active .badge.bg-warning { background-color: #f59e0b !important; color: #111827; }
+.chip-link.active .badge.bg-danger { background-color: #ef4444 !important; }
+
+/* Better button looks in modal */
+.modal .btn {
+  border-radius: 10px;
+  padding: 10px 14px;
+}
+.modal .btn-outline-secondary {
+  border-color: #e5e7eb;
+  color: #374151;
+}
+.modal .btn-outline-secondary:hover { background: #f3f4f6; }
+
 @keyframes slideInRight {
   from {
     transform: translateX(100%);

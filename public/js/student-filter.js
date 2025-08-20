@@ -369,4 +369,116 @@ document.addEventListener('DOMContentLoaded', function() {
     // ฟังก์ชันสำหรับเรียกใช้จากภายนอก (global)
     window.resetStudentFilters = resetFilters;
     window.applyStudentFilters = applyFilters;
+
+    // -----------------------------
+    // Quick search (header input) and AJAX pagination for students table
+    // -----------------------------
+    initQuickSearch();
+    initAjaxPagination();
+
+    // Re-apply filters/search when table is updated via AJAX
+    document.addEventListener('studentTableUpdated', function() {
+        // Re-apply the quick search and modal filters (if any)
+        applyQuickSearch();
+        try { applyFilters(); } catch (e) { /* ignore if modal filter not used */ }
+    });
+
+    function initQuickSearch() {
+        const form = document.getElementById('studentSearchForm');
+        const input = document.getElementById('studentSearchInput');
+        const btn = document.getElementById('studentSearchBtn');
+        if (!form || !input || !btn) return;
+        form.addEventListener('submit', function(e){ e.preventDefault(); });
+        btn.addEventListener('click', function(e){ e.preventDefault(); applyQuickSearch(); });
+        input.addEventListener('input', debounce(applyQuickSearch, 150));
+        // Initial run
+        applyQuickSearch();
+    }
+
+    function applyQuickSearch() {
+        const input = document.getElementById('studentSearchInput');
+        const q = (input?.value || '').toString().toLowerCase().trim();
+        const tbody = document.querySelector('#students table tbody');
+        if (!tbody) return;
+        const rows = Array.from(tbody.querySelectorAll('tr[data-student-row="1"]'));
+        let shown = 0;
+        rows.forEach(function(row){
+            const code = (row.cells[0]?.innerText || '').toLowerCase();
+            const name = (row.cells[1]?.innerText || '').toLowerCase();
+            const cls = (row.cells[2]?.innerText || '').toLowerCase();
+            const combined = code + ' ' + name + ' ' + cls;
+            const match = q === '' || combined.includes(q);
+            row.style.display = match ? '' : 'none';
+            if (match) shown++;
+        });
+        // Handle no-results row (prefer existing server empty row)
+        let noRow = tbody.querySelector('tr[data-empty-row="1"]') || tbody.querySelector('tr[data-no-results="1"]');
+        if (!noRow) {
+            noRow = document.createElement('tr');
+            noRow.setAttribute('data-no-results', '1');
+            const td = document.createElement('td');
+            td.colSpan = 6;
+            td.className = 'text-center py-4 text-muted';
+            td.innerHTML = '<i class="fas fa-info-circle me-2"></i>ไม่พบข้อมูลที่ตรงกับคำค้นหา';
+            noRow.appendChild(td);
+            noRow.style.display = 'none';
+            tbody.appendChild(noRow);
+        }
+        noRow.style.display = shown === 0 ? '' : 'none';
+        // Update footer small count (not the header total)
+        try { updateResultCount(shown); } catch (e) {}
+    }
+
+    function initAjaxPagination() {
+        const nav = document.querySelector('#studentsPagination');
+        if (!nav) return;
+        nav.addEventListener('click', onPageClick);
+        window.addEventListener('popstate', function(){ loadPage(location.href); });
+    }
+
+    function onPageClick(e) {
+        const a = e.target.closest('a');
+        if (!a) return;
+        const url = a.getAttribute('href');
+        if (!url || url === '#') return;
+        e.preventDefault();
+        loadPage(url);
+    }
+
+    function loadPage(url) {
+        const card = document.querySelector('#students .card');
+        if (card) card.classList.add('opacity-50');
+        fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' }})
+            .then(r => r.text())
+            .then(html => {
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+                const newTbody = doc.querySelector('#students table tbody');
+                const newNav = doc.querySelector('#students .card-footer nav');
+                const table = document.querySelector('#students table');
+                const tbody = table && table.querySelector('tbody');
+                const navContainer = document.querySelector('#students .card-footer nav');
+                if (newTbody && tbody) tbody.replaceWith(newTbody);
+                if (newNav && navContainer) navContainer.replaceWith(newNav);
+                const updatedNav = document.querySelector('#students .card-footer nav');
+                if (updatedNav && !updatedNav.id) updatedNav.id = 'studentsPagination';
+                // Re-bind pagination clicks
+                const newNavEl = document.querySelector('#studentsPagination');
+                if (newNavEl) newNavEl.addEventListener('click', onPageClick);
+                // Fire update event for filters/search to re-apply
+                document.dispatchEvent(new CustomEvent('studentTableUpdated'));
+                if (history.pushState) history.pushState({}, '', url);
+            })
+            .catch(err => console.error(err))
+            .finally(() => { if (card) card.classList.remove('opacity-50'); });
+    }
+
+    // Simple debounce utility for quick search
+    function debounce(fn, wait) {
+        let t;
+        return function() {
+            clearTimeout(t);
+            t = setTimeout(() => fn.apply(this, arguments), wait);
+        };
+    }
 });
