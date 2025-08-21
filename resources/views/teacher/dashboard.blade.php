@@ -2442,6 +2442,47 @@ document.addEventListener('DOMContentLoaded', function () {
                                         </div>
                                     </div>
                                 </div>
+
+                                <!-- Students List Card -->
+                                <div class="card shadow-sm border-0">
+                                    <div class="card-header bg-white border-0">
+                                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                                            <h6 class="mb-0">
+                                                <i class="fas fa-user-graduate me-2 text-primary"></i>รายชื่อนักเรียน
+                                            </h6>
+                                            <div class="input-group input-group-sm" style="max-width: 320px;">
+                                                <input type="text" class="form-control" id="studentSearchInDetail" placeholder="ค้นหาชื่อหรือละหัดนักเรียน">
+                                                <button class="btn btn-outline-primary" id="btnStudentSearch" type="button">
+                                                    <i class="fas fa-search"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="table-responsive">
+                                        <table class="table table-hover align-middle mb-0">
+                                            <thead class="table-light">
+                                                <tr>
+                                                    <th style="width: 64px;">#</th>
+                                                    <th style="width: 160px;">รหัสนักเรียน</th>
+                                                    <th>ชื่อ - สกุล</th>
+                                                    <th style="width: 120px;">คะแนน</th>
+                                                    <th style="width: 160px;">พฤติกรรม</th>
+                                                    <th class="text-end" style="width: 140px;">การทำงาน</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="detail-students-list">
+                                                <tr>
+                                                    <td colspan="6" class="text-center text-muted py-4">ไม่มีนักเรียน</td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    <div class="card-footer bg-white">
+                                        <nav class="d-flex justify-content-center">
+                                            <ul class="pagination pagination-sm mb-0" id="detail-student-pagination"></ul>
+                                        </nav>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
