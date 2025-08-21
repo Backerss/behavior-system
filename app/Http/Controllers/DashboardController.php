@@ -692,23 +692,21 @@ class DashboardController extends Controller
                 if (!isset($rowData['role']) || empty($rowData['role'])) { $rowData['role'] = 'student'; }
                 if (!isset($rowData['status']) || empty($rowData['status'])) { $rowData['status'] = 'active'; }
 
+                // Normalize DOB (support Thai Buddhist years) and compute age
+                $birthYmd = null; $age = null;
+                if (!empty($rowData['date_of_birth'])) {
+                    $birthYmd = $this->normalizeThaiBirthDate($rowData['date_of_birth']);
+                    if ($birthYmd) { try { $age = (new \DateTime())->diff(new \DateTime($birthYmd))->y; } catch (\Exception $e) { $age = null; } }
+                }
+                // Normalize gender tokens
+                if (isset($rowData['gender'])) {
+                    $g = strtolower(trim($rowData['gender']));
+                    $map = ['male'=>'male','m'=>'male','ชาย'=>'male','เพศชาย'=>'male','female'=>'female','f'=>'female','หญิง'=>'female','เพศหญิง'=>'female'];
+                    $rowData['gender'] = $map[$g] ?? $rowData['gender'];
+                }
+                // Set title from age/gender when missing or empty
                 if (!isset($rowData['title']) || empty($rowData['title'])) {
-                    $age = 0;
-                    if (!empty($rowData['date_of_birth'])) {
-                        try {
-                            $dateValue = trim($rowData['date_of_birth']);
-                            if (!filter_var($dateValue, FILTER_VALIDATE_EMAIL) && strpos($dateValue, '@') === false && strlen($dateValue) <= 20 && !preg_match('/[a-zA-Z]{3,}/', $dateValue)) {
-                                $birthDate = new DateTime($dateValue);
-                                $today = new DateTime();
-                                $age = $today->diff($birthDate)->y;
-                            }
-                        } catch (\Exception $e) { $age = 0; }
-                    }
-                    if (isset($rowData['gender'])) {
-                        if ($rowData['gender'] === 'male' || $rowData['gender'] === 'ชาย') { $rowData['title'] = ($age <= 15) ? 'เด็กชาย' : 'นาย'; $rowData['gender'] = 'male'; }
-                        elseif ($rowData['gender'] === 'female' || $rowData['gender'] === 'หญิง') { $rowData['title'] = ($age <= 15) ? 'เด็กหญิง' : 'นางสาว'; $rowData['gender'] = 'female'; }
-                        else { $rowData['title'] = 'เด็กชาย'; }
-                    } else { $rowData['title'] = 'เด็กชาย'; }
+                    $rowData['title'] = $this->choosePrefixByAgeGender($rowData['gender'] ?? null, $birthYmd, /*adultAt15*/ true);
                 }
                 if (isset($rowData['student_id']) && !empty($rowData['student_id'])) {
                     $studentCode = (string) $rowData['student_id'];
@@ -724,13 +722,6 @@ class DashboardController extends Controller
                             $rowData['email'] = $email . ($index + 2) . '@student.school.ac.th';
                         }
                     }
-                }
-                if (!isset($rowData['title']) || empty($rowData['title'])) {
-                    if (isset($rowData['gender'])) {
-                        if ($rowData['gender'] === 'male') { $rowData['title'] = 'ด.ช.'; }
-                        elseif ($rowData['gender'] === 'female') { $rowData['title'] = 'ด.ญ.'; }
-                        else { $rowData['title'] = ''; }
-                    } else { $rowData['title'] = ''; }
                 }
                 break;
 
@@ -753,6 +744,13 @@ class DashboardController extends Controller
                 if (!isset($rowData['email']) || empty($rowData['email'])) {
                     $firstName = $rowData['first_name'] ?? ''; $lastName = $rowData['last_name'] ?? '';
                     if (!empty($firstName) && !empty($lastName)) { $email = strtolower(preg_replace('/[^a-zA-Z0-9]/', '', $firstName . $lastName)); $rowData['email'] = $email . ($index + 2) . '@guardian.school.ac.th'; }
+                }
+                // Fallback title for guardians when not provided (map by relationship if possible)
+                if (!isset($rowData['title']) || empty($rowData['title'])) {
+                    $rel = isset($rowData['relationship']) ? mb_strtolower(trim($rowData['relationship'])) : '';
+                    // Common Thai labels for mother vs father
+                    $femaleRels = ['มารดา','แม่','female','หญิง','ผู้ปกครองหญิง'];
+                    $rowData['title'] = in_array($rel, $femaleRels, true) ? 'นาง' : 'นาย';
                 }
                 $rowData['date_of_birth'] = null;
                 if (!isset($rowData['phone']) || empty($rowData['phone'])) { $rowData['phone'] = null; }
@@ -1024,7 +1022,15 @@ class DashboardController extends Controller
                             if (!filter_var($dateValue, FILTER_VALIDATE_EMAIL) && strpos($dateValue, '@') === false && strlen($dateValue) <= 20 && !preg_match('/[a-zA-Z]{3,}/', $dateValue)) { $userBirthdate = $dateValue; }
                         }
                         $user = User::create([
-                            'users_name_prefix' => $userData['title'] ?? null,
+                            // Ensure name prefix is not null (final safety net)
+                            'users_name_prefix' => (function($data){
+                                $title = $data['title'] ?? null;
+                                if (!empty($title)) { return $title; }
+                                $birth = $data['date_of_birth'] ?? null;
+                                $gender = $data['gender'] ?? null;
+                                $norm = $birth ? $this->normalizeThaiBirthDate($birth) : null;
+                                return $this->choosePrefixByAgeGender($gender, $norm, true);
+                            })->call($this, $userData),
                             'users_first_name' => $userData['first_name'],
                             'users_last_name' => $userData['last_name'],
                             'users_email' => $userData['email'],
@@ -1117,6 +1123,68 @@ class DashboardController extends Controller
         }
 
         return ['success_count' => $successCount, 'error_count' => $errorCount, 'errors' => $errors];
+    }
+
+    // --- Helpers for DOB and prefix selection ---
+    private function normalizeThaiBirthDate($raw)
+    {
+        // Accept formats: YYYY-MM-DD, DD/MM/YYYY, DD-MM-YYYY, Buddhist years (พ.ศ.)
+        $val = trim((string)$raw);
+        if ($val === '') { return null; }
+        // Replace Thai delimiters
+        $v = str_replace(['.', ' '], ['-', ''], $val);
+        // Try common separators
+        $candidates = [$v, str_replace('/', '-', $v)];
+        foreach ($candidates as $cand) {
+            // Detect D-M-Y vs Y-M-D by first token length
+            $parts = explode('-', $cand);
+            if (count($parts) === 3) {
+                [$a,$b,$c] = $parts;
+                // If looks like D-M-Y
+                if (strlen($a) <= 2 && strlen($c) >= 2) {
+                    $d = (int)$a; $m = (int)$b; $y = (int)$c;
+                    // Convert Buddhist year to Gregorian (>=2400 assume พ.ศ.)
+                    if ($y >= 2400) { $y -= 543; }
+                    // Also handle 2-digit years (rare)
+                    if ($y < 100) { $y += ($y >= 50 ? 1900 : 2000); }
+                    $ymd = sprintf('%04d-%02d-%02d', $y, $m, $d);
+                    try { $dt = new \DateTime($ymd); return $dt->format('Y-m-d'); } catch (\Exception $e) { /* try next */ }
+                }
+                // If looks like Y-M-D
+                if (strlen($a) >= 2) {
+                    $y = (int)$a; $m = (int)$b; $d = (int)$c;
+                    if ($y >= 2400) { $y -= 543; }
+                    if ($y < 100) { $y += ($y >= 50 ? 1900 : 2000); }
+                    $ymd = sprintf('%04d-%02d-%02d', $y, $m, $d);
+                    try { $dt = new \DateTime($ymd); return $dt->format('Y-m-d'); } catch (\Exception $e) { /* try next */ }
+                }
+            }
+        }
+        // As a last resort, let DateTime try
+        try { $dt = new \DateTime($val); return $dt->format('Y-m-d'); } catch (\Exception $e) { return null; }
+    }
+
+    private function choosePrefixByAgeGender($gender = null, $birthYmd = null, $adultAt15 = true)
+    {
+        $age = null;
+        if ($birthYmd) { try { $age = (new \DateTime())->diff(new \DateTime($birthYmd))->y; } catch (\Exception $e) { $age = null; } }
+        $isAdult = null;
+        if ($age !== null) {
+            // ผู้ใช้ขอ: อายุ < 15 → เด็กชาย/เด็กหญิง, อายุ >= 15 → นาย/นางสาว
+            $isAdult = ($age >= 15);
+        }
+        $g = $gender ? strtolower($gender) : null;
+        if ($isAdult === true) {
+            if ($g === 'female' || $g === 'หญิง') { return 'นางสาว'; }
+            return 'นาย';
+        }
+        if ($isAdult === false) {
+            if ($g === 'female' || $g === 'หญิง') { return 'เด็กหญิง'; }
+            return 'เด็กชาย';
+        }
+        // Unknown age: pick sane default by gender
+        if ($g === 'female' || $g === 'หญิง') { return 'นางสาว'; }
+        return 'นาย';
     }
 
     private function createRoleSpecificData($user, $userData)
