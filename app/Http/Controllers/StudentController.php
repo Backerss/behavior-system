@@ -39,7 +39,6 @@ class StudentController extends Controller
                     'tb_students.*',
                     'tb_classes.classes_level',
                     'tb_classes.classes_room_number',
-                    'tb_classes.classes_academic_year',
                     'teacher_users.users_name_prefix as teacher_prefix',
                     'teacher_users.users_first_name as teacher_first_name',
                     'teacher_users.users_last_name as teacher_last_name'
@@ -398,9 +397,12 @@ class StudentController extends Controller
             $highScore = DB::table('tb_students')->where('class_id', $classId)->max('students_current_score') ?? 100;
             $avgScore = DB::table('tb_students')->where('class_id', $classId)->avg('students_current_score') ?? 100;
             
+            // ใช้ AcademicYearService เพื่อดึงปีการศึกษาปัจจุบัน
+            $academicYear = app(\App\Services\AcademicYearService::class)->getCurrentAcademicYear();
+
             return [
                 'name' => $classroom->classes_level . $classroom->classes_room_number,
-                'academic_year' => $classroom->classes_academic_year,
+                'academic_year' => $academicYear,
                 'teacher_name' => ($classroom->users_name_prefix ?? '') . ($classroom->users_first_name ?? '') . ' ' . ($classroom->users_last_name ?? ''),
                 'total_students' => $totalStudents,
                 'highest_score' => round($highScore),

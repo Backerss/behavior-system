@@ -181,9 +181,8 @@
         return '<tr>\
           <td>'+ (idx+1) +'</td>\
           <td>'+ code +'</td>\
-          <td>'+ first + ' ' + last +'</td>\
+          <td class="text-center">'+ first + ' ' + last +'</td>\
           <td>'+ score +'</td>\
-          <td>-</td>\
           <td>\
             <div class="btn-group btn-group-sm">\
               <button class="btn btn-outline-primary view-student-btn" data-student-id="'+studentId+'" title="ดู"><i class="fas fa-eye"></i></button>\

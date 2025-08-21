@@ -150,7 +150,7 @@
                         <h2 class="h5 mb-1">สวัสดี {{ $user->users_name_prefix }}{{ $user->users_first_name }} {{ $user->users_last_name }}</h2>
                         <p class="text-muted mb-0">
                             @if($student)
-                                ชั้น {{ ($student->classes_level ?? '') . ($student->classes_room_number ?? '') ?: 'ไม่ระบุชั้นเรียน' }}
+                                {{ (!empty($student->classes_level) && !empty($student->classes_room_number)) ? '' . $student->classes_level . '/' . $student->classes_room_number : 'ไม่ระบุชั้นเรียน' }}
                                 รหัสนักเรียน {{ $student->students_student_code ?? 'ไม่ระบุ' }}
                             @else
                                 ข้อมูลนักเรียนไม่สมบูรณ์

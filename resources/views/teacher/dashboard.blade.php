@@ -2195,7 +2195,7 @@ document.addEventListener('DOMContentLoaded', function () {
                             <p class="card-text text-muted">เลือกรูปแบบรายงานที่ต้องการส่งออก</p>
                             <div class="d-grid gap-2">
                                 <button
-                                    class="btn btn-outline-primary d-flex justify-content-between align-items-center"
+                                    class="btn btn-outline-success d-flex justify-content-between align-items-center"
                                     id="generateMonthlyReport" onclick="generateMonthlyReport()">
                                     <span>รายงานพฤติกรรมประจำเดือน</span>
                                     <i class="fas fa-file-pdf"></i>
@@ -2207,7 +2207,7 @@ document.addEventListener('DOMContentLoaded', function () {
                                     <i class="fas fa-file-pdf"></i>
                                 </button>
                                 <button
-                                    class="btn btn-outline-primary d-flex justify-content-between align-items-center"
+                                    class="btn btn-outline-warning d-flex justify-content-between align-items-center"
                                     id="generateAllBehaviorDataReport" onclick="generateAllBehaviorDataReport()">
                                     <span>ส่งออกข้อมูลพฤติกรรมทั้งหมด</span>
                                     <i class="fas fa-file-pdf"></i>
@@ -2462,12 +2462,11 @@ document.addEventListener('DOMContentLoaded', function () {
                                         <table class="table table-hover align-middle mb-0">
                                             <thead class="table-light">
                                                 <tr>
-                                                    <th style="width: 64px;">#</th>
-                                                    <th style="width: 160px;">รหัสนักเรียน</th>
-                                                    <th>ชื่อ - สกุล</th>
-                                                    <th style="width: 120px;">คะแนน</th>
-                                                    <th style="width: 160px;">พฤติกรรม</th>
-                                                    <th class="text-end" style="width: 140px;">การทำงาน</th>
+                                                    <th style="width: 20px;">#</th>
+                                                    <th style="width: 100px;">รหัสนักเรียน</th>
+                                                    <th class="text-center">ชื่อ - สกุล</th>
+                                                    <th style="width: 50x;">คะแนน</th>
+                                                    <th class="text-center" style="width: 140px;">การทำงาน</th>
                                                 </tr>
                                             </thead>
                                             <tbody id="detail-students-list">
