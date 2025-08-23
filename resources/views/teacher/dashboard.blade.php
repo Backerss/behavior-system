@@ -289,6 +289,18 @@
                                 {{ now()->locale('th')->translatedFormat('F Y') }}
                             </h5>
                         </div>
+                        @php
+                            $stats = $monthlyStats ?? [];
+                            $vc = $stats['violation_count'] ?? 0; $vt = (int)($stats['violation_trend'] ?? 0);
+                            $sc = $stats['students_count'] ?? 0; $st = (int)($stats['students_trend'] ?? 0);
+                            $sev = $stats['severe_count'] ?? 0; $sevt = (int)($stats['severe_trend'] ?? 0);
+                            $avg = $stats['avg_score'] ?? 0; $avgDisp = number_format($avg,1);
+                            $scoreT = (float)($stats['score_trend'] ?? 0);
+                            function trendClass($v){ return $v>0?'increase':($v<0?'decrease':'no-change'); }
+                            function trendIcon($v){ return $v>0?'fa-arrow-up':($v<0?'fa-arrow-down':'fa-equals'); }
+                            function trendTextPercent($v){ return ($v>0?'+':'').$v.'% จากเดือนก่อน'; }
+                            function trendTextScore($v){ return ($v>0?'-':'').$v.' คะแนนจากเดือนก่อน'; }
+                        @endphp
                         <div class="col-12 col-md-6 col-xl-3 mb-3">
                             <div class="card stat-card">
                                 <div class="card-body">
@@ -298,10 +310,10 @@
                                         </div>
                                         <div>
                                             <h6 class="stat-title">พฤติกรรมที่บันทึกเดือนนี้</h6>
-                                            <h4 class="stat-value">0</h4>
-                                            <p class="stat-change mb-0 no-change">
-                                                <i class="fas fa-equals me-1"></i>
-                                                0% จากเดือนก่อน
+                                            <h4 class="stat-value">{{ $vc }}</h4>
+                                            <p class="stat-change mb-0 {{ trendClass($vt) }}">
+                                                <i class="fas {{ trendIcon($vt) }} me-1"></i>
+                                                {{ trendTextPercent($vt) }}
                                             </p>
                                         </div>
                                     </div>
@@ -317,10 +329,10 @@
                                         </div>
                                         <div>
                                             <h6 class="stat-title">นักเรียนที่ถูกบันทึก</h6>
-                                            <h4 class="stat-value">0</h4>
-                                            <p class="stat-change mb-0 no-change">
-                                                <i class="fas fa-equals me-1"></i>
-                                                0% จากเดือนก่อน
+                                            <h4 class="stat-value">{{ $sc }}</h4>
+                                            <p class="stat-change mb-0 {{ trendClass($st) }}">
+                                                <i class="fas {{ trendIcon($st) }} me-1"></i>
+                                                {{ trendTextPercent($st) }}
                                             </p>
                                         </div>
                                     </div>
@@ -336,10 +348,10 @@
                                         </div>
                                         <div>
                                             <h6 class="stat-title">พฤติกรรมรุนแรง</h6>
-                                            <h4 class="stat-value">0</h4>
-                                            <p class="stat-change mb-0 no-change">
-                                                <i class="fas fa-equals me-1"></i>
-                                                0% จากเดือนก่อน
+                                            <h4 class="stat-value">{{ $sev }}</h4>
+                                            <p class="stat-change mb-0 {{ trendClass($sevt) }}">
+                                                <i class="fas {{ trendIcon($sevt) }} me-1"></i>
+                                                {{ trendTextPercent($sevt) }}
                                             </p>
                                         </div>
                                     </div>
@@ -355,10 +367,10 @@
                                         </div>
                                         <div>
                                             <h6 class="stat-title">คะแนนเฉลี่ย</h6>
-                                            <h4 class="stat-value">100.0</h4>
-                                            <p class="stat-change mb-0 no-change">
-                                                <i class="fas fa-equals me-1"></i>
-                                                0 คะแนนจากเดือนก่อน
+                                            <h4 class="stat-value">{{ $avgDisp }}</h4>
+                                            <p class="stat-change mb-0 {{ trendClass($scoreT) }}">
+                                                <i class="fas {{ trendIcon($scoreT) }} me-1"></i>
+                                                {{ trendTextScore($scoreT) }}
                                             </p>
                                         </div>
                                     </div>

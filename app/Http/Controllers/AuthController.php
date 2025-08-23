@@ -292,16 +292,13 @@ class AuthController extends Controller
             : 0;
         
         // จำนวนพฤติกรรมรุนแรง
-        $currentMonthSevere = BehaviorReport::join('tb_violations', 'tb_behavior_reports.violation_id', '=', 'tb_violations.violations_id')
-            ->where('tb_violations.violations_category', 'severe')
-            ->whereMonth('reports_report_date', $currentMonth)
-            ->whereYear('reports_report_date', $currentYear)
-            ->count();
-            
-        $lastMonthSevere = BehaviorReport::join('tb_violations', 'tb_behavior_reports.violation_id', '=', 'tb_violations.violations_id')
-            ->where('tb_violations.violations_category', 'severe')
-            ->whereMonth('reports_report_date', $lastMonth->month)
+        // ใช้ Eloquent scope เพื่อลดความเสี่ยงเรื่อง alias / join ผิด
+        $currentMonthSevere = BehaviorReport::currentMonth()->bySeverity('severe')->count();
+
+        // เดือนก่อนต้องกรองด้วยช่วงเดือนก่อนอย่างถูกต้อง (ใช้ clone เพื่อไม่ให้กระทบตัวแปร)
+        $lastMonthSevere = BehaviorReport::whereMonth('reports_report_date', $lastMonth->month)
             ->whereYear('reports_report_date', $lastMonth->year)
+            ->bySeverity('severe')
             ->count();
             
         $severeTrend = $lastMonthSevere > 0 
