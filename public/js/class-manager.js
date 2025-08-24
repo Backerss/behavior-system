@@ -16,7 +16,7 @@
     const pagination = document.querySelector('#classroomList nav ul');
     const searchInput = document.getElementById('classroomSearch');
     const levelFilter = document.getElementById('filterLevel');
-    const btnAdd = document.getElementById('btnShowAddClass');
+  // Removed add-class button per requirement
 
     // Detail
     const dName = document.getElementById('detail-classroom-name');
@@ -69,7 +69,7 @@
       teachers: () => fetch('/api/classes/teachers/all', { headers: { 'Accept': 'application/json' } }),
       getStudent: (id) => fetch('/api/students/' + id, { headers: { 'Accept': 'application/json' } }),
       updateStudent: (id, fd) => { fd.append('_method','PUT'); return fetch('/api/students/' + id, { method: 'POST', headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': csrf }, body: fd }); },
-      create: (fd) => fetch('/api/classes', { method: 'POST', headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': csrf }, body: fd }),
+  // Remove create endpoint usage (add-class disabled)
       update: (id, fd) => { fd.append('_method','PUT'); return fetch('/api/classes/' + id, { method: 'POST', headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': csrf }, body: fd }); },
       remove: (id) => fetch('/api/classes/' + id, { method: 'DELETE', headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': csrf } })
     };
@@ -223,7 +223,7 @@
     function resetForm(){
       if(!form) return; form.reset();
       if(fieldId) fieldId.value='';
-      if(formTitle) formTitle.innerHTML='<i class="fas fa-plus me-2 text-primary"></i>เพิ่มห้องเรียนใหม่';
+      if(formTitle) formTitle.innerHTML='<i class="fas fa-edit me-2 text-primary"></i>แก้ไขห้องเรียน';
       var invalid=form.querySelectorAll('.is-invalid'); Array.prototype.forEach.call(invalid, function(i){ i.classList.remove('is-invalid'); });
       // enable class level & room when creating
       if(fieldLevel) fieldLevel.removeAttribute('disabled');
@@ -237,7 +237,10 @@
       if(formTitle) formTitle.innerHTML='<i class="fas fa-edit me-2 text-primary"></i>แก้ไขครูประจำชั้น';
     }
     function saveForm(){
-      if(!form) return; var fd=new FormData(form); var id=fieldId&&fieldId.value?fieldId.value:null; var req=id?api.update(id,fd):api.create(fd);
+      if(!form) return; var fd=new FormData(form); var id=fieldId&&fieldId.value?fieldId.value:null;
+      // Creation is disabled. If no id, block and return.
+      if(!id){ alert('ไม่อนุญาตให้เพิ่มห้องเรียนใหม่'); return; }
+      var req=api.update(id,fd);
       req.then(function(r){return r.json();}).then(function(json){
         if(!json.success){ if(json.errors){ Object.keys(json.errors).forEach(function(k){ var input=form.querySelector('[name="'+k+'"]'); if(input) input.classList.add('is-invalid'); }); } throw new Error(json.message||'บันทึกไม่สำเร็จ'); }
         disable(tabs.detail); switchTo('classroom-list-panel'); loadList();
@@ -428,7 +431,7 @@
           var target=btn.getAttribute('data-bs-target'); if(!target) return; e.preventDefault(); switchTo(target.replace('#',''));
         });
       });
-      if(btnAdd){ btnAdd.addEventListener('click', function(){ resetForm(); enable(tabs.form); switchTo('classroom-form-panel'); }); }
+  // Add-class disabled: no handler for btnShowAddClass
       if(searchInput){ searchInput.addEventListener('keypress', function(e){ if(e.key==='Enter'){ e.preventDefault(); state.search=searchInput.value.trim(); state.page=1; loadList(); } }); }
       if(levelFilter){ levelFilter.addEventListener('change', function(){ state.level=levelFilter.value; state.page=1; loadList(); }); }
       
@@ -460,7 +463,7 @@
       if(btnDeleteFromDetail){ btnDeleteFromDetail.addEventListener('click', function(){ if(!state.currentClassId) return; var name=dName?dName.textContent:''; openDelete(state.currentClassId, name); }); }
       if(btnBackToList){ btnBackToList.addEventListener('click', function(){ switchTo('classroom-list-panel'); }); }
       if(btnCancelForm){ btnCancelForm.addEventListener('click', function(){ switchTo('classroom-list-panel'); }); }
-      if(form){ form.addEventListener('submit', function(e){ e.preventDefault(); saveForm(); }); }
+  if(form){ form.addEventListener('submit', function(e){ e.preventDefault(); saveForm(); }); }
       if(btnConfirmDelete){ btnConfirmDelete.addEventListener('click', confirmDelete); }
 
       // Student modal handlers

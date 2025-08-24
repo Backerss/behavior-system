@@ -111,7 +111,6 @@ Route::prefix('api')->middleware('auth')->group(function () {
     // Class routes
     Route::prefix('classes')->group(function () {
         Route::get('/', [ClassroomController::class, 'index']);
-        Route::post('/', [ClassroomController::class, 'store']);
         Route::get('/{id}', [ClassroomController::class, 'show'])->where('id', '[0-9]+');
         Route::put('/{id}', [ClassroomController::class, 'update'])->where('id', '[0-9]+');
         Route::delete('/{id}', [ClassroomController::class, 'destroy'])->where('id', '[0-9]+');

@@ -96,9 +96,6 @@
                             <a href="/login" class="btn btn-primary-app py-2 px-4 rounded-pill fw-medium btn-hover-effect">
                                 <i class="fas fa-sign-in-alt me-2"></i> เข้าสู่ระบบ
                             </a>
-                            <a href="#" class="btn btn-secondary-app py-2 px-4 rounded-pill fw-medium btn-hover-effect">
-                                <i class="fas fa-book me-2"></i> คู่มือการใช้งาน
-                            </a>
                         </div>
                     </div>
                     <div class="col-lg-5 order-1 order-lg-2 text-center position-relative" data-aos="zoom-in">

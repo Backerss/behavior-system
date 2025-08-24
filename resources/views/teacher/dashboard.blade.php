@@ -2317,7 +2317,7 @@ document.addEventListener('DOMContentLoaded', function () {
                             <li class="nav-item" role="presentation">
                                 <button class="nav-link" id="classroom-form-tab" data-bs-toggle="pill" 
                                     data-bs-target="#classroom-form-panel" type="button" role="tab" disabled>
-                                    <i class="fas fa-edit me-2"></i>เพิ่ม/แก้ไขห้องเรียน
+                                    <i class="fas fa-edit me-2"></i>แก้ไขห้องเรียน
                                 </button>
                             </li>
                         </ul>
@@ -2351,13 +2351,7 @@ document.addEventListener('DOMContentLoaded', function () {
                                             <option value="ม.6">ม.6</option>
                                         </select>
                                     </div>
-                                    @if(auth()->user()->users_role === 'admin')
-                                    <div class="col-md-3">
-                                        <button class="btn btn-primary w-100" id="btnShowAddClass">
-                                            <i class="fas fa-plus me-2"></i>เพิ่มห้องเรียนใหม่
-                                        </button>
-                                    </div>
-                                    @endif
+                                    
                                 </div>
 
                                 <!-- Classrooms Grid -->
@@ -2505,7 +2499,7 @@ document.addEventListener('DOMContentLoaded', function () {
                                         <div class="card shadow-sm border-0">
                                             <div class="card-header bg-white border-bottom">
                                                 <h6 class="mb-0" id="formClassTitle">
-                                                    <i class="fas fa-plus me-2 text-primary"></i>เพิ่มห้องเรียนใหม่
+                                                    <i class="fas fa-edit me-2 text-primary"></i>แก้ไขห้องเรียน
                                                 </h6>
                                             </div>
                                             <div class="card-body">

@@ -91,72 +91,7 @@ class ClassroomController extends Controller
         }
     }
 
-    /**
-     * บันทึกข้อมูลห้องเรียนใหม่ (เฉพาะแอดมิน)
-     *
-     * @param Request $request
-     * @return \Illuminate\Http\JsonResponse
-     */
-    public function store(Request $request)
-    {
-        try {
-            // เฉพาะ admin เท่านั้น
-            if (!auth()->check() || auth()->user()->users_role !== 'admin') {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'ไม่มีสิทธิ์ดำเนินการ'
-                ], 403);
-            }
-
-            $validator = Validator::make($request->all(), [
-                'classes_level' => 'required|string|max:10',
-                'classes_room_number' => 'required|string|max:5',
-                'teacher_id' => 'required|exists:tb_teachers,teachers_id',
-            ]);
-
-            if ($validator->fails()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'ข้อมูลไม่ถูกต้อง',
-                    'errors' => $validator->errors()
-                ], 422);
-            }
-              // สร้างห้องเรียนใหม่ - ต้องตรงกับชื่อคอลัมน์ในฐานข้อมูล
-            $classroom = new ClassRoom();
-            $classroom->classes_level = $request->classes_level;
-            $classroom->classes_room_number = $request->classes_room_number;
-            
-            // สำคัญ! ต้องใช้ชื่อฟิลด์ให้ตรงกับในฐานข้อมูล
-            // ถ้าคอลัมน์ในฐานข้อมูลชื่อ "teacher_id"
-            // $classroom->teacher_id = $request->teacher_id;
-            // ถ้าคอลัมน์ในฐานข้อมูลชื่อ "teachers_id"
-            $classroom->teachers_id = $request->teacher_id;
-            
-            $classroom->save();
-            
-            return response()->json([
-                'success' => true,
-                'data' => $classroom,
-                'message' => 'สร้างห้องเรียนสำเร็จ'
-            ], 201);
-            
-        } catch (\Exception $e) {
-            // บันทึก log ข้อผิดพลาดอย่างละเอียด
-            \Log::error('Error saving classroom: ' . $e->getMessage(), [
-                'file' => $e->getFile(),
-                'line' => $e->getLine(),
-                'trace' => $e->getTraceAsString(),
-                'request_data' => $request->all()
-            ]);
-            
-            // ส่งข้อความผิดพลาดกลับไป
-            return response()->json([
-                'success' => false,
-                'message' => 'เกิดข้อผิดพลาดในการสร้างห้องเรียน',
-                'error_details' => $e->getMessage()
-            ], 500);
-        }
-    }
+    // store() removed: add-class feature is fully disabled
 
     /**
      * แสดงข้อมูลห้องเรียนตาม ID
