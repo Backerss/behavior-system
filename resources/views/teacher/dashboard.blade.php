@@ -22,6 +22,31 @@
     <!-- Teacher Dashboard Custom Styles -->
     <link href="/css/teacher-dashboard-styles.css" rel="stylesheet">
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    <style>
+        /* Slightly wider than modal-lg without being full xl */
+        .modal-lg-plus { max-width: 940px; }
+        /* Minimal, formal user detail layout */
+        #userDetailSlider .modal-content { border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); }
+        #userDetailSlider .profile-header { padding: 24px; border-bottom: 1px solid #eee; text-align: center; }
+        #userDetailSlider .profile-header img { box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+        #userDetailSlider .profile-header h5 { margin: 8px 0 4px; font-weight: 600; }
+        #userDetailSlider .profile-header .badge { font-weight: 500; }
+        #userDetailSlider .section { padding: 24px; }
+        #userDetailSlider .section-title { font-size: 14px; color: #6c757d; text-transform: uppercase; letter-spacing: .04em; margin-bottom: 12px; }
+        #userDetailSlider .kv { display: grid; grid-template-columns: 160px 1fr; gap: 8px 16px; align-items: center; font-size: 14px; }
+        #userDetailSlider .kv .k { color: #6c757d; }
+        #userDetailSlider .kv .v { color: #212529; }
+        #userDetailSlider .actions { padding: 16px 24px 28px; display: grid; gap: 8px; }
+        #userDetailSlider .card { transition: all 0.3s ease; }
+        #userDetailSlider .card:hover { transform: translateY(-2px); box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        #userDetailSlider .form-control:focus, #userDetailSlider .form-select:focus { border-color: #0d6efd; box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25); }
+        #userDetailSlider .btn { border-radius: 8px; font-weight: 500; }
+        #userDetailSlider .form-check-input:checked { background-color: #198754; border-color: #198754; }
+        @media (max-width: 576px){
+            #userDetailSlider .kv { grid-template-columns: 1fr; }
+            #userDetailSlider .modal-lg-plus { max-width: 95%; }
+        }
+    </style>
 </head>
 
 <body>
@@ -130,9 +155,23 @@
                                 </button>
                                 <ul class="dropdown-menu shadow-lg border-0" style="border-radius: 12px; overflow: hidden;">
                                     <li>
+                                        <a class="dropdown-item py-3 px-4" href="#" data-bs-toggle="modal" data-bs-target="#userManagementModal" onclick="showUserManagement()">
+                                            <div class="d-flex align-items-center">
+                                                <div class="bg-primary rounded-circle p-2 me-3">
+                                                    <i class="fas fa-users text-white"></i>
+                                                </div>
+                                                <div>
+                                                    <div class="fw-semibold text-dark">จัดการผู้ใช้</div>
+                                                    <small class="text-muted">จัดการบัญชีผู้ใช้ทั้งหมด</small>
+                                                </div>
+                                            </div>
+                                        </a>
+                                    </li>
+                                    <li><hr class="dropdown-divider my-2"></li>
+                                    <li>
                                         <a class="dropdown-item py-3 px-4" href="#" data-bs-toggle="modal" data-bs-target="#excelImportModal">
                                             <div class="d-flex align-items-center">
-                                                <div class="bg-success bg-gradient rounded-circle p-2 me-3">
+                                                <div class="bg-success rounded-circle p-2 me-3">
                                                     <i class="fas fa-file-excel text-white"></i>
                                                 </div>
                                                 <div>
@@ -146,7 +185,7 @@
                                     <li>
                                         <a class="dropdown-item py-3 px-4" href="#" id="btnViewLog">
                                             <div class="d-flex align-items-center">
-                                                <div class="bg-warning bg-gradient rounded-circle p-2 me-3">
+                                                <div class="bg-warning rounded-circle p-2 me-3">
                                                     <i class="fas fa-file-alt text-white"></i>
                                                 </div>
                                                 <div>
@@ -176,7 +215,7 @@
                                         const originalContent = this.querySelector('div').innerHTML;
                                         this.querySelector('div').innerHTML = `
                                             <div class="d-flex align-items-center">
-                                                <div class="bg-warning bg-gradient rounded-circle p-2 me-3">
+                                                <div class="bg-warning rounded-circle p-2 me-3">
                                                     <i class="fas fa-spinner fa-spin text-white"></i>
                                                 </div>
                                                 <div>
@@ -572,6 +611,270 @@
                             <!-- Pagination AJAX logic moved to /js/student-filter.js -->
                         </div>
                     </div>
+
+                    <!-- User Management Modal (Admin Only) -->
+                    @if(auth()->user()->users_role === 'admin')
+                    <div class="modal fade" id="userManagementModal" tabindex="-1" aria-hidden="true">
+                        <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+                                <div class="modal-content" style="border: none; border-radius: 16px; box-shadow: 0 20px 40px rgba(0,0,0,0.1);">
+                                    <!-- Enhanced Header (no gradient) -->
+                                    <div class="modal-header border-0 bg-primary-app text-white" style="border-radius: 16px 16px 0 0;">
+                                    <div class="d-flex align-items-center">
+                                        <div class="bg-white bg-opacity-20 rounded-circle p-2 me-3">
+                                            <i class="fas fa-users-cog fs-4"></i>
+                                        </div>
+                                        <div>
+                                            <h5 class="modal-title mb-0 fw-bold">จัดการบัญชีผู้ใช้</h5>
+                                            <small class="opacity-75">ระบบจัดการข้อมูลผู้ใช้งานทั้งหมด</small>
+                                        </div>
+                                    </div>
+                                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body p-4">
+                                    <!-- Enhanced User Stats -->
+                                    <div class="row mb-4">
+                                        <div class="col-lg-3 col-md-6 mb-3">
+                                            <div class="card border-0 shadow-sm h-100 bg-primary text-white">
+                                                <div class="card-body text-center">
+                                                    <div class="d-flex justify-content-center align-items-center mb-2">
+                                                        <i class="fas fa-users fa-2x"></i>
+                                                    </div>
+                                                    <h4 class="mb-1 fw-bold" id="totalUsersCount">0</h4>
+                                                    <small class="opacity-75">ผู้ใช้ทั้งหมด</small>
+                                                    <div class="mt-2">
+                                                        <small class="badge bg-light text-dark" id="activeUsersCount">0 คนใช้งาน</small>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-lg-3 col-md-6 mb-3">
+                                            <div class="card border-0 shadow-sm h-100 bg-info text-white">
+                                                <div class="card-body text-center">
+                                                    <div class="d-flex justify-content-center align-items-center mb-2">
+                                                        <i class="fas fa-graduation-cap fa-2x"></i>
+                                                    </div>
+                                                    <h4 class="mb-1 fw-bold" id="studentsUserCount">0</h4>
+                                                    <small class="opacity-75">นักเรียน</small>
+                                                    <div class="mt-2">
+                                                        <small class="badge bg-light text-dark" id="avgStudentScore">คะแนนเฉลี่ย: -</small>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-lg-3 col-md-6 mb-3">
+                                            <div class="card border-0 shadow-sm h-100 bg-warning text-dark">
+                                                <div class="card-body text-center">
+                                                    <div class="d-flex justify-content-center align-items-center mb-2">
+                                                        <i class="fas fa-chalkboard-teacher fa-2x"></i>
+                                                    </div>
+                                                    <h4 class="mb-1 fw-bold" id="teachersUserCount">0</h4>
+                                                    <small class="opacity-75">ครู</small>
+                                                    <div class="mt-2">
+                                                        <small class="badge bg-light text-dark" id="homeroomTeacherCount">0 ครูประจำชั้น</small>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-lg-3 col-md-6 mb-3">
+                                            <div class="card border-0 shadow-sm h-100 bg-success text-white">
+                                                <div class="card-body text-center">
+                                                    <div class="d-flex justify-content-center align-items-center mb-2">
+                                                        <i class="fas fa-user-friends fa-2x"></i>
+                                                    </div>
+                                                    <h4 class="mb-1 fw-bold" id="guardiansUserCount">0</h4>
+                                                    <small class="opacity-75">ผู้ปกครอง</small>
+                                                    <div class="mt-2">
+                                                        <small class="badge bg-light text-dark" id="linkedStudentsCount">0 นักเรียนที่เชื่อมโยง</small>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Enhanced User Management Card -->
+                                    <div class="card border-0 shadow-sm">
+                                        <div class="card-header bg-white border-0 py-3">
+                                            <div class="d-flex justify-content-between align-items-center flex-wrap">
+                                                <div class="d-flex align-items-center mb-2 mb-md-0">
+                                                    <i class="fas fa-list-alt text-primary me-2"></i>
+                                                    <h6 class="card-title mb-0 fw-semibold">รายชื่อผู้ใช้ทั้งหมด</h6>
+                                                    <span class="badge bg-primary ms-2" id="userCountBadge">0</span>
+                                                </div>
+                                                <div class="d-flex gap-2 flex-wrap">
+                                                    <div class="input-group" style="min-width: 250px;">
+                                                        <span class="input-group-text bg-light border-end-0">
+                                                            <i class="fas fa-search text-muted"></i>
+                                                        </span>
+                                                        <input type="text" id="userSearchInput" class="form-control border-start-0 border-end-0"
+                                                               placeholder="ค้นหาชื่อ, อีเมล, รหัส..." autocomplete="off">
+                                                        <button type="button" id="userSearchBtn" class="btn btn-primary">
+                                                            ค้นหา
+                                                        </button>
+                                                    </div>
+                                                    <div class="btn-group">
+                                                        <button class="btn btn-outline-secondary" onclick="showUserFilter()" id="filterToggleBtn">
+                                                            <i class="fas fa-filter me-1"></i>ตัวกรอง
+                                                        </button>
+                                                        <button class="btn btn-success" onclick="exportUserData()">
+                                                            <i class="fas fa-file-excel me-1"></i>Export
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Enhanced Filter Bar -->
+                                        <div class="card-body border-bottom bg-light" id="userFilterBar" style="display: none;">
+                                            <div class="row g-3">
+                                                <div class="col-md-2">
+                                                    <label class="form-label small fw-semibold text-muted">บทบาท</label>
+                                                    <select id="roleFilter" class="form-select form-select-sm">
+                                                        <option value="">ทุกบทบาท</option>
+                                                        <option value="admin">👨‍💼 ผู้ดูแลระบบ</option>
+                                                        <option value="teacher">👩‍🏫 ครู</option>
+                                                        <option value="student">🎓 นักเรียน</option>
+                                                        <option value="guardian">👪 ผู้ปกครอง</option>
+                                                    </select>
+                                                </div>
+                                                <div class="col-md-2">
+                                                    <label class="form-label small fw-semibold text-muted">สถานะ</label>
+                                                    <select id="statusFilter" class="form-select form-select-sm">
+                                                        <option value="">ทุกสถานะ</option>
+                                                        <option value="active">🟢 ใช้งาน</option>
+                                                        <option value="inactive">🔴 ปิดใช้งาน</option>
+                                                        <option value="suspended">⏸️ ถูกพัก</option>
+                                                    </select>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <label class="form-label small fw-semibold text-muted">ชั้นเรียน</label>
+                                                    <select id="classroomFilter" class="form-select form-select-sm">
+                                                        <option value="">ทุกชั้นเรียน</option>
+                                                    </select>
+                                                </div>
+                                                <div class="col-md-2">
+                                                    <label class="form-label small fw-semibold text-muted">วันที่สมัคร</label>
+                                                    <input type="date" id="dateFromFilter" class="form-control form-control-sm">
+                                                </div>
+                                                <div class="col-md-2">
+                                                    <label class="form-label small fw-semibold text-muted">ถึงวันที่</label>
+                                                    <input type="date" id="dateToFilter" class="form-control form-control-sm">
+                                                </div>
+                                                <div class="col-md-1">
+                                                    <label class="form-label small">&nbsp;</label>
+                                                    <div class="d-grid gap-1">
+                                                        <button class="btn btn-sm btn-primary" onclick="applyUserFilters()">
+                                                            <i class="fas fa-search"></i>
+                                                        </button>
+                                                        <button class="btn btn-sm btn-outline-secondary" onclick="clearUserFilters()">
+                                                            <i class="fas fa-times"></i>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Enhanced User Table -->
+                                        <div class="card-body p-0">
+                                            <div class="table-responsive">
+                                                <table class="table table-hover align-middle mb-0" id="usersTable">
+                                                    <thead class="table-light">
+                                                        <tr>
+                                                            <th class="border-0 fw-semibold">
+                                                                <div class="d-flex align-items-center">
+                                                                    <i class="fas fa-user me-2 text-primary"></i>
+                                                                    ข้อมูลผู้ใช้
+                                                                </div>
+                                                            </th>
+                                                            <th class="border-0 fw-semibold">
+                                                                <div class="d-flex align-items-center">
+                                                                    <i class="fas fa-id-card me-2 text-success"></i>
+                                                                    รหัส/ตำแหน่ง
+                                                                </div>
+                                                            </th>
+                                                            <th class="border-0 fw-semibold">
+                                                                <div class="d-flex align-items-center">
+                                                                    <i class="fas fa-shield-alt me-2 text-warning"></i>
+                                                                    บทบาท
+                                                                </div>
+                                                            </th>
+                                                            <th class="border-0 fw-semibold">
+                                                                <div class="d-flex align-items-center">
+                                                                    <i class="fas fa-building me-2 text-info"></i>
+                                                                    ชั้น/แผนก
+                                                                </div>
+                                                            </th>
+                                                            <th class="border-0 fw-semibold">
+                                                                <div class="d-flex align-items-center">
+                                                                    <i class="fas fa-toggle-on me-2 text-secondary"></i>
+                                                                    สถานะ
+                                                                </div>
+                                                            </th>
+                                                            <th class="border-0 fw-semibold text-center">
+                                                                <div class="d-flex align-items-center justify-content-center">
+                                                                    <i class="fas fa-cog me-2 text-dark"></i>
+                                                                    การดำเนินการ
+                                                                </div>
+                                                            </th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody id="usersTableBody">
+                                                        <!-- Content will be loaded via AJAX -->
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                            
+                                            <!-- Enhanced Loading State -->
+                                            <div id="usersLoading" class="text-center py-5" style="display: none;">
+                                                <div class="d-flex flex-column align-items-center">
+                                                    <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
+                                                        <span class="visually-hidden">กำลังโหลด...</span>
+                                                    </div>
+                                                    <h6 class="text-muted">กำลังโหลดข้อมูลผู้ใช้...</h6>
+                                                    <small class="text-muted">โปรดรอสักครู่</small>
+                                                </div>
+                                            </div>
+                                            
+                                            <!-- Empty State -->
+                                            <div id="usersEmptyState" class="text-center py-5" style="display: none;">
+                                                <div class="d-flex flex-column align-items-center">
+                                                    <i class="fas fa-users-slash fa-4x text-muted mb-3"></i>
+                                                    <h6 class="text-muted">ไม่พบข้อมูลผู้ใช้</h6>
+                                                    <small class="text-muted">ลองปรับเปลี่ยนเงื่อนไขการค้นหาหรือตัวกรอง</small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Enhanced Footer with Pagination -->
+                                        <div class="card-footer bg-light border-0">
+                                            <div class="d-flex justify-content-between align-items-center flex-wrap">
+                                                <div class="d-flex align-items-center mb-2 mb-md-0">
+                                                    <small class="text-muted">
+                                                        <i class="fas fa-info-circle me-1"></i>
+                                                        แสดง <span id="usersShowingFrom">0</span>-<span id="usersShowingTo">0</span> 
+                                                        จากทั้งหมด <span id="usersTotalCount">0</span> รายการ
+                                                    </small>
+                                                </div>
+                                                <nav id="usersPagination" aria-label="User pagination">
+                                                    <!-- Pagination will be loaded via AJAX -->
+                                                </nav>
+                                                <div class="d-flex align-items-center">
+                                                    <small class="text-muted me-2">แสดงผล:</small>
+                                                    <select id="usersPerPage" class="form-select form-select-sm" style="width: auto;">
+                                                        <option value="10">10</option>
+                                                        <option value="25" selected>25</option>
+                                                        <option value="50">50</option>
+                                                        <option value="100">100</option>
+                                                    </select>
+                                                    <small class="text-muted ms-2">รายการ</small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    @endif
                 </div>
             </div>
         </div>
@@ -2376,7 +2679,7 @@ document.addEventListener('DOMContentLoaded', function () {
                                 <!-- Classroom Header -->
                                 <div class="row mb-4">
                                     <div class="col-12">
-                                        <div class="card border-0 bg-gradient-primary text-white">
+                                        <div class="card border-0 bg-primary text-white">
                                             <div class="card-body text-dark">
                                                 <div class="row align-items-center">
                                                     <div class="col-md-8">
@@ -2625,7 +2928,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     <div id="studentDisplayMode">
                         <div class="row mb-4">
                             <div class="col-12">
-                                <div class="card border-0 bg-gradient-primary text-white">
+                                <div class="card border-0 bg-primary text-white">
                                     <div class="card-body">
                                         <div class="row align-items-center">
                                             <div class="col-md-8">
@@ -3444,6 +3747,14 @@ document.addEventListener('DOMContentLoaded', function () {
     <script src="/js/parent-notification.js"></script>
     <!-- Archived Students JS -->
     <script src="/js/archived-students.js"></script>
+    <!-- User Management JS (Admin only) -->
+    @if(auth()->user()->users_role === 'admin')
+    <script src="/js/user-management.js?v={{ filemtime(public_path('js/user-management.js')) }}"></script>
+    <script>
+        // Set auth user ID for user management
+        window.authUserId = {{ auth()->id() }};
+    </script>
+    @endif
 
 
     <!-- Archived Students Sidebar -->
@@ -3839,6 +4150,775 @@ document.addEventListener('DOMContentLoaded', function () {
             </div>
         </div>
     </div>
+
+    <!-- Enhanced User Detail/Edit Modal -->
+    <div class="modal fade" id="userDetailSlider" tabindex="-1" aria-labelledby="userDetailSliderLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content" style="border: none; border-radius: 16px; box-shadow: 0 20px 40px rgba(0,0,0,0.15);">
+                <div class="modal-header border-0 bg-primary-app text-white">
+                    <div class="d-flex align-items-center text-white">
+                        <div class="bg-white bg-opacity-20 rounded-circle p-2 me-3">
+                            <i class="fas fa-user-circle fs-4"></i>
+                        </div>
+                        <div>
+                            <h5 class="modal-title mb-0 fw-bold" id="userDetailSliderLabel">ข้อมูลผู้ใช้</h5>
+                            <small class="opacity-75">รายละเอียดและการจัดการบัญชี</small>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-0">
+            <!-- Enhanced Loading State -->
+            <div id="userDetailLoading" class="text-center py-5">
+                <div class="d-flex flex-column align-items-center">
+                    <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
+                        <span class="visually-hidden">กำลังโหลด...</span>
+                    </div>
+                    <h6 class="text-muted">กำลังโหลดข้อมูลผู้ใช้...</h6>
+                    <small class="text-muted">โปรดรอสักครู่</small>
+                </div>
+            </div>
+
+            <!-- Error State -->
+            <div id="userDetailError" class="alert alert-danger m-4" style="display: none;">
+                <div class="d-flex align-items-center">
+                    <i class="fas fa-exclamation-triangle fa-2x text-danger me-3"></i>
+                    <div>
+                        <h6 class="mb-1">เกิดข้อผิดพลาด</h6>
+                        <span id="userDetailErrorMessage">ไม่สามารถโหลดข้อมูลได้</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Enhanced View Mode -->
+            <div id="userDetailView" style="display: none;">
+                <!-- Enhanced User Profile Section -->
+                <div class="bg-light p-4 border-bottom">
+                    <div class="row align-items-center">
+                        <div class="col-md-3 text-center">
+                            <div class="position-relative d-inline-block">
+                          <img id="userAvatar" src="" class="rounded-circle border border-4 border-white shadow" 
+                              width="120" height="120" alt="รูปโปรไฟล์" 
+                              style="object-fit: cover; background: #e9ecef;">
+                                <div class="position-absolute bottom-0 end-0 bg-white rounded-circle p-1 shadow">
+                                    <span id="userStatusIcon" class="badge rounded-circle" style="width: 20px; height: 20px;"></span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-9">
+                            <div class="d-flex justify-content-between align-items-start mb-3">
+                                <div>
+                                    <h4 id="userFullName" class="mb-2 fw-bold text-dark"></h4>
+                                    <div class="d-flex flex-wrap gap-2 mb-2">
+                                        <span id="userRoleBadge" class="badge fs-6"></span>
+                                        <span id="userStatusBadge" class="badge fs-6"></span>
+                                    </div>
+                                    <div class="text-muted">
+                                        <i class="fas fa-envelope me-2"></i><span id="userEmailDisplay">-</span>
+                                        <span class="mx-2">•</span>
+                                        <i class="fas fa-phone me-2"></i><span id="userPhoneDisplay">-</span>
+                                    </div>
+                                </div>
+                                <div class="text-end">
+                                    <small class="text-muted d-block">สมาชิกเมื่อ</small>
+                                    <span id="userJoinDate" class="fw-semibold">-</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Enhanced Information Sections -->
+                <div class="p-4">
+                    <!-- General Information Card -->
+                    <div class="card border-0 shadow-sm mb-4">
+                        <div class="card-header bg-white border-0 py-3">
+                            <h6 class="mb-0 fw-bold text-primary">
+                                <i class="fas fa-user me-2"></i>ข้อมูลทั่วไป
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row g-4">
+                                <div class="col-md-6">
+                                    <div class="info-item">
+                                        <label class="info-label">
+                                            <i class="fas fa-envelope text-primary me-2"></i>อีเมล
+                                        </label>
+                                        <div class="info-value" id="userEmail">-</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="info-item">
+                                        <label class="info-label">
+                                            <i class="fas fa-phone text-success me-2"></i>เบอร์โทรศัพท์
+                                        </label>
+                                        <div class="info-value" id="userPhone">-</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="info-item">
+                                        <label class="info-label">
+                                            <i class="fas fa-birthday-cake text-warning me-2"></i>วันเกิด
+                                        </label>
+                                        <div class="info-value" id="userBirthdate">-</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="info-item">
+                                        <label class="info-label">
+                                            <i class="fas fa-toggle-on text-info me-2"></i>สถานะบัญชี
+                                        </label>
+                                        <div class="info-value" id="userStatus">-</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Student Information Card -->
+                    <div id="studentDetails" class="card border-0 shadow-sm mb-4" style="display: none;">
+                        <div class="card-header bg-info bg-opacity-10 border-0 py-3">
+                            <h6 class="mb-0 fw-bold text-info">
+                                <i class="fas fa-graduation-cap me-2"></i>ข้อมูลนักเรียน
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row g-4">
+                                <div class="col-md-4">
+                                    <div class="info-item">
+                                        <label class="info-label">
+                                            <i class="fas fa-id-card text-info me-2"></i>รหัสนักเรียน
+                                        </label>
+                                        <div class="info-value" id="studentCode">-</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="info-item">
+                                        <label class="info-label">
+                                            <i class="fas fa-school text-info me-2"></i>ชั้นเรียน
+                                        </label>
+                                        <div class="info-value" id="studentClassroom">-</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="info-item">
+                                        <label class="info-label">
+                                            <i class="fas fa-venus-mars text-info me-2"></i>เพศ
+                                        </label>
+                                        <div class="info-value" id="studentGender">-</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="info-item">
+                                        <label class="info-label">
+                                            <i class="fas fa-star text-warning me-2"></i>คะแนนปัจจุบัน
+                                        </label>
+                                        <div class="info-value">
+                                            <span id="studentScore" class="badge bg-primary fs-6">-</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="info-item">
+                                        <label class="info-label">
+                                            <i class="fas fa-flag text-danger me-2"></i>สถานะนักเรียน
+                                        </label>
+                                        <div class="info-value" id="studentStatus">-</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="info-item">
+                                        <label class="info-label">
+                                            <i class="fas fa-calendar text-secondary me-2"></i>ปีการศึกษา
+                                        </label>
+                                        <div class="info-value" id="studentAcademicYear">-</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Teacher Information Card -->
+                    <div id="teacherDetails" class="card border-0 shadow-sm mb-4" style="display: none;">
+                        <div class="card-header bg-warning bg-opacity-10 border-0 py-3">
+                            <h6 class="mb-0 fw-bold text-warning">
+                                <i class="fas fa-chalkboard-teacher me-2"></i>ข้อมูลครู
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row g-4">
+                                <div class="col-md-4">
+                                    <div class="info-item">
+                                        <label class="info-label">
+                                            <i class="fas fa-id-badge text-warning me-2"></i>รหัสพนักงาน
+                                        </label>
+                                        <div class="info-value" id="teacherEmployeeId">-</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="info-item">
+                                        <label class="info-label">
+                                            <i class="fas fa-user-tie text-warning me-2"></i>ตำแหน่ง
+                                        </label>
+                                        <div class="info-value" id="teacherPosition">-</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="info-item">
+                                        <label class="info-label">
+                                            <i class="fas fa-building text-warning me-2"></i>แผนก
+                                        </label>
+                                        <div class="info-value" id="teacherDepartment">-</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="info-item">
+                                        <label class="info-label">
+                                            <i class="fas fa-book text-warning me-2"></i>สาขา/วิชาเอก
+                                        </label>
+                                        <div class="info-value" id="teacherMajor">-</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="info-item">
+                                        <label class="info-label">
+                                            <i class="fas fa-users text-warning me-2"></i>ชั้นที่รับผิดชอบ
+                                        </label>
+                                        <div class="info-value" id="teacherAssignedClass">-</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="info-item">
+                                        <label class="info-label">
+                                            <i class="fas fa-star text-warning me-2"></i>สถานะพิเศษ
+                                        </label>
+                                        <div class="info-value" id="teacherHomeroomStatus">-</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Guardian Information Card -->
+                    <div id="guardianDetails" class="card border-0 shadow-sm mb-4" style="display: none;">
+                        <div class="card-header bg-success bg-opacity-10 border-0 py-3">
+                            <h6 class="mb-0 fw-bold text-success">
+                                <i class="fas fa-user-friends me-2"></i>ข้อมูลผู้ปกครอง
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row g-4">
+                                <div class="col-md-6">
+                                    <div class="info-item">
+                                        <label class="info-label">
+                                            <i class="fas fa-birthday-cake text-success me-2"></i>วันเกิด
+                                        </label>
+                                        <div class="info-value" id="guardianBirthdate">-</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="info-item">
+                                        <label class="info-label">
+                                            <i class="fas fa-heart text-success me-2"></i>ความสัมพันธ์
+                                        </label>
+                                        <div class="info-value" id="guardianRelationship">-</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="info-item">
+                                        <label class="info-label">
+                                            <i class="fas fa-phone text-success me-2"></i>เบอร์ติดต่อ
+                                        </label>
+                                        <div class="info-value" id="guardianPhone">-</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="info-item">
+                                        <label class="info-label">
+                                            <i class="fas fa-envelope text-success me-2"></i>อีเมลผู้ปกครอง
+                                        </label>
+                                        <div class="info-value" id="guardianEmail">-</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="info-item">
+                                        <label class="info-label">
+                                            <i class="fab fa-line text-success me-2"></i>Line ID
+                                        </label>
+                                        <div class="info-value" id="guardianLineId">-</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="info-item">
+                                        <label class="info-label">
+                                            <i class="fas fa-comments text-success me-2"></i>ช่องทางติดต่อที่สะดวก
+                                        </label>
+                                        <div class="info-value" id="guardianPreferredContact">-</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="info-item">
+                                        <label class="info-label">
+                                            <i class="fas fa-graduation-cap text-success me-2"></i>นักเรียนที่ดูแล
+                                        </label>
+                                        <div class="info-value" id="guardianStudentsCount">
+                                            <span class="badge bg-success">0 คน</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Linked Students Display -->
+                            <div id="guardianLinkedStudentsDisplay" style="display: none;">
+                                <hr class="my-4">
+                                <h6 class="mb-3">
+                                    <i class="fas fa-link me-2 text-success"></i>นักเรียนที่เชื่อมโยง
+                                </h6>
+                                <div id="guardianStudentsList" class="row g-3">
+                                    <!-- Students will be displayed here -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Enhanced Actions -->
+                <div class="bg-light p-4 border-top">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+                        <div class="d-flex flex-wrap gap-2">
+                            <button class="btn btn-primary" onclick="switchToEditMode()">
+                                <i class="fas fa-edit me-2"></i>แก้ไขข้อมูล
+                            </button>
+                            <button class="btn btn-outline-info" onclick="toggleUserStatus()">
+                                <i class="fas fa-toggle-on me-2"></i>เปลี่ยนสถานะ
+                            </button>
+                            <button class="btn btn-outline-warning" onclick="resetUserPassword()">
+                                <i class="fas fa-key me-2"></i>รีเซ็ตรหัสผ่าน
+                            </button>
+                        </div>
+                        <div>
+                            <button class="btn btn-outline-danger" id="deleteUserBtn" onclick="confirmDeleteUser()">
+                                <i class="fas fa-trash me-2"></i>ลบผู้ใช้
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Edit Mode -->
+            <div id="userDetailEdit" style="display: none;">
+                <form id="userEditForm" class="p-0">
+                    <input type="hidden" id="editUserId">
+
+                    <!-- Header Section removed to avoid double header; title comes from modal header -->
+
+                    <!-- Form Content -->
+                    <div class="p-4">
+                        <!-- ข้อมูลพื้นฐาน Card -->
+                        <div class="card border-0 shadow-sm mb-4">
+                            <div class="card-header bg-light border-0 py-3">
+                                <h6 class="mb-0 text-primary">
+                                    <i class="fas fa-user me-2"></i>ข้อมูลพื้นฐาน
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-semibold">
+                                            <i class="fas fa-signature me-1 text-primary"></i>ชื่อ 
+                                            <span class="text-danger">*</span>
+                                        </label>
+                                        <input type="text" class="form-control" id="editUserFirstName" name="users_first_name" required>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-semibold">
+                                            <i class="fas fa-signature me-1 text-primary"></i>นามสกุล 
+                                            <span class="text-danger">*</span>
+                                        </label>
+                                        <input type="text" class="form-control" id="editUserLastName" name="users_last_name" required>
+                                    </div>
+                                    <div class="col-6" style="display:none;">
+                                        <label class="form-label">ชื่อผู้ใช้ *</label>
+                                        <input type="text" class="form-control" id="editUserUsernameField" name="users_username">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-semibold">
+                                            <i class="fas fa-envelope me-1 text-primary"></i>อีเมล
+                                        </label>
+                                        <input type="email" class="form-control" id="editUserEmailField" name="users_email" placeholder="example@email.com">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-semibold">
+                                            <i class="fas fa-phone me-1 text-primary"></i>เบอร์โทรศัพท์
+                                        </label>
+                                        <input type="text" class="form-control" id="editUserPhone" name="users_phone_number" placeholder="08X-XXX-XXXX">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-semibold">
+                                            <i class="fas fa-calendar me-1 text-primary"></i>วันเกิด
+                                        </label>
+                                        <input type="date" class="form-control" id="editUserBirthdate" name="users_birthdate">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-semibold">
+                                            <i class="fas fa-key me-1 text-primary"></i>รหัสผ่านใหม่
+                                        </label>
+                                        <input type="password" class="form-control" id="editUserPassword" name="new_password" placeholder="เว้นว่างหากไม่ต้องการเปลี่ยน">
+                                        <small class="text-muted">หากไม่ต้องการเปลี่ยนรหัสผ่าน ให้เว้นว่างไว้</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- สถานะบัญชี Card -->
+                        <div class="card border-0 shadow-sm mb-4">
+                            <div class="card-header bg-light border-0 py-3">
+                                <h6 class="mb-0 text-primary">
+                                    <i class="fas fa-toggle-on me-2"></i>สถานะบัญชี
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="editUserActive" name="users_active" value="1" style="transform: scale(1.2);">
+                                    <label class="form-check-label fw-semibold ms-2" for="editUserActive">
+                                        <i class="fas fa-user-check me-1 text-success"></i>เปิดใช้งานบัญชี
+                                    </label>
+                                </div>
+                                <small class="text-muted">เมื่อปิดใช้งาน ผู้ใช้จะไม่สามารถเข้าสู่ระบบได้</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Role-specific edit fields -->
+                    <div id="editStudentFields" style="display: none;">
+                        <div class="p-4 pt-0">
+                            <div class="card border-0 shadow-sm mb-4">
+                                <div class="card-header bg-info bg-opacity-10 border-0 py-3">
+                                    <h6 class="mb-0 text-info">
+                                        <i class="fas fa-graduation-cap me-2"></i>ข้อมูลนักเรียน
+                                    </h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row g-3">
+                                        <div class="col-md-6">
+                                            <label class="form-label fw-semibold">
+                                                <i class="fas fa-id-card me-1 text-info"></i>รหัสนักเรียน 
+                                                <span class="text-danger">*</span>
+                                            </label>
+                                            <input type="text" class="form-control" id="editStudentCode" name="students_student_code" placeholder="เช่น 6500142">
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label fw-semibold">
+                                                <i class="fas fa-school me-1 text-info"></i>ชั้นเรียน 
+                                                <span class="text-danger">*</span>
+                                            </label>
+                                            <select class="form-select" id="editStudentClassroom" name="class_id">
+                                                <option value="">เลือกชั้นเรียน</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label fw-semibold">
+                                                <i class="fas fa-venus-mars me-1 text-info"></i>เพศ
+                                            </label>
+                                            <select class="form-select" id="editStudentGender" name="students_gender">
+                                                <option value="">ไม่ระบุ</option>
+                                                <option value="male">ชาย</option>
+                                                <option value="female">หญิง</option>
+                                                <option value="other">อื่นๆ</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label fw-semibold">
+                                                <i class="fas fa-user-check me-1 text-info"></i>สถานะนักเรียน
+                                            </label>
+                                            <select class="form-select" id="editStudentStatus" name="students_status">
+                                                <option value="active">กำลังศึกษา</option>
+                                                <option value="suspended">พักการศึกษา</option>
+                                                <option value="expelled">พ้นสภาพ/ลาออก</option>
+                                                <option value="graduate">จบการศึกษา</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label fw-semibold">
+                                                <i class="fas fa-star me-1 text-info"></i>คะแนนปัจจุบัน
+                                            </label>
+                                            <input type="number" class="form-control" id="editStudentScore" name="students_current_score" min="0" step="1" placeholder="เช่น 100">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="editTeacherFields" style="display: none;">
+                        <div class="p-4 pt-0">
+                            <div class="card border-0 shadow-sm mb-4">
+                                <div class="card-header bg-warning bg-opacity-10 border-0 py-3">
+                                    <h6 class="mb-0 text-warning">
+                                        <i class="fas fa-chalkboard-teacher me-2"></i>ข้อมูลครู
+                                    </h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row g-3">
+                                        <div class="col-md-6">
+                                            <label class="form-label fw-semibold">
+                                                <i class="fas fa-id-badge me-1 text-warning"></i>รหัสพนักงาน
+                                            </label>
+                                            <input type="text" class="form-control" id="editTeacherEmployeeId" name="teachers_employee_code" placeholder="เช่น T001">
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label fw-semibold">
+                                                <i class="fas fa-user-tie me-1 text-warning"></i>ตำแหน่ง
+                                            </label>
+                                            <input type="text" class="form-control" id="editTeacherPosition" name="teachers_position" placeholder="เช่น ครูชำนาญการ">
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label fw-semibold">
+                                                <i class="fas fa-building me-1 text-warning"></i>แผนก
+                                            </label>
+                                            <input type="text" class="form-control" id="editTeacherDepartment" name="teachers_department" placeholder="เช่น ฝ่ายวิชาการ">
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label fw-semibold">
+                                                <i class="fas fa-book me-1 text-warning"></i>สาขา/วิชาเอก
+                                            </label>
+                                            <input type="text" class="form-control" id="editTeacherMajor" name="teachers_major" placeholder="เช่น คณิตศาสตร์">
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label fw-semibold">
+                                                <i class="fas fa-users me-1 text-warning"></i>ชั้นเรียนที่รับผิดชอบ
+                                            </label>
+                                            <select class="form-select" id="editTeacherAssignedClass" name="assigned_class_id">
+                                                <option value="">ไม่กำหนด</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label fw-semibold d-block">
+                                                <i class="fas fa-star me-1 text-warning"></i>สถานะพิเศษ
+                                            </label>
+                                            <div class="form-check form-switch mt-2">
+                                                <input class="form-check-input" type="checkbox" id="editTeacherIsHomeroom" name="teachers_is_homeroom_teacher" value="1" style="transform: scale(1.2);">
+                                                <label class="form-check-label fw-semibold ms-2" for="editTeacherIsHomeroom">
+                                                    <i class="fas fa-home me-1 text-success"></i>ครูประจำชั้น
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="editGuardianFields" style="display: none;">
+                        <div class="p-4 pt-0">
+                            <div class="card border-0 shadow-sm mb-4">
+                                <div class="card-header bg-success bg-opacity-10 border-0 py-3">
+                                    <h6 class="mb-0 text-success">
+                                        <i class="fas fa-user-friends me-2"></i>ข้อมูลผู้ปกครอง
+                                    </h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row g-3 mb-3">
+                                        <div class="col-md-6">
+                                            <label class="form-label fw-semibold">
+                                                <i class="fas fa-heart me-1 text-success"></i>ความสัมพันธ์กับนักเรียน
+                                            </label>
+                                            <input type="text" class="form-control" id="editGuardianRelationship" name="guardians_relationship_to_student" placeholder="เช่น บิดา มารดา ผู้ปกครอง">
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label fw-semibold">
+                                                <i class="fas fa-envelope me-1 text-success"></i>อีเมลผู้ปกครอง
+                                            </label>
+                                            <input type="email" class="form-control" id="editGuardianEmail" name="guardians_email" placeholder="parent@email.com">
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label fw-semibold">
+                                                <i class="fas fa-phone me-1 text-success"></i>เบอร์โทรผู้ปกครอง
+                                            </label>
+                                            <input type="text" class="form-control" id="editGuardianPhone" name="guardians_phone" placeholder="08X-XXX-XXXX">
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label fw-semibold">
+                                                <i class="fab fa-line me-1 text-success"></i>Line ID
+                                            </label>
+                                            <input type="text" class="form-control" id="editGuardianLineId" name="guardians_line_id" placeholder="@line_id">
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label fw-semibold">
+                                                <i class="fas fa-comments me-1 text-success"></i>ช่องทางติดต่อที่สะดวก
+                                            </label>
+                                            <select class="form-select" id="editGuardianPreferredContact" name="guardians_preferred_contact_method">
+                                                <option value="">ไม่ระบุ</option>
+                                                <option value="phone">โทรศัพท์</option>
+                                                <option value="email">อีเมล</option>
+                                                <option value="line">LINE</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <div class="border-top pt-3">
+                                        <label class="form-label fw-semibold">
+                                            <i class="fas fa-graduation-cap me-1 text-success"></i>นักเรียนที่ดูแล
+                                        </label>
+                                        <div class="mb-3 d-flex flex-wrap gap-2" id="guardianLinkedStudents"></div>
+                                        <div class="position-relative">
+                                            <input type="text" class="form-control" id="guardianStudentSearch" placeholder="พิมพ์รหัสหรือชื่อเพื่อค้นหานักเรียน...">
+                                            <div id="guardianStudentDropdown" class="list-group position-absolute w-100" style="z-index:1056; display:none; max-height:240px; overflow:auto;"></div>
+                                        </div>
+                                        <small class="text-muted">
+                                            <i class="fas fa-info-circle me-1"></i>สามารถเพิ่มได้หลายคน กดเลือกจากรายการที่ค้นหา
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Action Buttons -->
+                    <div class="p-4 bg-light rounded-bottom">
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-success btn-lg shadow-sm">
+                                <i class="fas fa-save me-2"></i>บันทึกการเปลี่ยนแปลง
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary" onclick="switchToViewMode()">
+                                <i class="fas fa-eye me-2"></i>กลับไปดูข้อมูล
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+                </div>
+                <div class="modal-footer d-none"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Enhanced CSS for User Management -->
+    <style>
+        /* User Management Modal Enhancements */
+        .modal-xl {
+            max-width: 1200px;
+        }
+        
+        .modal-lg-plus {
+            max-width: 900px;
+        }
+        
+        /* Info Item Styling */
+        .info-item {
+            padding: 12px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #dee2e6;
+            transition: all 0.3s ease;
+        }
+        
+        .info-item:hover {
+            background: #e9ecef;
+            border-left-color: #667eea;
+            transform: translateY(-1px);
+        }
+        
+        .info-label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #6c757d;
+            margin-bottom: 4px;
+            display: block;
+        }
+        
+        .info-value {
+            font-size: 0.95rem;
+            color: #212529;
+            font-weight: 500;
+        }
+        
+        /* Enhanced Card Styling */
+        .card {
+            transition: all 0.3s ease;
+        }
+        
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1) !important;
+        }
+        
+        /* User Table Enhancements */
+        #usersTable thead th {
+            font-weight: 600;
+            font-size: 0.9rem;
+            letter-spacing: 0.5px;
+            padding: 16px 12px;
+        }
+        
+        #usersTable tbody td {
+            padding: 16px 12px;
+            vertical-align: middle;
+        }
+        
+        #usersTable tbody tr:hover {
+            background-color: rgba(102, 126, 234, 0.05);
+            transform: scale(1.002);
+            transition: all 0.2s ease;
+        }
+        
+        /* Badge Enhancements */
+        .badge {
+            font-weight: 500;
+            letter-spacing: 0.5px;
+        }
+        
+        /* User Avatar Enhancements */
+        .rounded-circle {
+            border: 3px solid #fff;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        
+        /* Filter Toggle Animation */
+        #filterToggleBtn.active {
+            background-color: #667eea;
+            border-color: #667eea;
+            color: white;
+        }
+        
+        /* Enhanced Search Input */
+        #userSearchInput:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+        }
+        
+        /* Loading Animation */
+        .spinner-border {
+            border-width: 3px;
+        }
+        
+        /* Status Badges */
+    .status-active { background: #28a745; }
+    .status-inactive { background: #dc3545; }
+    .status-suspended { background: #ffc107; color: #212529; }
+        
+        /* Role Badges */
+    .role-admin { background: #6f42c1; }
+    .role-teacher { background: #fd7e14; }
+    .role-student { background: #20c997; }
+    .role-guardian { background: #0dcaf0; }
+        
+        /* Responsive Improvements */
+        @media (max-width: 768px) {
+            .modal-xl, .modal-lg-plus {
+                max-width: 95%;
+                margin: 10px auto;
+            }
+            
+            .info-item {
+                margin-bottom: 10px;
+            }
+            
+            .d-flex.gap-2 {
+                gap: 8px !important;
+            }
+        }
+    </style>
 
 </body>
 

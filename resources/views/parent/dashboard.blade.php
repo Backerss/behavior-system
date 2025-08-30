@@ -1104,6 +1104,5 @@
             // Initialize
             showAllStudentsView();
         });
-    </script>
 </body>
 </html>

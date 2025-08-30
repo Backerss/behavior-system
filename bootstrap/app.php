@@ -14,6 +14,7 @@ return Application::configure(basePath: dirname(__DIR__))
         // เพิ่ม middleware สำหรับจัดการ JSON response ที่สะอาด
         $middleware->alias([
             'clean.json' => \App\Http\Middleware\CleanJsonResponse::class,
+            'admin' => \App\Http\Middleware\AdminMiddleware::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

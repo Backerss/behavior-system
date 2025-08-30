@@ -110,7 +110,8 @@ Route::prefix('api')->middleware('auth')->group(function () {
     
     // Class routes
     Route::prefix('classes')->group(function () {
-        Route::get('/', [ClassroomController::class, 'index']);
+    Route::get('/', [ClassroomController::class, 'index']);
+    Route::get('/all', [ClassroomController::class, 'all']);
         Route::get('/{id}', [ClassroomController::class, 'show'])->where('id', '[0-9]+');
         Route::put('/{id}', [ClassroomController::class, 'update'])->where('id', '[0-9]+');
         Route::delete('/{id}', [ClassroomController::class, 'destroy'])->where('id', '[0-9]+');
@@ -132,6 +133,25 @@ Route::prefix('api')->middleware('auth')->group(function () {
     
     // เพิ่มบรรทัดนี้
     Route::get('/students/{id}/report', [App\Http\Controllers\API\StudentReportController::class, 'generatePDF'])->middleware('auth');
+    
+    // User Management API routes (Admin only)
+    Route::middleware(['admin'])->prefix('users')->group(function () {
+        Route::get('/', [App\Http\Controllers\API\UserApiController::class, 'index']);
+        Route::get('/export', [App\Http\Controllers\API\UserApiController::class, 'export']);
+        Route::get('/{id}', [App\Http\Controllers\API\UserApiController::class, 'show']);
+        // Frontend uses POST for update
+        Route::post('/{id}', [App\Http\Controllers\API\UserApiController::class, 'update']);
+        Route::delete('/{id}', [App\Http\Controllers\API\UserApiController::class, 'destroy']);
+        // Frontend uses POST for toggle
+        Route::post('/{id}/toggle-status', [App\Http\Controllers\API\UserApiController::class, 'toggleStatus']);
+        Route::post('/{id}/reset-password', [App\Http\Controllers\API\UserApiController::class, 'resetPassword']);
+
+    // Guardian student linking (admin managing guardian accounts)
+    Route::get('/{id}/guardian/students', [App\Http\Controllers\API\UserApiController::class, 'getGuardianStudents']);
+    Route::get('/{id}/guardian/students/search', [App\Http\Controllers\API\UserApiController::class, 'searchStudents']);
+    Route::post('/{id}/guardian/students', [App\Http\Controllers\API\UserApiController::class, 'linkGuardianStudent']);
+    Route::delete('/{id}/guardian/students/{studentId}', [App\Http\Controllers\API\UserApiController::class, 'unlinkGuardianStudent']);
+    });
 });
 
 // เพิ่ม Route สำหรับรายงาน
@@ -180,4 +200,7 @@ Route::prefix('api/parent')->middleware('auth')->group(function () {
     Route::get('/student/{id}/reports', [ParentController::class, 'getStudentBehaviorReports']);
     Route::get('/student/{id}/stats', [ParentController::class, 'getStudentBehaviorStats']);
     Route::get('/student/{id}/chart', [ParentController::class, 'getStudentScoreChart']);
+
+    // Guardian linked students (read-only for parents)
+    Route::get('/guardian/students', [ParentController::class, 'getGuardianStudents']);
 });

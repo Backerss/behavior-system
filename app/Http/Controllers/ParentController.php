@@ -11,6 +11,7 @@ use App\Models\BehaviorReport;
 use App\Models\Notification;
 use App\Models\ClassRoom;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
 
 class ParentController extends Controller
 {
@@ -90,6 +91,84 @@ class ParentController extends Controller
             });
 
         return view('parent.dashboard', compact('user', 'studentsData', 'notifications'));
+    }
+
+    // ========== Guardian manage students APIs ==========
+    public function getGuardianStudents(Request $request)
+    {
+        $user = Auth::user();
+        if ($user->users_role !== 'guardian') {
+            return response()->json(['success' => false, 'message' => 'ไม่อนุญาต'], 403);
+        }
+        $guardian = Guardian::where('user_id', $user->users_id)->first();
+        if (!$guardian) {
+            return response()->json(['success' => true, 'data' => []]);
+        }
+        $students = Student::whereHas('guardians', function($q) use ($guardian){
+                $q->where('guardian_id', $guardian->guardians_id);
+            })
+            ->with(['user','classroom'])
+            ->orderBy('students_student_code')
+            ->get()
+            ->map(function($s){
+                return [
+                    'id' => $s->students_id,
+                    'code' => $s->students_student_code,
+                    'name' => ($s->user->users_name_prefix ?? '').($s->user->users_first_name ?? '').' '.($s->user->users_last_name ?? ''),
+                    'class' => $s->classroom ? ($s->classroom->classes_level.'/'.$s->classroom->classes_room_number) : '-',
+                ];
+            });
+        return response()->json(['success' => true, 'data' => $students]);
+    }
+
+    public function searchStudents(Request $request)
+    {
+        $user = Auth::user();
+        if ($user->users_role !== 'guardian') {
+            return response()->json(['success' => false, 'message' => 'ไม่อนุญาต'], 403);
+        }
+        $term = trim($request->get('q',''));
+        if ($term === '') {
+            return response()->json(['success' => true, 'data' => []]);
+        }
+        $students = Student::with(['user','classroom'])
+            ->where(function($q) use ($term){
+                $q->where('students_student_code', 'LIKE', "%$term%")
+                  ->orWhereHas('user', function($uq) use ($term){
+                      $uq->where(DB::raw("CONCAT(users_first_name,' ',users_last_name)"), 'LIKE', "%$term%")
+                         ->orWhere('users_first_name', 'LIKE', "%$term%")
+                         ->orWhere('users_last_name', 'LIKE', "%$term%")
+                         ->orWhere('users_email', 'LIKE', "%$term%");
+                  });
+            })
+            ->orderBy('students_student_code')
+            ->limit(15)
+            ->get()
+            ->map(function($s){
+                return [
+                    'id' => $s->students_id,
+                    'code' => $s->students_student_code,
+                    'name' => ($s->user->users_name_prefix ?? '').($s->user->users_first_name ?? '').' '.($s->user->users_last_name ?? ''),
+                    'class' => $s->classroom ? ($s->classroom->classes_level.'/'.$s->classroom->classes_room_number) : '-',
+                ];
+            });
+        return response()->json(['success' => true, 'data' => $students]);
+    }
+
+    public function linkStudent(Request $request)
+    {
+        return response()->json([
+            'success' => false,
+            'message' => 'เฉพาะผู้ดูแลระบบเท่านั้นที่สามารถเพิ่มการเชื่อมโยงนักเรียนได้'
+        ], 403);
+    }
+
+    public function unlinkStudent($studentId)
+    {
+        return response()->json([
+            'success' => false,
+            'message' => 'เฉพาะผู้ดูแลระบบเท่านั้นที่สามารถลบนักเรียนที่เชื่อมโยงได้'
+        ], 403);
     }
 
     /**
