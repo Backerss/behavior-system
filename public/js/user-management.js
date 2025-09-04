@@ -1028,54 +1028,7 @@ class UserManagement {
         }
     }
 
-    async exportUserData() {
-        const result = await Swal.fire({
-            title: 'ส่งออกข้อมูล?',
-            text: 'ต้องการส่งออกข้อมูลผู้ใช้ทั้งหมดเป็นไฟล์ Excel?',
-            icon: 'question',
-            showCancelButton: true,
-            confirmButtonText: 'ส่งออก',
-            cancelButtonText: 'ยกเลิก'
-        });
-
-        if (result.isConfirmed) {
-            try {
-                Swal.fire({
-                    title: 'กำลังสร้างไฟล์...',
-                    text: 'โปรดรอสักครู่',
-                    allowOutsideClick: false,
-                    showConfirmButton: false,
-                    willOpen: () => {
-                        Swal.showLoading();
-                    }
-                });
-
-                const params = new URLSearchParams(this.currentFilters);
-                const response = await fetch(`/api/users/export?${params}`);
-                
-                if (response.ok) {
-                    const blob = await response.blob();
-                    const url = window.URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = `users_${new Date().toISOString().split('T')[0]}.xlsx`;
-                    document.body.appendChild(a);
-                    a.click();
-                    window.URL.revokeObjectURL(url);
-                    document.body.removeChild(a);
-                    
-                    Swal.close();
-                    this.showSuccess('ส่งออกข้อมูลเรียบร้อยแล้ว');
-                } else {
-                    Swal.close();
-                    this.showError('ไม่สามารถส่งออกข้อมูลได้');
-                }
-            } catch (error) {
-                Swal.close();
-                this.showError('เกิดข้อผิดพลาดในการส่งออกข้อมูล');
-            }
-        }
-    }
+    // export functionality removed per requirements
 
     // Enhanced filter functions
     showUserFilter() {
@@ -1176,11 +1129,7 @@ function clearUserFilters() {
     }
 }
 
-function exportUserData() {
-    if (userManager) {
-        userManager.exportUserData();
-    }
-}
+// exportUserData removed
 
 function switchToEditMode() {
     if (userManager) {

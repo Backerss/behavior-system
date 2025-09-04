@@ -137,7 +137,6 @@ Route::prefix('api')->middleware('auth')->group(function () {
     // User Management API routes (Admin only)
     Route::middleware(['admin'])->prefix('users')->group(function () {
         Route::get('/', [App\Http\Controllers\API\UserApiController::class, 'index']);
-        Route::get('/export', [App\Http\Controllers\API\UserApiController::class, 'export']);
         Route::get('/{id}', [App\Http\Controllers\API\UserApiController::class, 'show']);
         // Frontend uses POST for update
         Route::post('/{id}', [App\Http\Controllers\API\UserApiController::class, 'update']);

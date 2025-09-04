@@ -715,9 +715,6 @@
                                                         <button class="btn btn-outline-secondary" onclick="showUserFilter()" id="filterToggleBtn">
                                                             <i class="fas fa-filter me-1"></i>ตัวกรอง
                                                         </button>
-                                                        <button class="btn btn-success" onclick="exportUserData()">
-                                                            <i class="fas fa-file-excel me-1"></i>Export
-                                                        </button>
                                                     </div>
                                                 </div>
                                             </div>
