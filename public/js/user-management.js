@@ -474,10 +474,13 @@ class UserManagement {
     }
 
     async loadUserDetails(userId) {
-        const loadingDiv = document.getElementById('userDetailLoading');
-        const errorDiv = document.getElementById('userDetailError');
-        const viewDiv = document.getElementById('userDetailView');
-        const editDiv = document.getElementById('userDetailEdit');
+    const loadingDiv = document.getElementById('userDetailLoading');
+    const errorDiv = document.getElementById('userDetailError');
+    const viewDiv = document.getElementById('userDetailView');
+    const editDiv = document.getElementById('userDetailEdit');
+
+    const wasViewVisible = viewDiv.style.display !== 'none';
+    const wasEditVisible = editDiv.style.display !== 'none';
 
         // Reset states
         loadingDiv.style.display = 'block';
@@ -494,6 +497,11 @@ class UserManagement {
             if (data.success) {
                 this.currentUser = data.user;
                 await this.populateUserDetails();
+                if (wasEditVisible) {
+                    this.switchToEditMode();
+                } else if (wasViewVisible) {
+                    this.switchToViewMode();
+                }
             } else {
                 throw new Error(data.message || 'Failed to load user details');
             }
@@ -956,8 +964,8 @@ class UserManagement {
         if (!this.currentUser) return;
         
         const user = this.currentUser;
-        const currentStatus = user.users_status;
-        const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
+    const currentStatus = user.users_status;
+    const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
         
         const result = await Swal.fire({
             title: 'เปลี่ยนสถานะผู้ใช้?',
@@ -970,18 +978,18 @@ class UserManagement {
 
         if (result.isConfirmed) {
             try {
-                const response = await fetch(`/api/users/${user.users_id}`, {
-                    method: 'PATCH',
+                const response = await fetch(`/api/users/${user.users_id}/toggle-status`, {
+                    method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                         'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content
-                    },
-                    body: JSON.stringify({ users_status: newStatus })
+                    }
                 });
 
                 const data = await response.json();
                 if (data.success) {
-                    this.showSuccess('เปลี่ยนสถานะเรียบร้อยแล้ว');
+                    const successMessage = data.message || 'เปลี่ยนสถานะเรียบร้อยแล้ว';
+                    this.showSuccess(successMessage);
                     this.loadUserDetails(user.users_id);
                     this.loadUsers(this.currentPage);
                 } else {
@@ -999,7 +1007,7 @@ class UserManagement {
         const user = this.currentUser;
         const result = await Swal.fire({
             title: 'รีเซ็ตรหัสผ่าน?',
-            text: `ต้องการรีเซ็ตรหัสผ่านของ "${user.users_first_name} ${user.users_last_name}"?\nรหัสผ่านใหม่จะถูกส่งไปยังอีเมล`,
+            text: `ต้องการรีเซ็ตรหัสผ่านของ "${user.users_first_name} ${user.users_last_name}"?\nรหัสผ่านใหม่จะถูกตั้งใหม่`,
             icon: 'warning',
             showCancelButton: true,
             confirmButtonText: 'รีเซ็ต',
@@ -1018,7 +1026,22 @@ class UserManagement {
 
                 const data = await response.json();
                 if (data.success) {
-                    this.showSuccess('รีเซ็ตรหัสผ่านเรียบร้อยแล้ว รหัสผ่านใหม่ถูกส่งไปยังอีเมลแล้ว');
+                    const newPassword = data.new_password || '123456789';
+
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'รีเซ็ตรหัสผ่านสำเร็จ',
+                        html: `
+                            <p class="mb-2">แจ้งรหัสผ่านใหม่ให้นักเรียนด้วยตนเอง</p>
+                            <div class="py-3 px-4 bg-light rounded border fw-bold fs-4" style="letter-spacing: 2px;">${newPassword}</div>
+                            <small class="text-muted d-block mt-3">ระบบได้คัดลอกรหัสผ่านใหม่นี้ไว้ในคลิปบอร์ด (หากอุปกรณ์รองรับ)</small>
+                        `,
+                        confirmButtonText: 'รับทราบ'
+                    });
+
+                    if (navigator.clipboard?.writeText) {
+                        navigator.clipboard.writeText(newPassword).catch(() => {});
+                    }
                 } else {
                     this.showError(data.message);
                 }

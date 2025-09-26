@@ -447,17 +447,15 @@ class UserApiController extends Controller
         try {
             $user = User::findOrFail($id);
             
-            // Generate new random password
-            $newPassword = 'temp' . rand(1000, 9999);
+            // Reset to the standard onsite password so teachers can notify students directly
+            $newPassword = '123456789';
             $user->users_password = Hash::make($newPassword);
             $user->save();
 
-            // Here you would normally send email with new password
-            // For now, just return success message
-            
             return response()->json([
                 'success' => true, 
-                'message' => 'รีเซ็ตรหัสผ่านเรียบร้อยแล้ว รหัสผ่านใหม่คือ: ' . $newPassword
+                'message' => 'รีเซ็ตรหัสผ่านสำเร็จ',
+                'new_password' => $newPassword
             ]);
             
         } catch (\Exception $e) {
