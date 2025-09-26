@@ -632,96 +632,95 @@
                                 </div>
                                 <div class="modal-body p-4">
                                     <!-- Enhanced User Stats -->
-                                    <div class="row mb-4">
-                                        <div class="col-lg-3 col-md-6 mb-3">
-                                            <div class="card border-0 shadow-sm h-100 bg-primary text-white">
-                                                <div class="card-body text-center">
-                                                    <div class="d-flex justify-content-center align-items-center mb-2">
-                                                        <i class="fas fa-users fa-2x"></i>
-                                                    </div>
-                                                    <h4 class="mb-1 fw-bold" id="totalUsersCount">0</h4>
-                                                    <small class="opacity-75">ผู้ใช้ทั้งหมด</small>
-                                                    <div class="mt-2">
-                                                        <small class="badge bg-light text-dark" id="activeUsersCount">0 คนใช้งาน</small>
+                                    <div class="row g-3 mb-4 minimal-stat-grid">
+                                        <div class="col-12 col-sm-6 col-xl-3">
+                                            <div class="minimal-card h-100">
+                                                <div class="minimal-card-icon text-primary">
+                                                    <i class="fas fa-users"></i>
+                                                </div>
+                                                <div class="flex-grow-1">
+                                                    <p class="minimal-card-label">ผู้ใช้ทั้งหมด</p>
+                                                    <div class="d-flex align-items-baseline gap-2 flex-wrap">
+                                                        <span id="totalUsersCount" class="minimal-card-value">0</span>
+                                                        <span id="activeUsersCount" class="minimal-card-chip">0 คนใช้งาน</span>
                                                     </div>
                                                 </div>
                                             </div>
                                         </div>
-                                        <div class="col-lg-3 col-md-6 mb-3">
-                                            <div class="card border-0 shadow-sm h-100 bg-info text-white">
-                                                <div class="card-body text-center">
-                                                    <div class="d-flex justify-content-center align-items-center mb-2">
-                                                        <i class="fas fa-graduation-cap fa-2x"></i>
+                                        <div class="col-12 col-sm-6 col-xl-3">
+                                            <div class="minimal-card h-100">
+                                                <div class="minimal-card-icon text-info">
+                                                    <i class="fas fa-graduation-cap"></i>
+                                                </div>
+                                                <div class="flex-grow-1">
+                                                    <p class="minimal-card-label">นักเรียน</p>
+                                                    <div class="d-flex align-items-baseline gap-2 flex-wrap">
+                                                        <span id="studentsUserCount" class="minimal-card-value">0</span>
                                                     </div>
-                                                    <h4 class="mb-1 fw-bold" id="studentsUserCount">0</h4>
-                                                    <small class="opacity-75">นักเรียน</small>
-                                                    <div class="mt-2">
-                                                        <small class="badge bg-light text-dark" id="avgStudentScore">คะแนนเฉลี่ย: -</small>
-                                                    </div>
+                                                    <span id="avgStudentScore" class="minimal-card-subtext">คะแนนเฉลี่ย: -</span>
                                                 </div>
                                             </div>
                                         </div>
-                                        <div class="col-lg-3 col-md-6 mb-3">
-                                            <div class="card border-0 shadow-sm h-100 bg-warning text-dark">
-                                                <div class="card-body text-center">
-                                                    <div class="d-flex justify-content-center align-items-center mb-2">
-                                                        <i class="fas fa-chalkboard-teacher fa-2x"></i>
+                                        <div class="col-12 col-sm-6 col-xl-3">
+                                            <div class="minimal-card h-100">
+                                                <div class="minimal-card-icon text-warning">
+                                                    <i class="fas fa-chalkboard-teacher"></i>
+                                                </div>
+                                                <div class="flex-grow-1">
+                                                    <p class="minimal-card-label">ครู</p>
+                                                    <div class="d-flex align-items-baseline gap-2 flex-wrap">
+                                                        <span id="teachersUserCount" class="minimal-card-value">0</span>
                                                     </div>
-                                                    <h4 class="mb-1 fw-bold" id="teachersUserCount">0</h4>
-                                                    <small class="opacity-75">ครู</small>
-                                                    <div class="mt-2">
-                                                        <small class="badge bg-light text-dark" id="homeroomTeacherCount">0 ครูประจำชั้น</small>
-                                                    </div>
+                                                    <span id="homeroomTeacherCount" class="minimal-card-subtext">0 ครูประจำชั้น</span>
                                                 </div>
                                             </div>
                                         </div>
-                                        <div class="col-lg-3 col-md-6 mb-3">
-                                            <div class="card border-0 shadow-sm h-100 bg-success text-white">
-                                                <div class="card-body text-center">
-                                                    <div class="d-flex justify-content-center align-items-center mb-2">
-                                                        <i class="fas fa-user-friends fa-2x"></i>
+                                        <div class="col-12 col-sm-6 col-xl-3">
+                                            <div class="minimal-card h-100">
+                                                <div class="minimal-card-icon text-success">
+                                                    <i class="fas fa-user-friends"></i>
+                                                </div>
+                                                <div class="flex-grow-1">
+                                                    <p class="minimal-card-label">ผู้ปกครอง</p>
+                                                    <div class="d-flex align-items-baseline gap-2 flex-wrap">
+                                                        <span id="guardiansUserCount" class="minimal-card-value">0</span>
                                                     </div>
-                                                    <h4 class="mb-1 fw-bold" id="guardiansUserCount">0</h4>
-                                                    <small class="opacity-75">ผู้ปกครอง</small>
-                                                    <div class="mt-2">
-                                                        <small class="badge bg-light text-dark" id="linkedStudentsCount">0 นักเรียนที่เชื่อมโยง</small>
-                                                    </div>
+                                                    <span id="linkedStudentsCount" class="minimal-card-subtext">0 นักเรียนที่เชื่อมโยง</span>
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
 
-                                    <!-- Enhanced User Management Card -->
-                                    <div class="card border-0 shadow-sm">
-                                        <div class="card-header bg-white border-0 py-3">
-                                            <div class="d-flex justify-content-between align-items-center flex-wrap">
-                                                <div class="d-flex align-items-center mb-2 mb-md-0">
-                                                    <i class="fas fa-list-alt text-primary me-2"></i>
-                                                    <h6 class="card-title mb-0 fw-semibold">รายชื่อผู้ใช้ทั้งหมด</h6>
-                                                    <span class="badge bg-primary ms-2" id="userCountBadge">0</span>
+                                    <!-- Minimal User Management Panel -->
+                                    <div class="card border-0 minimal-panel">
+                                        <div class="card-header bg-transparent border-0 pb-0">
+                                            <div class="d-flex flex-wrap justify-content-between align-items-start gap-3">
+                                                <div>
+                                                    <h6 class="card-title mb-1 fw-semibold text-dark">รายชื่อผู้ใช้ทั้งหมด</h6>
+                                                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                                                        <span class="minimal-meta text-muted">จัดการบัญชีและสิทธิ์การใช้งาน</span>
+                                                        <span class="minimal-count" id="userCountBadge">0</span>
+                                                    </div>
                                                 </div>
-                                                <div class="d-flex gap-2 flex-wrap">
-                                                    <div class="input-group" style="min-width: 250px;">
-                                                        <span class="input-group-text bg-light border-end-0">
+                                                <div class="d-flex align-items-center gap-2 flex-wrap minimal-toolbar">
+                                                    <div class="input-group minimal-input-group" style="min-width: 240px;">
+                                                        <span class="input-group-text">
                                                             <i class="fas fa-search text-muted"></i>
                                                         </span>
-                                                        <input type="text" id="userSearchInput" class="form-control border-start-0 border-end-0"
+                                                        <input type="text" id="userSearchInput" class="form-control"
                                                                placeholder="ค้นหาชื่อ, อีเมล, รหัส..." autocomplete="off">
                                                         <button type="button" id="userSearchBtn" class="btn btn-primary">
                                                             ค้นหา
                                                         </button>
                                                     </div>
-                                                    <div class="btn-group">
-                                                        <button class="btn btn-outline-secondary" onclick="showUserFilter()" id="filterToggleBtn">
-                                                            <i class="fas fa-filter me-1"></i>ตัวกรอง
-                                                        </button>
-                                                    </div>
+                                                    <button class="btn btn-outline-secondary" onclick="showUserFilter()" id="filterToggleBtn">
+                                                        <i class="fas fa-filter me-1"></i>ตัวกรอง
+                                                    </button>
                                                 </div>
                                             </div>
                                         </div>
                                         
-                                        <!-- Enhanced Filter Bar -->
-                                        <div class="card-body border-bottom bg-light" id="userFilterBar" style="display: none;">
+                                        <div class="card-body minimal-filter" id="userFilterBar" style="display: none;">
                                             <div class="row g-3">
                                                 <div class="col-md-2">
                                                     <label class="form-label small fw-semibold text-muted">บทบาท</label>
@@ -774,44 +773,14 @@
                                         <div class="card-body p-0">
                                             <div class="table-responsive">
                                                 <table class="table table-hover align-middle mb-0" id="usersTable">
-                                                    <thead class="table-light">
+                                                    <thead class="minimal-table-head">
                                                         <tr>
-                                                            <th class="border-0 fw-semibold">
-                                                                <div class="d-flex align-items-center">
-                                                                    <i class="fas fa-user me-2 text-primary"></i>
-                                                                    ข้อมูลผู้ใช้
-                                                                </div>
-                                                            </th>
-                                                            <th class="border-0 fw-semibold">
-                                                                <div class="d-flex align-items-center">
-                                                                    <i class="fas fa-id-card me-2 text-success"></i>
-                                                                    รหัส/ตำแหน่ง
-                                                                </div>
-                                                            </th>
-                                                            <th class="border-0 fw-semibold">
-                                                                <div class="d-flex align-items-center">
-                                                                    <i class="fas fa-shield-alt me-2 text-warning"></i>
-                                                                    บทบาท
-                                                                </div>
-                                                            </th>
-                                                            <th class="border-0 fw-semibold">
-                                                                <div class="d-flex align-items-center">
-                                                                    <i class="fas fa-building me-2 text-info"></i>
-                                                                    ชั้น/แผนก
-                                                                </div>
-                                                            </th>
-                                                            <th class="border-0 fw-semibold">
-                                                                <div class="d-flex align-items-center">
-                                                                    <i class="fas fa-toggle-on me-2 text-secondary"></i>
-                                                                    สถานะ
-                                                                </div>
-                                                            </th>
-                                                            <th class="border-0 fw-semibold text-center">
-                                                                <div class="d-flex align-items-center justify-content-center">
-                                                                    <i class="fas fa-cog me-2 text-dark"></i>
-                                                                    การดำเนินการ
-                                                                </div>
-                                                            </th>
+                                                            <th class="border-0 fw-semibold">ข้อมูลผู้ใช้</th>
+                                                            <th class="border-0 fw-semibold">รหัส/ตำแหน่ง</th>
+                                                            <th class="border-0 fw-semibold">บทบาท</th>
+                                                            <th class="border-0 fw-semibold">ชั้น/แผนก</th>
+                                                            <th class="border-0 fw-semibold">สถานะ</th>
+                                                            <th class="border-0 fw-semibold text-center">การดำเนินการ</th>
                                                         </tr>
                                                     </thead>
                                                     <tbody id="usersTableBody">
@@ -842,7 +811,7 @@
                                         </div>
                                         
                                         <!-- Enhanced Footer with Pagination -->
-                                        <div class="card-footer bg-light border-0">
+                                        <div class="card-footer bg-transparent border-0 minimal-footer">
                                             <div class="d-flex justify-content-between align-items-center flex-wrap">
                                                 <div class="d-flex align-items-center mb-2 mb-md-0">
                                                     <small class="text-muted">
@@ -4790,32 +4759,223 @@ document.addEventListener('DOMContentLoaded', function () {
         </div>
     </div>
 
-    <!-- Enhanced CSS for User Management -->
+    <!-- Minimal CSS for User Management -->
     <style>
-        /* User Management Modal Enhancements */
         .modal-xl {
             max-width: 1200px;
         }
-        
+
         .modal-lg-plus {
             max-width: 900px;
         }
-        
-        /* Info Item Styling */
+
+        #userManagementModal .minimal-card {
+            display: flex;
+            align-items: flex-start;
+            gap: 1rem;
+            padding: 1.4rem 1.6rem;
+            border-radius: 20px;
+            border: 1px solid rgba(13, 110, 253, 0.12);
+            background: #ffffff;
+            box-shadow: 0 12px 34px rgba(15, 23, 42, 0.06);
+        }
+
+        #userManagementModal .minimal-stat-grid {
+            margin-bottom: 2.25rem;
+        }
+
+        #userManagementModal .minimal-card-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+        }
+
+        #userManagementModal .minimal-card-icon.text-primary {
+            background: rgba(13, 110, 253, 0.14);
+        }
+
+        #userManagementModal .minimal-card-icon.text-info {
+            background: rgba(13, 202, 240, 0.16);
+        }
+
+        #userManagementModal .minimal-card-icon.text-warning {
+            background: rgba(255, 193, 7, 0.18);
+        }
+
+        #userManagementModal .minimal-card-icon.text-success {
+            background: rgba(25, 135, 84, 0.16);
+        }
+
+        #userManagementModal .minimal-card-label {
+            margin: 0;
+            font-size: 0.75rem;
+            font-weight: 600;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: #6c757d;
+        }
+
+        #userManagementModal .minimal-card-value {
+            font-size: 2rem;
+            font-weight: 600;
+            color: #1f2937;
+        }
+
+        #userManagementModal .minimal-card-chip {
+            padding: 0.25rem 0.9rem;
+            border-radius: 999px;
+            background: rgba(13, 110, 253, 0.15);
+            color: #0d6efd;
+            font-size: 0.78rem;
+            font-weight: 500;
+        }
+
+        #userManagementModal .minimal-card-subtext {
+            display: block;
+            margin-top: 0.5rem;
+            font-size: 0.85rem;
+            color: #6c757d;
+        }
+
+        #userManagementModal .minimal-panel {
+            border-radius: 24px;
+            border: 1px solid rgba(15, 23, 42, 0.08);
+            box-shadow: 0 20px 46px rgba(15, 23, 42, 0.07);
+            background: #ffffff;
+        }
+
+        #userManagementModal .minimal-panel .card-header {
+            padding: 1.6rem 1.8rem 1.2rem;
+        }
+
+        #userManagementModal .minimal-panel .card-body {
+            padding: 1.6rem 1.8rem;
+        }
+
+        #userManagementModal .minimal-panel .card-body.p-0 {
+            padding: 0;
+        }
+
+        #userManagementModal .minimal-filter {
+            background: #f8f9fb;
+            border-top: 1px solid rgba(15, 23, 42, 0.05);
+            border-bottom: 1px solid rgba(15, 23, 42, 0.05);
+        }
+
+        #userManagementModal .minimal-filter .form-control,
+        #userManagementModal .minimal-filter .form-select {
+            border-radius: 12px;
+            border-color: rgba(13, 110, 253, 0.15);
+            box-shadow: none;
+        }
+
+        #userManagementModal .minimal-filter .btn {
+            border-radius: 12px;
+        }
+
+        #userManagementModal .minimal-toolbar .btn {
+            border-radius: 999px;
+            padding-inline: 1.2rem;
+        }
+
+        #userManagementModal .minimal-toolbar .btn-outline-secondary {
+            border-color: rgba(15, 23, 42, 0.12);
+            color: #0f172a;
+        }
+
+        #userManagementModal .minimal-toolbar .btn-outline-secondary:hover,
+        #userManagementModal #filterToggleBtn.active {
+            background: #0d6efd;
+            color: #ffffff;
+            border-color: #0d6efd;
+        }
+
+        #userManagementModal .minimal-input-group {
+            background: #ffffff;
+            border-radius: 999px;
+            border: 1px solid rgba(13, 110, 253, 0.18);
+            overflow: hidden;
+        }
+
+        #userManagementModal .minimal-input-group .input-group-text {
+            background: transparent;
+            border: none;
+        }
+
+        #userManagementModal .minimal-input-group .form-control {
+            border: none;
+            box-shadow: none;
+        }
+
+        #userManagementModal .minimal-input-group .btn {
+            border: none;
+            border-radius: 0 999px 999px 0;
+        }
+
+        #userManagementModal .minimal-meta {
+            font-size: 0.85rem;
+            color: #64748b;
+        }
+
+        #userManagementModal .minimal-count {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 2.6rem;
+            padding: 0.35rem 0.9rem;
+            border-radius: 999px;
+            background: rgba(13, 110, 253, 0.14);
+            color: #0d6efd;
+            font-weight: 600;
+        }
+
+        #userManagementModal .minimal-table-head th {
+            background: #f5f7fb;
+            color: #1f2937;
+            border-bottom: none;
+            font-size: 0.85rem;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            padding: 1rem 0.75rem;
+        }
+
+        #userManagementModal #usersTable tbody td {
+            padding: 1rem 0.75rem;
+            border-top: 1px solid rgba(15, 23, 42, 0.05);
+        }
+
+        #userManagementModal #usersTable tbody tr:hover {
+            background: rgba(13, 110, 253, 0.05);
+        }
+
+        #userManagementModal .minimal-footer {
+            padding: 1.25rem 1.8rem 1.6rem;
+        }
+
+        #userManagementModal .minimal-footer select {
+            border-radius: 12px;
+            border-color: rgba(15, 23, 42, 0.12);
+        }
+
+        /* Detail slider info items */
         .info-item {
             padding: 12px;
             background: #f8f9fa;
-            border-radius: 8px;
-            border-left: 4px solid #dee2e6;
-            transition: all 0.3s ease;
+            border-radius: 10px;
+            border: 1px solid rgba(15, 23, 42, 0.05);
+            transition: all 0.2s ease;
         }
-        
+
         .info-item:hover {
-            background: #e9ecef;
-            border-left-color: #667eea;
+            background: #eef2ff;
+            border-color: rgba(102, 126, 234, 0.4);
             transform: translateY(-1px);
         }
-        
+
         .info-label {
             font-size: 0.85rem;
             font-weight: 600;
@@ -4823,96 +4983,43 @@ document.addEventListener('DOMContentLoaded', function () {
             margin-bottom: 4px;
             display: block;
         }
-        
+
         .info-value {
             font-size: 0.95rem;
             color: #212529;
             font-weight: 500;
         }
-        
-        /* Enhanced Card Styling */
-        .card {
-            transition: all 0.3s ease;
-        }
-        
-        .card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(0,0,0,0.1) !important;
-        }
-        
-        /* User Table Enhancements */
-        #usersTable thead th {
-            font-weight: 600;
-            font-size: 0.9rem;
-            letter-spacing: 0.5px;
-            padding: 16px 12px;
-        }
-        
-        #usersTable tbody td {
-            padding: 16px 12px;
-            vertical-align: middle;
-        }
-        
-        #usersTable tbody tr:hover {
-            background-color: rgba(102, 126, 234, 0.05);
-            transform: scale(1.002);
-            transition: all 0.2s ease;
-        }
-        
-        /* Badge Enhancements */
-        .badge {
-            font-weight: 500;
-            letter-spacing: 0.5px;
-        }
-        
-        /* User Avatar Enhancements */
-        .rounded-circle {
-            border: 3px solid #fff;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        }
-        
-        /* Filter Toggle Animation */
-        #filterToggleBtn.active {
-            background-color: #667eea;
-            border-color: #667eea;
-            color: white;
-        }
-        
-        /* Enhanced Search Input */
-        #userSearchInput:focus {
-            border-color: #667eea;
-            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
-        }
-        
-        /* Loading Animation */
+
         .spinner-border {
             border-width: 3px;
         }
-        
-        /* Status Badges */
-    .status-active { background: #28a745; }
-    .status-inactive { background: #dc3545; }
-    .status-suspended { background: #ffc107; color: #212529; }
-        
-        /* Role Badges */
-    .role-admin { background: #6f42c1; }
-    .role-teacher { background: #fd7e14; }
-    .role-student { background: #20c997; }
-    .role-guardian { background: #0dcaf0; }
-        
-        /* Responsive Improvements */
+
+        .status-active { background: #28a745; }
+        .status-inactive { background: #dc3545; }
+        .status-suspended { background: #ffc107; color: #212529; }
+
+        .role-admin { background: #6f42c1; }
+        .role-teacher { background: #fd7e14; }
+        .role-student { background: #20c997; }
+        .role-guardian { background: #0dcaf0; }
+
         @media (max-width: 768px) {
             .modal-xl, .modal-lg-plus {
                 max-width: 95%;
                 margin: 10px auto;
             }
-            
-            .info-item {
-                margin-bottom: 10px;
+
+            #userManagementModal .minimal-toolbar {
+                width: 100%;
+                justify-content: stretch;
             }
-            
-            .d-flex.gap-2 {
-                gap: 8px !important;
+
+            #userManagementModal .minimal-input-group {
+                width: 100%;
+            }
+
+            #userManagementModal .minimal-card {
+                padding: 1.2rem 1.3rem;
             }
         }
     </style>
