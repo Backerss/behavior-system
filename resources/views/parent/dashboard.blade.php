@@ -148,6 +148,14 @@
             position: relative;
         }
 
+        /* Force canvas to fill container to avoid 0 width/height rendering issues */
+        .chart-container.desktop-chart canvas,
+        .chart-container canvas {
+            width: 100% !important;
+            height: 100% !important;
+            display: block;
+        }
+
         .activity-item {
             transition: all 0.2s ease;
             border-radius: 6px;
@@ -808,7 +816,7 @@
                 
                 // ทำลายจาก Chart.js registry
                 const canvas = document.getElementById(chartId);
-                if (canvas) {
+                if (canvas && typeof Chart !== 'undefined' && typeof Chart.getChart === 'function') {
                     const existingChart = Chart.getChart(canvas);
                     if (existingChart) {
                         try {
@@ -826,11 +834,17 @@
                     destroyChart(chartId);
                 });
                 window.parentDashboardCharts.clear();
-                
-                // ทำลายทุก chart ใน Chart.js registry
-                Chart.helpers.each(Chart.instances, function(instance) {
-                    instance.destroy();
-                });
+
+                // ตรวจสอบ instance ที่อาจยังเหลืออยู่ใน Chart.js registry (สำหรับหลายเวอร์ชัน)
+                if (typeof Chart !== 'undefined' && typeof Chart.getChart === 'function') {
+                    const canvases = document.querySelectorAll('canvas[id^="studentBehaviorChart"]');
+                    canvases.forEach(canvas => {
+                        const existingChart = Chart.getChart(canvas);
+                        if (existingChart) {
+                            existingChart.destroy();
+                        }
+                    });
+                }
             }
 
             // Main View Functions
@@ -869,6 +883,7 @@
                     const studentIndex = parseInt(studentId.replace('student', '')) - 1;
                     if (studentsData[studentIndex]) {
                         loadStudentDetails(studentsData[studentIndex], studentIndex + 1);
+                        console.log(`Loaded details for ${studentsData}`);
                     }
                 } else {
                     console.error('Target view not found:', `${studentId}-view`);
@@ -932,34 +947,49 @@
             function loadStudentScoreChart(studentId, index) {
                 const chartId = `studentBehaviorChart${index}`;
                 const canvas = document.getElementById(chartId);
-                
+
                 if (!canvas) {
-                    console.error('Canvas not found:', chartId);
+                    console.error('[Chart] Canvas not found:', chartId);
                     return;
                 }
 
-                // ทำลาย chart เก่าอย่างสมบูรณ์
+                // ทำลาย chart เก่า (ถ้ามี)
                 destroyChart(chartId);
-                
-                // รอให้ Chart.js ทำความสะอาดเสร็จ
-                setTimeout(() => {
-                    // ใช้ข้อมูล fallback ทันที (ไม่ fetch จาก API)
-                    const fallbackData = {
-                        labels: ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.'],
-                        data: [95, 92, 88, 90, 85, studentsData[index - 1]?.current_score || 100]
-                    };
-                    
-                    createChart(canvas, chartId, fallbackData, index);
-                }, 100);
+
+                // ข้อมูล fallback (สามารถแทนที่ด้วยข้อมูลจริงภายหลัง)
+                const fallbackData = {
+                    labels: ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.'],
+                    data: [95, 92, 88, 90, 85, studentsData[index - 1]?.current_score || 100]
+                };
+
+                console.log('[Chart] loadStudentScoreChart()', {studentId, index, chartId, fallbackData});
+
+                // สร้างกราฟหลัก (เดสก์ท็อป)
+                createChart(canvas, chartId, fallbackData, index);
+
+                // สร้างกราฟสำหรับมือถือถ้ามี
+                const mobileCanvasId = `studentBehaviorChartMobile${index}`;
+                const mobileCanvas = document.getElementById(mobileCanvasId);
+                if (mobileCanvas) {
+                    destroyChart(mobileCanvasId); // ทำลายถ้ามี
+                    createChart(mobileCanvas, mobileCanvasId, fallbackData, index);
+                }
             }
 
             function createChart(canvas, chartId, data, index) {
                 try {
+                    console.log('[Chart] createChart()', chartId, data);
                     // ตรวจสอบ canvas
                     if (!canvas) {
                         throw new Error('Canvas element not found');
                     }
                     
+                    // ทำให้ canvas มีขนาดชัดเจนก่อน (บางครั้ง display:none ก่อนหน้า จะทำให้ width/height เป็น 0)
+                    if (canvas.width === 0 || canvas.height === 0) {
+                        canvas.width = canvas.parentElement.clientWidth || 600;
+                        canvas.height = canvas.parentElement.clientHeight || 400;
+                    }
+
                     const ctx = canvas.getContext('2d');
                     if (!ctx) {
                         throw new Error('Cannot get canvas context');
@@ -987,6 +1017,7 @@
                         options: {
                             responsive: true,
                             maintainAspectRatio: false,
+                            resizeDelay: 0,
                             animation: false, // ปิด animation
                             transitions: {
                                 active: {
@@ -1043,6 +1074,7 @@
                     
                     // เก็บ chart instance ใน Map
                     window.parentDashboardCharts.set(chartId, chart);
+                    console.log('[Chart] created', chartId);
                     
                 } catch (error) {
                     console.error(`Error creating chart ${chartId}:`, error);
@@ -1101,8 +1133,20 @@
                 }
             });
 
-            // Initialize
-            showAllStudentsView();
+            // Initialize: ถ้ากดเข้า tab นักเรียนคนแรกอัตโนมัติเพื่อให้เห็นกราฟทันที
+            console.log('[Init] studentsData:', studentsData);
+            if (studentsData.length > 0) {
+                const firstTab = document.querySelector('[data-student="student1"]');
+                if (firstTab) {
+                    setActiveTab(firstTab);
+                    showStudentDetailView('student1');
+                } else {
+                    showAllStudentsView();
+                }
+            } else {
+                showAllStudentsView();
+            }
         });
+    </script>
 </body>
 </html>
