@@ -240,6 +240,12 @@
       if(!form) return; var fd=new FormData(form); var id=fieldId&&fieldId.value?fieldId.value:null;
       // Creation is disabled. If no id, block and return.
       if(!id){ alert('ไม่อนุญาตให้เพิ่มห้องเรียนใหม่'); return; }
+
+      // ถ้ามีการเลือกครูประจำชั้น ให้ตั้ง flag homeroom สำหรับครูคนนั้น
+      if(fieldTeacher && fieldTeacher.value){
+        fd.append('set_homeroom_for_teacher', '1');
+      }
+
       var req=api.update(id,fd);
       req.then(function(r){return r.json();}).then(function(json){
         if(!json.success){ if(json.errors){ Object.keys(json.errors).forEach(function(k){ var input=form.querySelector('[name="'+k+'"]'); if(input) input.classList.add('is-invalid'); }); } throw new Error(json.message||'บันทึกไม่สำเร็จ'); }

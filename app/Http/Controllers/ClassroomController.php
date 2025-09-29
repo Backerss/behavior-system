@@ -196,13 +196,50 @@ class ClassroomController extends Controller
             
             // แก้จาก Classroom เป็น ClassRoom
             $classroom = ClassRoom::findOrFail($id);
-            // อัพเดทเฉพาะครูประจำชั้นเท่านั้น
-            $classroom->teachers_id = $request->teacher_id;
+
+            $oldTeacherId = $classroom->teachers_id; // เก็บครูเก่า (เผื่ออนาคตต้องใช้)
+            $newTeacherId = (int) $request->teacher_id;
+
+            // อัพเดทครูประจำชั้นในตารางห้องเรียน
+            $classroom->teachers_id = $newTeacherId;
             $classroom->save();
-            
+
+            // หากมี flag ขอให้ตั้งเป็นครูประจำชั้น -> ตั้งค่า teachers_is_homeroom_teacher = 1
+            if ($request->boolean('set_homeroom_for_teacher')) {
+                $teacher = Teacher::find($newTeacherId);
+                if ($teacher) {
+                    // (1) ยกเลิกสถานะครูประจำชั้นของครูคนเก่าที่ผูกกับห้องนี้ (ถ้าไม่ต้องการให้หลายคนเป็น homeroom พร้อมกัน)
+                    if ($oldTeacherId && $oldTeacherId !== $newTeacherId) {
+                        Teacher::where('teachers_id', $oldTeacherId)
+                            ->where('teachers_is_homeroom_teacher', true)
+                            ->update(['teachers_is_homeroom_teacher' => false]);
+                    }
+
+                    // (2) อัปเดต assigned_class_id ให้สอดคล้อง (เผื่อ UI ส่วนอื่นใช้)
+                    if ($teacher->assigned_class_id !== $classroom->classes_id) {
+                        $teacher->assigned_class_id = $classroom->classes_id;
+                    }
+
+                    // (3) ตั้งสถานะ homeroom ให้ครูใหม่
+                    if (!$teacher->teachers_is_homeroom_teacher) {
+                        $teacher->teachers_is_homeroom_teacher = true;
+                    }
+                    $teacher->save();
+                }
+            }
+
+            // หากต้องการป้องกันไม่ให้ครูคนอื่นยังคงเป็น homeroom ของห้องนี้ (กรณีข้อมูลสกปรก) สามารถเพิ่ม cleanup เพิ่มเติมได้
+
+            // โหลดความสัมพันธ์ครูใหม่สำหรับ response
+            $classroom->load(['teacher', 'teacher.user']);
+
             return response()->json([
                 'success' => true,
-                'data' => $classroom,
+                'data' => [
+                    'classroom' => $classroom,
+                    'updated_teacher_id' => $newTeacherId,
+                    'homeroom_flag_applied' => $request->boolean('set_homeroom_for_teacher')
+                ],
                 'message' => 'อัพเดทข้อมูลห้องเรียนสำเร็จ'
             ]);
             

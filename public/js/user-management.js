@@ -172,6 +172,7 @@ class UserManagement {
 
             const response = await fetch(`/api/users?${params}`);
             const data = await response.json();
+            console.log('[UserManagement] loadUsers response stats:', data?.stats);
 
             if (loadingDiv) loadingDiv.style.display = 'none';
 
@@ -179,7 +180,11 @@ class UserManagement {
                 this.users = data.data.data;
                 this.renderUsers();
                 this.renderPagination(data.data);
-                this.updateStats(data.stats);
+                if (data.stats) {
+                    this.updateStats(data.stats);
+                } else {
+                    console.warn('[UserManagement] No stats object returned from API.');
+                }
             } else {
                 throw new Error(data.message || 'Failed to load users');
             }
@@ -380,6 +385,8 @@ class UserManagement {
     }
 
     updateStats(stats) {
+        // Debug log (สามารถลบได้ภายหลัง)
+        console.log('[UserManagement] updateStats raw:', stats);
         // Enhanced stats update with more detailed information
         if (document.getElementById('totalUsersCount')) {
             document.getElementById('totalUsersCount').textContent = stats?.total || 0;
@@ -403,7 +410,8 @@ class UserManagement {
             document.getElementById('avgStudentScore').textContent = `คะแนนเฉลี่ย: ${avgScore}`;
         }
         if (document.getElementById('homeroomTeacherCount')) {
-            document.getElementById('homeroomTeacherCount').textContent = `${stats?.homeroomTeachers || 0} ครูประจำชั้น`;
+            const value = (stats && (stats.homeroomTeachers !== undefined && stats.homeroomTeachers !== null)) ? stats.homeroomTeachers : 0;
+            document.getElementById('homeroomTeacherCount').textContent = `${value} ครูประจำชั้น`;
         }
         if (document.getElementById('linkedStudentsCount')) {
             document.getElementById('linkedStudentsCount').textContent = `${stats?.linkedStudents || 0} นักเรียนที่เชื่อมโยง`;
@@ -860,8 +868,17 @@ class UserManagement {
         // Handle checkbox
         data.users_active = document.getElementById('editUserActive').checked ? 1 : 0;
         // Normalize booleans
-        if (data.teachers_is_homeroom_teacher !== undefined) {
-            data.teachers_is_homeroom_teacher = document.getElementById('editTeacherIsHomeroom')?.checked ? 1 : 0;
+        // จัดการสถานะครูประจำชั้น: ถ้าเลือก assigned_class_id และติ๊ก homeroom -> ตั้งค่า 1, ถ้าไม่ได้ติ๊ก -> 0
+        if (data.hasOwnProperty('teachers_is_homeroom_teacher')) {
+            const homeroomChecked = document.getElementById('editTeacherIsHomeroom')?.checked;
+            const assignedClassVal = document.getElementById('editTeacherAssignedClass')?.value;
+            data.teachers_is_homeroom_teacher = (homeroomChecked && assignedClassVal) ? 1 : 0;
+        }
+
+        // ถ้าติ๊กเป็นครูประจำชั้น แต่ไม่ได้เลือกชั้น ให้แจ้งและหยุด
+        if (document.getElementById('editTeacherIsHomeroom')?.checked && !document.getElementById('editTeacherAssignedClass')?.value) {
+            this.showError('กรุณาเลือกชั้นเรียนสำหรับครูประจำชั้น');
+            return;
         }
         // Align field names with backend
         if (data.classes_id) {
