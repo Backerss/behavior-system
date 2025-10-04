@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\Storage;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
+use App\Models\BehaviorLog;
 
 class BehaviorReportController extends Controller
 {
@@ -105,20 +106,21 @@ class BehaviorReportController extends Controller
                 $evidencePath = str_replace('public/', '', $path);
             }
 
-            // สร้างรายงานพฤติกรรมใหม่
+            // สร้างรายงานพฤติกรรมใหม่ พร้อม snapshot คะแนนที่หัก ณ ตอนบันทึก
+            $snapshotPoints = abs($violation->violations_points_deducted ?? 0);
             $reportId = DB::table('tb_behavior_reports')->insertGetId([
                 'student_id' => $request->student_id,
                 'teacher_id' => $teacher->teachers_id,
                 'violation_id' => $request->violation_id,
+                'reports_points_deducted' => $snapshotPoints,
                 'reports_description' => $request->description,
                 'reports_evidence_path' => $evidencePath,
                 'reports_report_date' => Carbon::parse($request->violation_datetime), // Combined date and time
                 'created_at' => now(),
             ]);
 
-            // อัพเดทคะแนนพฤติกรรมนักเรียน
-            $pointsDeducted = $violation->violations_points_deducted;
-            $newScore = max(0, $student->students_current_score - $pointsDeducted);
+            // อัพเดทคะแนนพฤติกรรมนักเรียนตาม snapshot
+            $newScore = max(0, ($student->students_current_score ?? 100) - $snapshotPoints);
             
             DB::table('tb_students')
                 ->where('students_id', $request->student_id)
@@ -132,6 +134,7 @@ class BehaviorReportController extends Controller
                 'message' => 'บันทึกพฤติกรรมสำเร็จ',
                 'data' => [
                     'report_id' => $reportId,
+                    'reports_points_deducted' => $snapshotPoints,
                     'student_updated_score' => $newScore
                 ]
             ], 201);
@@ -237,14 +240,14 @@ class BehaviorReportController extends Controller
                     'br.reports_description',
                     'br.reports_report_date',
                     'br.created_at',
+                    'br.reports_points_deducted',
                     'su.users_name_prefix as student_prefix',
                     'su.users_first_name as student_first_name',
                     'su.users_last_name as student_last_name',
                     'tu.users_name_prefix as teacher_prefix',
                     'tu.users_first_name as teacher_first_name',
                     'tu.users_last_name as teacher_last_name',
-                    'v.violations_name',
-                    'v.violations_points_deducted'
+                    'v.violations_name'
                 )
                 ->orderBy('br.created_at', 'desc')
                 ->limit($limit)
@@ -257,7 +260,7 @@ class BehaviorReportController extends Controller
                                     ($report->student_first_name ?? '') . ' ' . 
                                     ($report->student_last_name ?? ''),
                     'violation_name' => $report->violations_name ?? '',
-                    'points_deducted' => $report->violations_points_deducted ?? 0,
+                    'points_deducted' => $report->reports_points_deducted ?? 0,
                     'teacher_name' => ($report->teacher_prefix ?? '') . 
                                      ($report->teacher_first_name ?? '') . ' ' . 
                                      ($report->teacher_last_name ?? ''),
@@ -304,6 +307,7 @@ class BehaviorReportController extends Controller
                     'br.reports_evidence_path',
                     'br.reports_report_date',
                     'br.created_at',
+                    'br.reports_points_deducted',
                     // Student info
                     'su.users_name_prefix as student_prefix',
                     'su.users_first_name as student_first_name',
@@ -317,7 +321,7 @@ class BehaviorReportController extends Controller
                     // Violation info
                     'v.violations_name',
                     'v.violations_category',
-                    'v.violations_points_deducted',
+                    // note: keep current violation info for metadata, but use br.reports_points_deducted as snapshot
                     'v.violations_description as violation_description',
                     // Class info
                     'c.classes_level',
@@ -349,7 +353,7 @@ class BehaviorReportController extends Controller
                 'violation' => [
                     'name' => $report->violations_name ?? '',
                     'category' => $report->violations_category ?? '',
-                    'points_deducted' => $report->violations_points_deducted ?? 0,
+                    'points_deducted' => $report->reports_points_deducted ?? 0,
                     'description' => $report->violation_description ?? ''
                 ],
                 'teacher' => [
@@ -452,15 +456,13 @@ class BehaviorReportController extends Controller
             // ข้อมูลการกระทำผิดใหม่
             $violation = Violation::find($request->violation_id);
             
-            // คำนวณคะแนนใหม่
-            $oldPointsDeducted = $behaviorReport->violation->violations_points_deducted ?? 0;
-            $newPointsDeducted = $violation->violations_points_deducted;
-            $pointsDifference = $newPointsDeducted - $oldPointsDeducted;
-
-            // อัปเดตคะแนนนักเรียน
-            $student = Student::find($behaviorReport->student_id);
-            $student->students_current_score = max(0, $student->students_current_score - $pointsDifference);
-            $student->save();
+            // Snapshot เก่าก่อนแก้ไข
+            $before = [
+                'violation_id' => $behaviorReport->violation_id,
+                'reports_points_deducted' => $behaviorReport->reports_points_deducted,
+                'reports_report_date' => (string)$behaviorReport->reports_report_date,
+                'reports_description' => $behaviorReport->reports_description,
+            ];
 
             // จัดการไฟล์หลักฐานใหม่ (ถ้ามี)
             $evidencePath = $behaviorReport->reports_evidence_path;
@@ -476,12 +478,37 @@ class BehaviorReportController extends Controller
                 $evidencePath = str_replace('public/', '', $path); // เก็บเฉพาะส่วนภายใน storage
             }
 
-            // อัปเดตรายงาน
+            // อัปเดตรายงาน + อัปเดต snapshot คะแนนตามประเภทปัจจุบัน
             $behaviorReport->update([
                 'violation_id' => $request->violation_id,
+                'reports_points_deducted' => abs($violation->violations_points_deducted ?? 0),
                 'reports_report_date' => $request->report_datetime,
                 'reports_description' => $request->description,
                 'reports_evidence_path' => $evidencePath,
+            ]);
+
+            // คำนวณคะแนนสะสมใหม่จาก snapshot ทั้งหมดของนักเรียน
+            $student = Student::find($behaviorReport->student_id);
+            if ($student) {
+                $totalDeducted = BehaviorReport::where('student_id', $student->students_id)
+                    ->sum('reports_points_deducted');
+                $student->students_current_score = max(0, 100 - (int)$totalDeducted);
+                $student->save();
+            }
+
+            // บันทึก Behavior Log
+            BehaviorLog::create([
+                'behavior_report_id' => $behaviorReport->reports_id,
+                'action_type' => 'update',
+                'performed_by' => $user->users_id,
+                'before_change' => $before,
+                'after_change' => [
+                    'violation_id' => $behaviorReport->violation_id,
+                    'reports_points_deducted' => $behaviorReport->reports_points_deducted,
+                    'reports_report_date' => (string)$behaviorReport->reports_report_date,
+                    'reports_description' => $behaviorReport->reports_description,
+                ],
+                'created_at' => now(),
             ]);
 
             DB::commit();
@@ -537,11 +564,11 @@ class BehaviorReportController extends Controller
             // เริ่ม transaction
             DB::beginTransaction();
 
-            // คืนคะแนนให้นักเรียน
-            $student = Student::find($behaviorReport->student_id);
-            $pointsToReturn = $behaviorReport->violation->violations_points_deducted ?? 0;
-            $student->students_current_score += $pointsToReturn;
-            $student->save();
+            // เก็บค่า before สำหรับ log
+            $before = [
+                'violation_id' => $behaviorReport->violation_id,
+                'reports_points_deducted' => $behaviorReport->reports_points_deducted,
+            ];
 
             // ลบไฟล์หลักฐาน (ถ้ามี)
             if ($behaviorReport->reports_evidence_path && Storage::disk('public')->exists($behaviorReport->reports_evidence_path)) {
@@ -550,6 +577,25 @@ class BehaviorReportController extends Controller
 
             // ลบรายงาน
             $behaviorReport->delete();
+
+            // คำนวณคะแนนสะสมใหม่จาก snapshot ทั้งหมดของนักเรียน
+            $student = Student::find($behaviorReport->student_id);
+            if ($student) {
+                $totalDeducted = BehaviorReport::where('student_id', $student->students_id)
+                    ->sum('reports_points_deducted');
+                $student->students_current_score = max(0, 100 - (int)$totalDeducted);
+                $student->save();
+            }
+
+            // บันทึก Behavior Log
+            BehaviorLog::create([
+                'behavior_report_id' => $behaviorReport->reports_id,
+                'action_type' => 'delete',
+                'performed_by' => $user->users_id,
+                'before_change' => $before,
+                'after_change' => null,
+                'created_at' => now(),
+            ]);
 
             DB::commit();
 

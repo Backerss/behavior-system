@@ -365,7 +365,7 @@
                                         @endif
                                     </td>
                                     <td>{{ $report->violation ? mb_substr($report->violation->violations_name, 0, 28) : 'ไม่มีข้อมูล' }}</td>
-                                    <td class="center">{{ $report->violation ? $report->violation->violations_points_deducted : 0 }}</td>
+                                    <td class="center">{{ $report->reports_points_deducted ?? ($report->violation ? $report->violation->violations_points_deducted : 0) }}</td>
                                 </tr>
                             @endforeach
                         </tbody>
@@ -446,7 +446,7 @@
                         if($report->violation) {
                             $category = $report->violation->violations_category ?? 'light';
                             $categories[$category] = ($categories[$category] ?? 0) + 1;
-                            $totalPoints += $report->violation->violations_points_deducted ?? 0;
+                            $totalPoints += $report->reports_points_deducted ?? ($report->violation->violations_points_deducted ?? 0);
                         }
                     }
                 }

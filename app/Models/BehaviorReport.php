@@ -47,6 +47,7 @@ class BehaviorReport extends Model
         'student_id',
         'teacher_id',
         'violation_id',
+        'reports_points_deducted',
         'reports_description',
         'reports_evidence_path',
         'reports_report_date'
@@ -62,6 +63,7 @@ class BehaviorReport extends Model
         'student_id' => 'integer',
         'teacher_id' => 'integer',
         'violation_id' => 'integer',
+        'reports_points_deducted' => 'integer',
     ];
 
     /**

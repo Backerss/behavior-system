@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\BehaviorReport;
 use App\Models\Student;
+use App\Models\BehaviorLog;
 use App\Models\Violation;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\UploadedFile;
@@ -93,18 +94,27 @@ class BehaviorReportService
             throw new Exception('ไม่พบข้อมูลประเภทการกระทำผิด');
         }
 
-        // Create behavior report
+        // Create behavior report with snapshot points (abs to ensure positive deduction value)
         $report = BehaviorReport::create([
             'student_id' => $data['student_id'],
             'teacher_id' => $data['teacher_id'],
             'violation_id' => $data['violation_id'],
+            'reports_points_deducted' => abs($violation->violations_points_deducted ?? 0),
             'reports_description' => $data['description'] ?? '',
             'reports_evidence_path' => $data['reports_evidence_path'] ?? null,
             'reports_report_date' => $data['violation_datetime'] ?? now(),
         ]);
 
-        // Update student score
-        $this->updateStudentScore($student, $violation);
+        // Update student score (deduct by snapshot)
+        $this->deductStudentScoreBy($student, $report->reports_points_deducted);
+
+        // Log creation
+        $this->logBehavior($report->reports_id, 'create', $data['performed_by'] ?? null, null, [
+            'student_id' => $report->student_id,
+            'violation_id' => $report->violation_id,
+            'reports_points_deducted' => $report->reports_points_deducted,
+            'reports_report_date' => (string)$report->reports_report_date,
+        ]);
 
         return $report;
     }
@@ -122,6 +132,12 @@ class BehaviorReportService
         // Load actual models from relationships
         $oldViolation = $report->violation()->first();
         $student = $report->student()->first();
+        $before = [
+            'violation_id' => $report->violation_id,
+            'reports_points_deducted' => $report->reports_points_deducted,
+            'reports_report_date' => (string)$report->reports_report_date,
+            'reports_description' => $report->reports_description,
+        ];
 
         // Validate new violation if changed
         if (isset($data['violation_id']) && $data['violation_id'] != $report->violation_id) {
@@ -130,11 +146,8 @@ class BehaviorReportService
                 throw new Exception('ไม่พบข้อมูลประเภทการกระทำผิดใหม่');
             }
 
-            // Restore old score and apply new violation
-            if ($oldViolation && $student) {
-                $this->restoreStudentScore($student, $oldViolation);
-                $this->updateStudentScore($student, $newViolation);
-            }
+            // Update snapshot to new violation points
+            $report->reports_points_deducted = abs($newViolation->violations_points_deducted ?? 0);
         }
 
         // Update report data
@@ -162,6 +175,20 @@ class BehaviorReportService
 
         $report->update($updateData);
 
+        // Recalculate student's score from all of their reports using snapshots
+        if ($student) {
+            $this->recalcStudentScoreFromReports($student);
+        }
+
+        // Log update
+        $after = [
+            'violation_id' => $report->violation_id,
+            'reports_points_deducted' => $report->reports_points_deducted,
+            'reports_report_date' => (string)$report->reports_report_date,
+            'reports_description' => $report->reports_description,
+        ];
+        $this->logBehavior($report->reports_id, 'update', $data['performed_by'] ?? null, $before, $after);
+
         return $report->fresh();
     }
 
@@ -177,17 +204,25 @@ class BehaviorReportService
         $student = $report->student()->first();
         $violation = $report->violation()->first();
 
-        // Restore student score
-        if ($student && $violation) {
-            $this->restoreStudentScore($student, $violation);
-        }
+        // Log before delete
+        $this->logBehavior($report->reports_id, 'delete', null, [
+            'violation_id' => $report->violation_id,
+            'reports_points_deducted' => $report->reports_points_deducted,
+        ], null);
 
         // Delete evidence file if exists
         if ($report->reports_evidence_path) {
             Storage::disk('public')->delete($report->reports_evidence_path);
         }
 
-        return $report->delete();
+        $deleted = $report->delete();
+
+        // Recalculate score after deletion
+        if ($deleted && $student) {
+            $this->recalcStudentScoreFromReports($student);
+        }
+
+        return $deleted;
     }
 
     /**
@@ -209,15 +244,11 @@ class BehaviorReportService
      * @param Violation $violation
      * @return void
      */
-    private function updateStudentScore(Student $student, Violation $violation): void
+    private function deductStudentScoreBy(Student $student, int $points): void
     {
         $currentScore = $student->students_current_score ?? 100;
-        $pointsDeducted = abs($violation->violations_points_deducted);
-        $newScore = max(0, $currentScore - $pointsDeducted);
-
-        $student->update([
-            'students_current_score' => $newScore
-        ]);
+        $newScore = max(0, $currentScore - abs($points));
+        $student->update(['students_current_score' => $newScore]);
     }
 
     /**
@@ -227,15 +258,30 @@ class BehaviorReportService
      * @param Violation $violation
      * @return void
      */
-    private function restoreStudentScore(Student $student, Violation $violation): void
+    private function recalcStudentScoreFromReports(Student $student): void
     {
-        $currentScore = $student->students_current_score ?? 0;
-        $pointsToRestore = abs($violation->violations_points_deducted);
-        $newScore = min(100, $currentScore + $pointsToRestore);
+        // Sum all snapshot deductions for the student
+        $totalDeducted = BehaviorReport::where('student_id', $student->students_id)
+            ->sum('reports_points_deducted');
 
-        $student->update([
-            'students_current_score' => $newScore
-        ]);
+        $newScore = max(0, 100 - (int) $totalDeducted);
+        $student->update(['students_current_score' => $newScore]);
+    }
+
+    private function logBehavior(int $reportId, string $action, ?int $performedBy, $before, $after): void
+    {
+        try {
+            BehaviorLog::create([
+                'behavior_report_id' => $reportId,
+                'action_type' => $action,
+                'performed_by' => $performedBy ?? 0,
+                'before_change' => $before,
+                'after_change' => $after,
+                'created_at' => now(),
+            ]);
+        } catch (\Throwable $e) {
+            // Don't block main flow if logging fails
+        }
     }
 
     /**

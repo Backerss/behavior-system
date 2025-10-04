@@ -84,6 +84,7 @@ class StudentApiController extends Controller
                         'reports_id' => $report->reports_id,
                         'reports_report_date' => $report->reports_report_date,
                         'reports_description' => $report->reports_description,
+                        'reports_points_deducted' => $report->reports_points_deducted,
                         'violation' => [
                             'violations_id' => $report->violation->violations_id,
                             'violations_name' => $report->violation->violations_name,

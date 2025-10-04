@@ -169,8 +169,8 @@ class StudentController extends Controller
                     'tb_behavior_reports.reports_id',
                     'tb_behavior_reports.reports_report_date',
                     'tb_behavior_reports.reports_description',
+                    'tb_behavior_reports.reports_points_deducted',
                     'tb_violations.violations_name',
-                    'tb_violations.violations_points_deducted',
                     'tb_violations.violations_category',
                     'tb_users.users_name_prefix',
                     'tb_users.users_first_name',
@@ -180,8 +180,8 @@ class StudentController extends Controller
             
             // แปลงข้อมูลให้อยู่ในรูปแบบที่ต้องการ
             return $reports->map(function ($report) {
-                $pointsDeducted = $report->violations_points_deducted ?? 0;
-                $isPositive = $pointsDeducted < 0; // ถ้าค่าลบ = คะแนนบวก
+                $pointsDeducted = (int)($report->reports_points_deducted ?? 0); // ใช้ snapshot จาก tb_behavior_reports
+                $isPositive = false; // ขณะนี้ snapshot เก็บเป็นค่าหัก (บวก) เสมอ
                 $scoreChange = abs($pointsDeducted);
                 
                 // สร้างชื่อครู
@@ -192,11 +192,7 @@ class StudentController extends Controller
                 
                 // สร้างข้อความกิจกรรม
                 $title = '';
-                if ($isPositive) {
-                    $title = "ได้รับคะแนน +{$scoreChange} คะแนน";
-                } else {
-                    $title = "ถูกหักคะแนน -{$scoreChange} คะแนน";
-                }
+                $title = "ถูกหักคะแนน -{$scoreChange} คะแนน";
                 
                 if ($report->violations_name) {
                     $title .= " จาก " . $report->violations_name;
@@ -258,29 +254,17 @@ class StudentController extends Controller
                 return null;
             }
             
-            // รายงานเชิงบวกและลบ
-            $positiveReports = DB::table('tb_behavior_reports')
-                ->join('tb_violations', 'tb_behavior_reports.violation_id', '=', 'tb_violations.violations_id')
-                ->where('tb_behavior_reports.student_id', $studentId)
-                ->where('tb_violations.violations_points_deducted', '<', 0)
-                ->count();
-                
-            $negativeReports = $totalReports - $positiveReports;
+            // รายงานเชิงบวก/ลบ: ใช้ snapshot ใน tb_behavior_reports (ตอนนี้ถือเป็นหักคะแนนทั้งหมด)
+            $positiveReports = 0; // ถ้าระบบมีคะแนนบวกในอนาคต ค่อยเพิ่มฟิลด์/ตรรกะ sign
+            $negativeReports = $totalReports;
             
-            // คะแนนรวม
-            $totalPositivePoints = DB::table('tb_behavior_reports')
-                ->join('tb_violations', 'tb_behavior_reports.violation_id', '=', 'tb_violations.violations_id')
-                ->where('tb_behavior_reports.student_id', $studentId)
-                ->where('tb_violations.violations_points_deducted', '<', 0)
-                ->sum(DB::raw('ABS(tb_violations.violations_points_deducted)'));
-                
-            $totalNegativePoints = DB::table('tb_behavior_reports')
-                ->join('tb_violations', 'tb_behavior_reports.violation_id', '=', 'tb_violations.violations_id')
-                ->where('tb_behavior_reports.student_id', $studentId)
-                ->where('tb_violations.violations_points_deducted', '>', 0)
-                ->sum('tb_violations.violations_points_deducted');
+            // คะแนนรวมจาก snapshot
+            $totalPositivePoints = 0; // ยังไม่รองรับ snapshot คะแนนบวก
+            $totalNegativePoints = (int) DB::table('tb_behavior_reports')
+                ->where('student_id', $studentId)
+                ->sum('reports_points_deducted');
             
-            $positiveRatio = $totalReports > 0 ? round(($positiveReports / $totalReports) * 100) : 0;
+            $positiveRatio = 0;
             
             return [
                 'total_reports' => $totalReports,
