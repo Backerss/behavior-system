@@ -1,24 +1,23 @@
 <?php
-// filepath: c:\Users\AsanR\OneDrive\Desktop\behavior-system\app\Http\Controllers\BehaviorReportController.php
 
 namespace App\Http\Controllers;
 
+use App\Models\BehaviorLog;
 use App\Models\BehaviorReport;
 use App\Models\Student;
-use App\Models\Teacher;
 use App\Models\Violation;
-use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Facades\Storage;
-use Carbon\Carbon;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
-use App\Models\BehaviorLog;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Validator;
 
 class BehaviorReportController extends Controller
 {
+    // ==================== Behavior Report Management ====================
+    
     /**
      * บันทึกพฤติกรรมนักเรียนใหม่
      *
@@ -28,13 +27,13 @@ class BehaviorReportController extends Controller
     public function store(Request $request)
     {
         try {
-            // ตรวจสอบข้อมูลที่ส่งมา
+            // Validate input data
             $validator = Validator::make($request->all(), [
                 'student_id' => 'required|exists:tb_students,students_id',
                 'violation_id' => 'required|exists:tb_violations,violations_id',
                 'violation_datetime' => 'required|date_format:Y-m-d H:i',
                 'description' => 'nullable|string|max:1000',
-                'evidence' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048' // Max 2MB
+                'evidence' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048'
             ], [
                 'student_id.required' => 'กรุณาเลือกนักเรียน',
                 'student_id.exists' => 'ไม่พบข้อมูลนักเรียนที่เลือก',
@@ -55,6 +54,7 @@ class BehaviorReportController extends Controller
                 ], 422);
             }
 
+            // Get authenticated user
             $user = Auth::user();
             if (!$user) {
                 return response()->json([
@@ -63,10 +63,11 @@ class BehaviorReportController extends Controller
                 ], 403);
             }
 
-            // ต้องเป็นครูที่มีข้อมูลใน tb_teachers เท่านั้น
+            // Verify teacher exists
             $teacher = DB::table('tb_teachers')
                 ->where('users_id', $user->users_id)
                 ->first();
+                
             if (!$teacher) {
                 return response()->json([
                     'success' => false,
@@ -74,6 +75,7 @@ class BehaviorReportController extends Controller
                 ], 403);
             }
 
+            // Get student data
             $student = DB::table('tb_students')
                 ->where('students_id', $request->student_id)
                 ->first();
@@ -85,6 +87,7 @@ class BehaviorReportController extends Controller
                 ], 404);
             }
 
+            // Get violation data
             $violation = DB::table('tb_violations')
                 ->where('violations_id', $request->violation_id)
                 ->first();
@@ -96,17 +99,16 @@ class BehaviorReportController extends Controller
                 ], 404);
             }
 
+            // Handle evidence file upload
             $evidencePath = null;
             if ($request->hasFile('evidence')) {
                 $file = $request->file('evidence');
                 $filename = time() . '_' . $file->getClientOriginalName();
-                // Store in 'storage/app/public/behavior_evidences'
                 $path = $file->storeAs('public/behavior_evidences', $filename);
-                // Path for database will be 'behavior_evidences/filename.ext'
                 $evidencePath = str_replace('public/', '', $path);
             }
 
-            // สร้างรายงานพฤติกรรมใหม่ พร้อม snapshot คะแนนที่หัก ณ ตอนบันทึก
+            // Create behavior report with snapshot points
             $snapshotPoints = abs($violation->violations_points_deducted ?? 0);
             $reportId = DB::table('tb_behavior_reports')->insertGetId([
                 'student_id' => $request->student_id,
@@ -115,13 +117,12 @@ class BehaviorReportController extends Controller
                 'reports_points_deducted' => $snapshotPoints,
                 'reports_description' => $request->description,
                 'reports_evidence_path' => $evidencePath,
-                'reports_report_date' => Carbon::parse($request->violation_datetime), // Combined date and time
+                'reports_report_date' => Carbon::parse($request->violation_datetime),
                 'created_at' => now(),
             ]);
 
-            // อัพเดทคะแนนพฤติกรรมนักเรียนตาม snapshot
+            // Update student's behavior score
             $newScore = max(0, ($student->students_current_score ?? 100) - $snapshotPoints);
-            
             DB::table('tb_students')
                 ->where('students_id', $request->student_id)
                 ->update([
@@ -149,6 +150,8 @@ class BehaviorReportController extends Controller
         }
     }
 
+    // ==================== Student Search ====================
+    
     /**
      * ค้นหานักเรียนสำหรับฟอร์มบันทึกพฤติกรรม
      *
@@ -175,6 +178,7 @@ class BehaviorReportController extends Controller
                     'c.classes_room_number'
                 );
             
+            // Apply search filters
             if (!empty($searchTerm)) {
                 $query->where(function($q) use ($searchTerm) {
                     $q->where('u.users_first_name', 'LIKE', '%' . $searchTerm . '%')
@@ -189,6 +193,7 @@ class BehaviorReportController extends Controller
             
             $students = $query->limit(10)->get();
             
+            // Format results
             $results = $students->map(function($student) {
                 return [
                     'id' => $student->students_id,
@@ -218,6 +223,8 @@ class BehaviorReportController extends Controller
         }
     }
 
+    // ==================== Report Retrieval ====================
+    
     /**
      * ดึงรายงานพฤติกรรมล่าสุด
      *
@@ -253,6 +260,7 @@ class BehaviorReportController extends Controller
                 ->limit($limit)
                 ->get();
             
+            // Format results
             $results = $reports->map(function($report) {
                 return [
                     'id' => $report->reports_id,
@@ -285,6 +293,8 @@ class BehaviorReportController extends Controller
         }
     }
 
+    // ==================== Report Details ====================
+    
     /**
      * ดึงรายละเอียดรายงานพฤติกรรมตาม ID
      *
@@ -294,6 +304,7 @@ class BehaviorReportController extends Controller
     public function show($id)
     {
         try {
+            // Fetch report with joined data
             $report = DB::table('tb_behavior_reports as br')
                 ->join('tb_students as s', 'br.student_id', '=', 's.students_id')
                 ->join('tb_users as su', 's.user_id', '=', 'su.users_id')
@@ -321,7 +332,6 @@ class BehaviorReportController extends Controller
                     // Violation info
                     'v.violations_name',
                     'v.violations_category',
-                    // note: keep current violation info for metadata, but use br.reports_points_deducted as snapshot
                     'v.violations_description as violation_description',
                     // Class info
                     'c.classes_level',
@@ -330,6 +340,7 @@ class BehaviorReportController extends Controller
                 ->where('br.reports_id', $id)
                 ->first();
 
+            // Check if report exists
             if (!$report) {
                 return response()->json([
                     'success' => false,
@@ -337,6 +348,7 @@ class BehaviorReportController extends Controller
                 ], 404);
             }
 
+            // Format result
             $result = [
                 'id' => $report->reports_id,
                 'student' => [
@@ -389,6 +401,9 @@ class BehaviorReportController extends Controller
         }
     }
 
+
+    // ==================== Report Update ====================
+    
     /**
      * อัปเดตรายงานพฤติกรรมนักเรียน
      *
@@ -399,7 +414,7 @@ class BehaviorReportController extends Controller
     public function update(Request $request, $id)
     {
         try {
-            // ค้นหารายงานพฤติกรรม
+            // Find behavior report
             $behaviorReport = BehaviorReport::find($id);
             
             if (!$behaviorReport) {
@@ -409,14 +424,13 @@ class BehaviorReportController extends Controller
                 ], 404);
             }
 
-            // ตรวจสอบสิทธิ์ในการแก้ไข (เฉพาะครูที่บันทึกหรือ admin)
+            // Verify edit permission (only the reporting teacher or admin)
             $user = Auth::user();
-            // ตรวจสิทธิ์: admin ทำได้ทุกอย่าง, ครูต้องเป็นคนที่สร้างรายงานนี้
             if ($user->users_role !== 'admin') {
-                // หา teacher จาก users_id ของ user ปัจจุบัน
                 $currentTeacher = DB::table('tb_teachers')
                     ->where('users_id', $user->users_id)
                     ->first();
+                    
                 if (!$currentTeacher || (int)$behaviorReport->teacher_id !== (int)$currentTeacher->teachers_id) {
                     return response()->json([
                         'success' => false,
@@ -425,10 +439,9 @@ class BehaviorReportController extends Controller
                 }
             }
 
-            // ตรวจสอบข้อมูลที่ส่งมา
+            // Validate input data
             $validator = Validator::make($request->all(), [
                 'violation_id' => 'required|exists:tb_violations,violations_id',
-                // JS ส่งมาเป็น 'report_datetime' แบบ Y-m-d H:i:s ถ้าไม่มีวินาทีจะเติม :00 แล้ว
                 'report_datetime' => 'required|date_format:Y-m-d H:i:s',
                 'description' => 'nullable|string|max:1000',
                 'evidence' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048'
@@ -450,13 +463,13 @@ class BehaviorReportController extends Controller
                 ], 422);
             }
 
-            // เริ่ม transaction
+            // Start database transaction
             DB::beginTransaction();
 
-            // ข้อมูลการกระทำผิดใหม่
+            // Get new violation data
             $violation = Violation::find($request->violation_id);
             
-            // Snapshot เก่าก่อนแก้ไข
+            // Store snapshot before update
             $before = [
                 'violation_id' => $behaviorReport->violation_id,
                 'reports_points_deducted' => $behaviorReport->reports_points_deducted,
@@ -464,21 +477,22 @@ class BehaviorReportController extends Controller
                 'reports_description' => $behaviorReport->reports_description,
             ];
 
-            // จัดการไฟล์หลักฐานใหม่ (ถ้ามี)
+            // Handle evidence file upload (if provided)
             $evidencePath = $behaviorReport->reports_evidence_path;
             if ($request->hasFile('evidence')) {
-                // ลบไฟล์เก่า
+                // Delete old file
                 if ($evidencePath && Storage::disk('public')->exists($evidencePath)) {
                     Storage::disk('public')->delete($evidencePath);
                 }
-                // อัปโหลดไฟล์ใหม่ ให้ path สอดคล้องกับ store()
+                
+                // Upload new file
                 $file = $request->file('evidence');
                 $filename = time() . '_' . $file->getClientOriginalName();
                 $path = $file->storeAs('public/behavior_evidences', $filename);
-                $evidencePath = str_replace('public/', '', $path); // เก็บเฉพาะส่วนภายใน storage
+                $evidencePath = str_replace('public/', '', $path);
             }
 
-            // อัปเดตรายงาน + อัปเดต snapshot คะแนนตามประเภทปัจจุบัน
+            // Update report with new violation points snapshot
             $behaviorReport->update([
                 'violation_id' => $request->violation_id,
                 'reports_points_deducted' => abs($violation->violations_points_deducted ?? 0),
@@ -487,7 +501,7 @@ class BehaviorReportController extends Controller
                 'reports_evidence_path' => $evidencePath,
             ]);
 
-            // คำนวณคะแนนสะสมใหม่จาก snapshot ทั้งหมดของนักเรียน
+            // Recalculate student's total score from all report snapshots
             $student = Student::find($behaviorReport->student_id);
             if ($student) {
                 $totalDeducted = BehaviorReport::where('student_id', $student->students_id)
@@ -496,7 +510,7 @@ class BehaviorReportController extends Controller
                 $student->save();
             }
 
-            // บันทึก Behavior Log
+            // Create behavior log entry
             BehaviorLog::create([
                 'behavior_report_id' => $behaviorReport->reports_id,
                 'action_type' => 'update',
@@ -530,6 +544,9 @@ class BehaviorReportController extends Controller
         }
     }
 
+
+    // ==================== Report Deletion ====================
+    
     /**
      * ลบรายงานพฤติกรรมนักเรียน
      *
@@ -539,7 +556,7 @@ class BehaviorReportController extends Controller
     public function destroy($id)
     {
         try {
-            // ค้นหารายงานพฤติกรรม
+            // Find behavior report
             $behaviorReport = BehaviorReport::find($id);
             
             if (!$behaviorReport) {
@@ -549,10 +566,13 @@ class BehaviorReportController extends Controller
                 ], 404);
             }
 
-            // ตรวจสอบสิทธิ์ในการลบ (เฉพาะครูที่บันทึกหรือ admin)
+            // Verify delete permission (only the reporting teacher or admin)
             $user = Auth::user();
             if ($user->users_role !== 'admin') {
-                $currentTeacherId = DB::table('tb_teachers')->where('users_id', $user->users_id)->value('teachers_id');
+                $currentTeacherId = DB::table('tb_teachers')
+                    ->where('users_id', $user->users_id)
+                    ->value('teachers_id');
+                    
                 if (!$currentTeacherId || (int)$behaviorReport->teacher_id !== (int)$currentTeacherId) {
                     return response()->json([
                         'success' => false,
@@ -561,16 +581,16 @@ class BehaviorReportController extends Controller
                 }
             }
 
-            // เริ่ม transaction
+            // Start database transaction
             DB::beginTransaction();
 
-            // เก็บค่า before สำหรับ log
+            // Store snapshot before deletion for log
             $before = [
                 'violation_id' => $behaviorReport->violation_id,
                 'reports_points_deducted' => $behaviorReport->reports_points_deducted,
             ];
 
-            // บันทึก Behavior Log ไว้ก่อนลบ (หลีกเลี่ยง FK error)
+            // Create behavior log entry before deletion (avoid FK error)
             BehaviorLog::create([
                 'behavior_report_id' => $behaviorReport->reports_id,
                 'action_type' => 'delete',
@@ -580,15 +600,15 @@ class BehaviorReportController extends Controller
                 'created_at' => now(),
             ]);
 
-            // ลบไฟล์หลักฐาน (ถ้ามี)
+            // Delete evidence file (if exists)
             if ($behaviorReport->reports_evidence_path && Storage::disk('public')->exists($behaviorReport->reports_evidence_path)) {
                 Storage::disk('public')->delete($behaviorReport->reports_evidence_path);
             }
 
-            // ลบรายงาน
+            // Delete report
             $behaviorReport->delete();
 
-            // คำนวณคะแนนสะสมใหม่จาก snapshot ทั้งหมดของนักเรียน
+            // Recalculate student's total score from remaining report snapshots
             $student = Student::find($behaviorReport->student_id);
             if ($student) {
                 $totalDeducted = BehaviorReport::where('student_id', $student->students_id)
