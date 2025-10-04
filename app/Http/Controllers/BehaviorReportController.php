@@ -570,6 +570,16 @@ class BehaviorReportController extends Controller
                 'reports_points_deducted' => $behaviorReport->reports_points_deducted,
             ];
 
+            // บันทึก Behavior Log ไว้ก่อนลบ (หลีกเลี่ยง FK error)
+            BehaviorLog::create([
+                'behavior_report_id' => $behaviorReport->reports_id,
+                'action_type' => 'delete',
+                'performed_by' => $user->users_id,
+                'before_change' => $before,
+                'after_change' => null,
+                'created_at' => now(),
+            ]);
+
             // ลบไฟล์หลักฐาน (ถ้ามี)
             if ($behaviorReport->reports_evidence_path && Storage::disk('public')->exists($behaviorReport->reports_evidence_path)) {
                 Storage::disk('public')->delete($behaviorReport->reports_evidence_path);
@@ -586,16 +596,6 @@ class BehaviorReportController extends Controller
                 $student->students_current_score = max(0, 100 - (int)$totalDeducted);
                 $student->save();
             }
-
-            // บันทึก Behavior Log
-            BehaviorLog::create([
-                'behavior_report_id' => $behaviorReport->reports_id,
-                'action_type' => 'delete',
-                'performed_by' => $user->users_id,
-                'before_change' => $before,
-                'after_change' => null,
-                'created_at' => now(),
-            ]);
 
             DB::commit();
 
