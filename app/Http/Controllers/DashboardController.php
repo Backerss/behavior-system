@@ -666,7 +666,8 @@ class DashboardController extends Controller
                     'relationship' => ['ความสัมพันธ์', 'relationship', 'relation'],
                     'line_id' => ['ไอดีไลน์', 'line_id', 'line', 'ไลน์', 'ID Line'],
                     'contact_method' => ['ช่องทางติดต่อที่ใช้บ่อยที่สุด', 'ช่องทางติดต่อที่ง่ายที่สุด', 'contact_method', 'preferred_contact', 'ช่องทางติดต่อ'],
-                    'student_codes' => ['รหัสนักเรียนที่ดูแล', 'รหัสนักเรียน', 'student_codes', 'student_id', 'รหัสลูก', 'รหัสบุตร', 'รหัสนักเรียนภายใต้ความดูแล']
+                    // ใส่คำที่เฉพาะเจาะจงก่อน เพื่อไม่ให้สับสนกับ student_id ของนักเรียน
+                    'student_codes' => ['รหัสนักเรียนที่ดูแล', 'รหัสนักเรียนภายใต้ความดูแล', 'student_codes', 'รหัสลูก', 'รหัสบุตร', 'รหัสบุตรหลาน']
                 ]);
             default:
                 return $baseMapping;
@@ -801,17 +802,43 @@ class DashboardController extends Controller
 
         $columnMapping = $this->getColumnMapping($sheetType);
 
+        // Log original headers for debugging
+        Log::info('Processing sheet data', [
+            'sheet_type' => $sheetType,
+            'original_headers' => $headers,
+            'header_count' => count($headers)
+        ]);
+
         $mappedHeaders = [];
         foreach ($columnMapping as $standardName => $possibleNames) {
             $found = false;
+            
+            // First pass: exact match only
             foreach ($headers as $header) {
                 $normalizedHeader = strtolower(trim($header));
                 foreach ($possibleNames as $possibleName) {
-                    if (strtolower($possibleName) === $normalizedHeader || strpos($normalizedHeader, strtolower($possibleName)) !== false) {
-                        $mappedHeaders[$standardName] = $header; $found = true; break 2;
+                    if (strtolower($possibleName) === $normalizedHeader) {
+                        $mappedHeaders[$standardName] = $header; 
+                        $found = true; 
+                        break 2;
                     }
                 }
             }
+            
+            // Second pass: partial match (only if exact match not found)
+            if (!$found) {
+                foreach ($headers as $header) {
+                    $normalizedHeader = strtolower(trim($header));
+                    foreach ($possibleNames as $possibleName) {
+                        if (strpos($normalizedHeader, strtolower($possibleName)) !== false) {
+                            $mappedHeaders[$standardName] = $header; 
+                            $found = true; 
+                            break 2;
+                        }
+                    }
+                }
+            }
+            
             if (!$found) {
                 $idx = array_search($standardName, array_keys($columnMapping));
                 if ($idx !== false && isset($headers[$idx])) { $mappedHeaders[$standardName] = $headers[$idx]; }
@@ -819,6 +846,15 @@ class DashboardController extends Controller
         }
 
         $requiredFields = $this->getRequiredFields($sheetType);
+        
+        // Log mapped headers for debugging
+        Log::info('Column mapping result', [
+            'sheet_type' => $sheetType,
+            'mapped_headers' => $mappedHeaders,
+            'has_student_codes' => isset($mappedHeaders['student_codes']),
+            'student_codes_header' => $mappedHeaders['student_codes'] ?? 'NOT_MAPPED'
+        ]);
+        
         $missingFields = [];
         foreach ($requiredFields as $field) { if (!isset($mappedHeaders[$field])) { $missingFields[] = $field; } }
         if (!empty($missingFields)) {
@@ -845,6 +881,16 @@ class DashboardController extends Controller
                         if (filter_var($value, FILTER_VALIDATE_EMAIL) || strpos($value, '@') !== false || strlen($value) > 20 || preg_match('/[a-zA-Z]{3,}/', $value)) { $value = null; }
                     }
                     $rowData[$standardName] = $value === '' ? null : $value;
+                }
+                
+                // Log guardian student_codes for debugging
+                if ($sheetType === 'guardians' && ($index + 2) <= 5) { // Log first 3 rows only
+                    Log::info('Guardian row processing', [
+                        'row_number' => $index + 2,
+                        'student_codes_raw' => isset($originalRowData[$mappedHeaders['student_codes'] ?? 'N/A']) ? $originalRowData[$mappedHeaders['student_codes'] ?? 'N/A'] : 'NOT_FOUND',
+                        'student_codes_mapped' => $rowData['student_codes'] ?? 'null',
+                        'all_row_data_keys' => array_keys($rowData)
+                    ]);
                 }
 
                 $rowData = $this->fillMissingData($rowData, $sheetType, $index);
@@ -995,22 +1041,26 @@ class DashboardController extends Controller
                             // Recover student_codes if misplaced into guardian_id field
                             if (empty($userData['student_codes']) && !empty($userData['guardian_id'])) {
                                 $candidate = trim($userData['guardian_id']);
-                                if (preg_match('/^(\d+[\s,;，]*\d+.*)$/u', $candidate) && strpos($candidate, ',') !== false) {
-                                    // Looks like multiple codes
-                                    $recovered = preg_split('/[;,，]+/', $candidate);
+                                // Check if it looks like student code(s) - single or multiple
+                                if (preg_match('/^[\d\s,;，]+$/u', $candidate)) {
+                                    // Split by delimiters (comma, semicolon, Thai comma, space)
+                                    $recovered = preg_split('/[;,，\s]+/', $candidate);
                                     $recovered = array_filter(array_map(fn($c)=>trim($c), $recovered));
-                                    // Heuristic: codes length 6-10 digits typical
+                                    // Heuristic: codes length 5-12 digits typical
                                     $filtered = [];
                                     foreach ($recovered as $code) {
                                         $numeric = preg_replace('/[^0-9]/','',$code);
-                                        if (strlen($numeric) >= 5 && strlen($numeric) <= 12) { $filtered[] = $numeric; }
+                                        if (strlen($numeric) >= 5 && strlen($numeric) <= 12) { 
+                                            $filtered[] = $numeric; 
+                                        }
                                     }
                                     if (count($filtered) >= 1) {
                                         $userData['student_codes'] = implode(',', array_unique($filtered));
                                         Log::info('Recovered student_codes from guardian_id field', [
                                             'row' => $item['row_number'],
                                             'guardian_original_id_value' => $candidate,
-                                            'recovered_codes' => $userData['student_codes']
+                                            'recovered_codes' => $userData['student_codes'],
+                                            'codes_count' => count($filtered)
                                         ]);
                                     }
                                 }
