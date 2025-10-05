@@ -63,16 +63,39 @@ class BehaviorReportController extends Controller
                 ], 403);
             }
 
-            // Verify teacher exists
+            // Verify user is teacher or admin
+            if (!in_array($user->users_role, ['teacher', 'admin'])) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'คุณไม่มีสิทธิ์บันทึกรายงานพฤติกรรม'
+                ], 403);
+            }
+
+            // Get teacher data or create admin teacher record
             $teacher = DB::table('tb_teachers')
                 ->where('users_id', $user->users_id)
                 ->first();
                 
+            // If user is admin and doesn't have teacher record, create one
+            if (!$teacher && $user->users_role === 'admin') {
+                $teacherId = DB::table('tb_teachers')->insertGetId([
+                    'users_id' => $user->users_id,
+                    'teachers_employee_code' => 'ADMIN_' . $user->users_id,
+                    'teachers_position' => 'ผู้ดูแลระบบ',
+                    'teachers_department' => 'งานบริหาร',
+                    'teachers_major' => null,
+                    'teachers_is_homeroom_teacher' => false,
+                    'assigned_class_id' => null
+                ]);
+                
+                $teacher = DB::table('tb_teachers')->where('teachers_id', $teacherId)->first();
+            }
+                
             if (!$teacher) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'ไม่พบข้อมูลครูผู้บันทึก'
-                ], 403);
+                    'message' => 'ไม่สามารถสร้างข้อมูลผู้บันทึกได้'
+                ], 500);
             }
 
             // Get student data
