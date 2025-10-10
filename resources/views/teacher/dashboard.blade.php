@@ -1417,7 +1417,13 @@ document.addEventListener('DOMContentLoaded', function () {
                 let data = evt.target.result;
                 try {
                     if (file.name.endsWith('.xls') || file.name.endsWith('.xlsx')) {
-                        workbook = XLSX.read(data, { type: 'binary' });
+                        // อ่าน Excel โดยไม่แปลงวันที่อัตโนมัติ - เก็บค่าดิบ (raw)
+                        workbook = XLSX.read(data, { 
+                            type: 'binary',
+                            cellDates: false,  // ไม่แปลงเป็น Date object
+                            cellNF: false,     // ไม่ใช้ number format
+                            raw: true          // เก็บค่าดิบ
+                        });
                     } else {
                         workbook = XLSX.read(data, { type: 'string', raw: true });
                     }
@@ -1469,8 +1475,34 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function loadSheet(sheetName) {
         const sheet = workbook.Sheets[sheetName];
-        // ดึงข้อมูลทุก row
-        let allRows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+        
+        // ดึงข้อมูลทุก row แบบดิบ (raw) โดยไม่ให้ SheetJS แปลงวันที่
+        let allRows = XLSX.utils.sheet_to_json(sheet, { 
+            header: 1,
+            raw: false,        // ไม่ใช้ค่าดิบ แต่จะให้แปลงเป็น string
+            dateNF: 'yyyy-mm-dd'  // ถ้ามีการแปลงวันที่ ให้ใช้รูปแบบนี้
+        });
+        
+        // แต่เราจะจัดการกับ cell ที่เป็น date number เอง
+        const range = XLSX.utils.decode_range(sheet['!ref']);
+        for (let R = range.s.r; R <= range.e.r; ++R) {
+            for (let C = range.s.c; C <= range.e.c; ++C) {
+                const cellAddress = XLSX.utils.encode_cell({r: R, c: C});
+                const cell = sheet[cellAddress];
+                
+                if (cell && cell.t === 'n' && cell.w) {
+                    // ถ้าเป็นตัวเลข (n) และมีค่า formatted (w)
+                    // ตรวจสอบว่าเป็น date format หรือไม่
+                    if (cell.v > 25569 && cell.v < 60000) { // Excel date range
+                        // ใช้ค่า formatted string แทน
+                        if (allRows[R] && allRows[R][C] !== undefined) {
+                            allRows[R][C] = cell.w || cell.v;
+                        }
+                    }
+                }
+            }
+        }
+        
         // กรองเฉพาะ row ที่มีข้อมูลจริง (ไม่นับ row ที่ว่างเปล่าทั้งแถว)
         previewData = allRows.filter((row, idx) => {
             if (idx === 0) return true; // header always keep
@@ -1497,6 +1529,13 @@ document.addEventListener('DOMContentLoaded', function () {
         for (let i = 1; i < previewData.length; i++) {
             const rowData = previewData[i];
             const mappedData = mapRowData(rowData, previewData[0], mapping, sheetName);
+            
+            // Debug: แสดงข้อมูล 3 แถวแรกเพื่อตรวจสอบการแปลงวันที่
+            if (i <= 3) {
+                console.log('Row', i + 1, '- Original:', rowData);
+                console.log('Row', i + 1, '- Mapped:', mappedData);
+                console.log('Row', i + 1, '- Date of birth:', mappedData?.date_of_birth);
+            }
             
             if (mappedData) {
                 allData.push({
@@ -2200,7 +2239,37 @@ document.addEventListener('DOMContentLoaded', function () {
                 // หาใน mapping ว่า header นี้ตรงกับ field ไหน
                 for (const [field, aliases] of Object.entries(mapping)) {
                     if (aliases.some(alias => alias.toLowerCase() === headerLower || headerLower.includes(alias.toLowerCase()))) {
-                        mappedData[field] = String(rowData[index]).trim();
+                        let value = String(rowData[index]).trim();
+                        
+                        // แปลง Excel serial date สำหรับ date_of_birth
+                        if (field === 'date_of_birth') {
+                            // ตรวจสอบว่าเป็นรูปแบบวันที่ที่ถูกต้องอยู่แล้วหรือไม่
+                            const datePattern = /^\d{4}-\d{2}-\d{2}$/;
+                            const datePattern2 = /^\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}$/;
+                            
+                            if (datePattern.test(value)) {
+                                // ถ้าเป็น YYYY-MM-DD อยู่แล้ว ใช้เลย
+                                mappedData[field] = value;
+                            } else if (datePattern2.test(value)) {
+                                // ถ้าเป็น DD/MM/YYYY หรือ DD-MM-YYYY ใช้เลย (ให้ PHP แปลงต่อ)
+                                mappedData[field] = value;
+                            } else if (!isNaN(value) && Number(value) > 25569 && Number(value) < 60000) {
+                                // ถ้าเป็น Excel serial date number
+                                const excelEpoch = new Date(1899, 11, 30);
+                                const daysToAdd = parseInt(value);
+                                const date = new Date(excelEpoch.getTime() + daysToAdd * 24 * 60 * 60 * 1000);
+                                
+                                const year = date.getFullYear();
+                                const month = String(date.getMonth() + 1).padStart(2, '0');
+                                const day = String(date.getDate()).padStart(2, '0');
+                                mappedData[field] = `${year}-${month}-${day}`;
+                            } else {
+                                // ส่งค่าไปให้ PHP จัดการ
+                                mappedData[field] = value;
+                            }
+                        } else {
+                            mappedData[field] = value;
+                        }
                         break;
                     }
                 }

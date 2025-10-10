@@ -697,7 +697,12 @@ class DashboardController extends Controller
                 $birthYmd = null; $age = null;
                 if (!empty($rowData['date_of_birth'])) {
                     $birthYmd = $this->normalizeThaiBirthDate($rowData['date_of_birth']);
-                    if ($birthYmd) { try { $age = (new \DateTime())->diff(new \DateTime($birthYmd))->y; } catch (\Exception $e) { $age = null; } }
+                    if ($birthYmd) { 
+                        $rowData['date_of_birth'] = $birthYmd; // อัปเดตค่าที่แปลงแล้วกลับไปใน rowData
+                        try { $age = (new \DateTime())->diff(new \DateTime($birthYmd))->y; } catch (\Exception $e) { $age = null; } 
+                    } else {
+                        $rowData['date_of_birth'] = null; // ถ้าแปลงไม่ได้ให้เป็น null
+                    }
                 }
                 // Normalize gender tokens
                 if (isset($rowData['gender'])) {
@@ -878,7 +883,19 @@ class DashboardController extends Controller
                 foreach ($mappedHeaders as $standardName => $originalHeader) {
                     $value = isset($originalRowData[$originalHeader]) ? trim((string) $originalRowData[$originalHeader]) : '';
                     if ($standardName === 'date_of_birth' && !empty($value)) {
-                        if (filter_var($value, FILTER_VALIDATE_EMAIL) || strpos($value, '@') !== false || strlen($value) > 20 || preg_match('/[a-zA-Z]{3,}/', $value)) { $value = null; }
+                        if (filter_var($value, FILTER_VALIDATE_EMAIL) || strpos($value, '@') !== false || strlen($value) > 20 || preg_match('/[a-zA-Z]{3,}/', $value)) { 
+                            $value = null; 
+                        } else {
+                            // Log วันเกิดก่อนแปลง (สำหรับ debug)
+                            if ($sheetType === 'students' && ($index + 2) <= 5) {
+                                Log::info('Date of birth processing', [
+                                    'row_number' => $index + 2,
+                                    'original_value' => $value,
+                                    'is_numeric' => is_numeric($value),
+                                    'value_type' => gettype($value)
+                                ]);
+                            }
+                        }
                     }
                     $rowData[$standardName] = $value === '' ? null : $value;
                 }
@@ -894,6 +911,14 @@ class DashboardController extends Controller
                 }
 
                 $rowData = $this->fillMissingData($rowData, $sheetType, $index);
+                
+                // Log หลังจาก fillMissingData สำหรับวันเกิด
+                if ($sheetType === 'students' && ($index + 2) <= 5 && isset($rowData['date_of_birth'])) {
+                    Log::info('Date of birth after normalization', [
+                        'row_number' => $index + 2,
+                        'normalized_value' => $rowData['date_of_birth']
+                    ]);
+                }
 
                 $validation = $this->validateRowData($rowData, $index + 2);
                 if (!empty($validation['errors'])) {
@@ -1066,10 +1091,23 @@ class DashboardController extends Controller
                                 }
                             }
                         }
+                        // ปรับปรุงการจัดการวันเกิด - รองรับทุก role และตรวจสอบความถูกต้อง
                         $userBirthdate = null;
-                        if ($userData['role'] !== 'guardian' && isset($userData['date_of_birth']) && !empty($userData['date_of_birth']) && $userData['date_of_birth'] !== null) {
+                        if (isset($userData['date_of_birth']) && !empty($userData['date_of_birth']) && $userData['date_of_birth'] !== null) {
                             $dateValue = $userData['date_of_birth'];
-                            if (!filter_var($dateValue, FILTER_VALIDATE_EMAIL) && strpos($dateValue, '@') === false && strlen($dateValue) <= 20 && !preg_match('/[a-zA-Z]{3,}/', $dateValue)) { $userBirthdate = $dateValue; }
+                            // ตรวจสอบว่าไม่ใช่อีเมลหรือข้อความยาวเกินไป
+                            if (!filter_var($dateValue, FILTER_VALIDATE_EMAIL) && 
+                                strpos($dateValue, '@') === false && 
+                                strlen($dateValue) <= 20 && 
+                                !preg_match('/[a-zA-Z]{3,}/', $dateValue)) { 
+                                // ถ้าเป็นรูปแบบวันที่ที่ถูกต้องแล้ว (YYYY-MM-DD) ใช้ค่านั้นได้เลย
+                                // ถ้าไม่ใช่ ให้แปลงอีกครั้ง
+                                if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $dateValue)) {
+                                    $userBirthdate = $dateValue;
+                                } else {
+                                    $userBirthdate = $this->normalizeThaiBirthDate($dateValue);
+                                }
+                            }
                         }
                         $user = User::create([
                             // Ensure name prefix is not null (final safety net)
@@ -1178,9 +1216,23 @@ class DashboardController extends Controller
     // --- Helpers for DOB and prefix selection ---
     private function normalizeThaiBirthDate($raw)
     {
-        // Accept formats: YYYY-MM-DD, DD/MM/YYYY, DD-MM-YYYY, Buddhist years (พ.ศ.)
+        // Accept formats: YYYY-MM-DD, DD/MM/YYYY, DD-MM-YYYY, Buddhist years (พ.ศ.), Excel serial date
         $val = trim((string)$raw);
         if ($val === '') { return null; }
+        
+        // ตรวจสอบว่าเป็น Excel serial date number หรือไม่ (ตัวเลขล้วน 5 หลักขึ้นไป)
+        if (is_numeric($val) && $val > 25569) { // 25569 = 1970-01-01 in Excel serial
+            try {
+                // Excel serial date: days since 1900-01-01 (with bug where 1900 is leap year)
+                // Use Excel's epoch: 1899-12-30 (accounting for the 1900 bug)
+                $excelEpoch = new \DateTime('1899-12-30');
+                $excelEpoch->modify('+' . intval($val) . ' days');
+                return $excelEpoch->format('Y-m-d');
+            } catch (\Exception $e) {
+                // If fails, continue to other methods
+            }
+        }
+        
         // Replace Thai delimiters
         $v = str_replace(['.', ' '], ['-', ''], $val);
         // Try common separators
