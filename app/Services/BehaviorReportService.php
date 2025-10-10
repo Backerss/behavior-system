@@ -233,8 +233,23 @@ class BehaviorReportService
      */
     public function storeEvidence(UploadedFile $file): string
     {
-        $filename = time() . '_' . $file->getClientOriginalName();
-        return $file->storeAs('behavior_evidences', $filename, 'public');
+        // Sanitize filename - แปลงอักขระพิเศษเป็น underscore
+        $originalName = $file->getClientOriginalName();
+        $sanitizedName = preg_replace('/[^a-zA-Z0-9._-]/', '_', $originalName);
+        $filename = time() . '_' . $sanitizedName;
+        
+        // Store in storage/app/public/behavior_evidences
+        $path = $file->storeAs('behavior_evidences', $filename, 'public');
+        
+        \Log::info('Evidence stored via BehaviorReportService', [
+            'original_name' => $originalName,
+            'sanitized_name' => $sanitizedName,
+            'stored_path' => $path,
+            'full_path' => storage_path('app/public/' . $path),
+            'public_url' => asset('storage/' . $path)
+        ]);
+        
+        return $path;
     }
 
     /**

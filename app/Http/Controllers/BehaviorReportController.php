@@ -126,9 +126,16 @@ class BehaviorReportController extends Controller
             $evidencePath = null;
             if ($request->hasFile('evidence')) {
                 $file = $request->file('evidence');
-                $filename = time() . '_' . $file->getClientOriginalName();
-                $path = $file->storeAs('public/behavior_evidences', $filename);
-                $evidencePath = str_replace('public/', '', $path);
+                $filename = time() . '_' . preg_replace('/[^a-zA-Z0-9._-]/', '_', $file->getClientOriginalName());
+                
+                // Store in storage/app/public/behavior_evidences
+                $evidencePath = $file->storeAs('behavior_evidences', $filename, 'public');
+                
+                Log::info('Evidence file uploaded', [
+                    'filename' => $filename,
+                    'path' => $evidencePath,
+                    'full_path' => storage_path('app/public/' . $evidencePath)
+                ]);
             }
 
             // Create behavior report with snapshot points
@@ -159,7 +166,14 @@ class BehaviorReportController extends Controller
                 'data' => [
                     'report_id' => $reportId,
                     'reports_points_deducted' => $snapshotPoints,
-                    'student_updated_score' => $newScore
+                    'student_updated_score' => $newScore,
+                    'evidence_path' => $evidencePath,
+                    'evidence_url' => $evidencePath ? asset('storage/' . $evidencePath) : null
+                ],
+                'report' => [
+                    'reports_id' => $reportId,
+                    'evidence_path' => $evidencePath,
+                    'evidence_url' => $evidencePath ? asset('storage/' . $evidencePath) : null
                 ]
             ], 201);
 
@@ -268,6 +282,7 @@ class BehaviorReportController extends Controller
                 ->select(
                     'br.reports_id',
                     'br.reports_description',
+                    'br.reports_evidence_path',
                     'br.reports_report_date',
                     'br.created_at',
                     'br.reports_points_deducted',
@@ -297,7 +312,11 @@ class BehaviorReportController extends Controller
                                      ($report->teacher_last_name ?? ''),
                     'report_date' => $report->reports_report_date,
                     'created_at' => Carbon::parse($report->created_at)->format('d/m/Y H:i'),
-                    'description' => $report->reports_description ?? ''
+                    'description' => $report->reports_description ?? '',
+                    'evidence_path' => $report->reports_evidence_path ?? null,
+                    'evidence_url' => $report->reports_evidence_path 
+                                    ? asset('storage/' . $report->reports_evidence_path)
+                                    : null
                 ];
             });
             
@@ -519,13 +538,21 @@ class BehaviorReportController extends Controller
                 // Delete old file
                 if ($evidencePath && Storage::disk('public')->exists($evidencePath)) {
                     Storage::disk('public')->delete($evidencePath);
+                    Log::info('Deleted old evidence file', ['path' => $evidencePath]);
                 }
                 
                 // Upload new file
                 $file = $request->file('evidence');
-                $filename = time() . '_' . $file->getClientOriginalName();
-                $path = $file->storeAs('public/behavior_evidences', $filename);
-                $evidencePath = str_replace('public/', '', $path);
+                $filename = time() . '_' . preg_replace('/[^a-zA-Z0-9._-]/', '_', $file->getClientOriginalName());
+                
+                // Store in storage/app/public/behavior_evidences
+                $evidencePath = $file->storeAs('behavior_evidences', $filename, 'public');
+                
+                Log::info('New evidence file uploaded', [
+                    'filename' => $filename,
+                    'path' => $evidencePath,
+                    'full_path' => storage_path('app/public/' . $evidencePath)
+                ]);
             }
 
             // Update report with new violation points snapshot
