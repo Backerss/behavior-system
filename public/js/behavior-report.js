@@ -775,6 +775,12 @@ function deleteViolationReport(reportId) {
             }
         })
         .then(response => {
+            // ตรวจสอบสิทธิ์การเข้าถึง
+            if (response.status === 403) {
+                return response.json().then(data => {
+                    throw new Error(data.message || 'คุณไม่มีสิทธิ์ลบรายงานนี้');
+                });
+            }
             if (!response.ok) {
                 throw new Error('เกิดข้อผิดพลาดในการลบรายงาน');
             }
@@ -782,7 +788,18 @@ function deleteViolationReport(reportId) {
         })
         .then(data => {
             if (data.success) {
-                showSuccess(data.message || 'ลบรายงานพฤติกรรมเรียบร้อยแล้ว');
+                // แสดงข้อความสำเร็จด้วย SweetAlert ถ้ามี
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'สำเร็จ',
+                        text: data.message || 'ลบรายงานพฤติกรรมเรียบร้อยแล้ว',
+                        timer: 2000,
+                        showConfirmButton: false
+                    });
+                } else {
+                    showSuccess(data.message || 'ลบรายงานพฤติกรรมเรียบร้อยแล้ว');
+                }
                 
                 // ปิด modal และรีเฟรชรายการ
                 const modal = bootstrap.Modal.getInstance(document.getElementById('violationDetailModal'));
@@ -797,7 +814,18 @@ function deleteViolationReport(reportId) {
             }
         })
         .catch(error => {
-            showError(error.message);
+            // แสดงข้อความ error ด้วย SweetAlert ถ้ามี
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'ไม่สามารถลบได้',
+                    text: error.message,
+                    confirmButtonText: 'ตกลง',
+                    confirmButtonColor: '#d33'
+                });
+            } else {
+                showError(error.message);
+            }
         })
         .finally(() => {
             // คืนสถานะปุ่ม
@@ -2156,6 +2184,12 @@ function saveViolationEdit() {
                 body: formData
             })
             .then(response => {
+                // ตรวจสอบสิทธิ์การเข้าถึง
+                if (response.status === 403) {
+                    return response.json().then(data => {
+                        throw new Error(data.message || 'คุณไม่มีสิทธิ์แก้ไขรายงานนี้');
+                    });
+                }
                 if (!response.ok) {
                     throw new Error('เกิดข้อผิดพลาดในการบันทึกข้อมูล');
                 }
@@ -2179,6 +2213,16 @@ function saveViolationEdit() {
                 }
             })
             .catch(error => {
+                // แสดงข้อความ error ในรูปแบบ alert ที่เด่นชัด
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'ไม่สามารถแก้ไขได้',
+                        text: error.message,
+                        confirmButtonText: 'ตกลง',
+                        confirmButtonColor: '#d33'
+                    });
+                }
                 document.getElementById('editViolationFormErrorMessage').textContent = error.message;
                 document.getElementById('editViolationFormError').style.display = 'block';
             })
@@ -2201,6 +2245,12 @@ function saveViolationEdit() {
         body: formData
     })
     .then(response => {
+        // ตรวจสอบสิทธิ์การเข้าถึง
+        if (response.status === 403) {
+            return response.json().then(data => {
+                throw new Error(data.message || 'คุณไม่มีสิทธิ์แก้ไขรายงานนี้');
+            });
+        }
         if (!response.ok) {
             throw new Error('เกิดข้อผิดพลาดในการบันทึกข้อมูล');
         }
@@ -2217,6 +2267,16 @@ function saveViolationEdit() {
         }
     })
     .catch(error => {
+        // แสดงข้อความ error ในรูปแบบ alert ที่เด่นชัด
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                icon: 'error',
+                title: 'ไม่สามารถแก้ไขได้',
+                text: error.message,
+                confirmButtonText: 'ตกลง',
+                confirmButtonColor: '#d33'
+            });
+        }
         document.getElementById('editViolationFormErrorMessage').textContent = error.message;
         document.getElementById('editViolationFormError').style.display = 'block';
     })

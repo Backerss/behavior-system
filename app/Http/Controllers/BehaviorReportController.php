@@ -449,17 +449,30 @@ class BehaviorReportController extends Controller
 
             // Verify edit permission (only the reporting teacher or admin)
             $user = Auth::user();
-            if ($user->users_role !== 'admin') {
+            
+            // ตรวจสอบว่าผู้ใช้มีสิทธิ์หรือไม่
+            $hasPermission = false;
+            
+            // กรณีที่เป็น admin มีสิทธิ์แก้ไขทุกรายการ
+            if ($user->users_role === 'admin') {
+                $hasPermission = true;
+            } else {
+                // กรณีที่เป็นครู ต้องเป็นครูที่เป็นเจ้าของรายงานเท่านั้น
                 $currentTeacher = DB::table('tb_teachers')
                     ->where('users_id', $user->users_id)
                     ->first();
                     
-                if (!$currentTeacher || (int)$behaviorReport->teacher_id !== (int)$currentTeacher->teachers_id) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'คุณไม่มีสิทธิ์แก้ไขรายงานนี้'
-                    ], 403);
+                if ($currentTeacher && (int)$behaviorReport->teacher_id === (int)$currentTeacher->teachers_id) {
+                    $hasPermission = true;
                 }
+            }
+            
+            // ถ้าไม่มีสิทธิ์ให้ return error
+            if (!$hasPermission) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'คุณไม่มีสิทธิ์แก้ไขรายงานนี้ มีเพียงครูผู้บันทึกหรือผู้ดูแลระบบเท่านั้นที่สามารถแก้ไขได้'
+                ], 403);
             }
 
             // Validate input data
@@ -591,17 +604,30 @@ class BehaviorReportController extends Controller
 
             // Verify delete permission (only the reporting teacher or admin)
             $user = Auth::user();
-            if ($user->users_role !== 'admin') {
-                $currentTeacherId = DB::table('tb_teachers')
+            
+            // ตรวจสอบว่าผู้ใช้มีสิทธิ์หรือไม่
+            $hasPermission = false;
+            
+            // กรณีที่เป็น admin มีสิทธิ์ลบทุกรายการ
+            if ($user->users_role === 'admin') {
+                $hasPermission = true;
+            } else {
+                // กรณีที่เป็นครู ต้องเป็นครูที่เป็นเจ้าของรายงานเท่านั้น
+                $currentTeacher = DB::table('tb_teachers')
                     ->where('users_id', $user->users_id)
-                    ->value('teachers_id');
+                    ->first();
                     
-                if (!$currentTeacherId || (int)$behaviorReport->teacher_id !== (int)$currentTeacherId) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'คุณไม่มีสิทธิ์ลบรายงานนี้'
-                    ], 403);
+                if ($currentTeacher && (int)$behaviorReport->teacher_id === (int)$currentTeacher->teachers_id) {
+                    $hasPermission = true;
                 }
+            }
+            
+            // ถ้าไม่มีสิทธิ์ให้ return error
+            if (!$hasPermission) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'คุณไม่มีสิทธิ์ลบรายงานนี้ มีเพียงครูผู้บันทึกหรือผู้ดูแลระบบเท่านั้นที่สามารถลบได้'
+                ], 403);
             }
 
             // Start database transaction
