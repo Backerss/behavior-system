@@ -196,18 +196,38 @@ class AuthController extends Controller
         $students = Student::with(['user', 'classroom'])
             ->where('students_status', 'active') // กรองเฉพาะนักเรียนที่ยังคงเรียนอยู่
             ->when(request('search'), function($query) {
-                $search = request('search');
-                return $query->where(function($q) use ($search) {
+                $search = trim(request('search'));
+                
+                // แยกคำค้นหาออกเป็นคำๆ
+                $terms = explode(' ', $search);
+                
+                return $query->where(function($q) use ($search, $terms) {
+                    // ค้นหาแบบเต็ม (ทั้งประโยค)
                     $q->whereHas('user', function($subquery) use ($search) {
-                        $subquery->where('users_first_name', 'like', "%{$search}%")
-                                ->orWhere('users_last_name', 'like', "%{$search}%");
+                        $subquery->where(DB::raw("CONCAT(users_name_prefix, users_first_name, ' ', users_last_name)"), 'like', "%{$search}%")
+                                ->orWhere(DB::raw("CONCAT(users_first_name, ' ', users_last_name)"), 'like', "%{$search}%")
+                                ->orWhere('users_first_name', 'like', "%{$search}%")
+                                ->orWhere('users_last_name', 'like', "%{$search}%")
+                                ->orWhere('users_name_prefix', 'like', "%{$search}%");
                     })
                     ->orWhere('students_student_code', 'like', "%{$search}%");
+                    
+                    // ค้นหาแบบแยกคำ (แต่ละคำ)
+                    foreach ($terms as $term) {
+                        if (empty(trim($term))) continue;
+                        
+                        $q->orWhereHas('user', function($subquery) use ($term) {
+                            $subquery->where('users_first_name', 'like', "%{$term}%")
+                                    ->orWhere('users_last_name', 'like', "%{$term}%")
+                                    ->orWhere('users_name_prefix', 'like', "%{$term}%");
+                        });
+                    }
                 });
             })
             ->when(request('class'), function($query) {
                 return $query->where('class_id', request('class'));
             })
+            ->orderBy('students_student_code')
             ->paginate(15)
             ->withQueryString();
             

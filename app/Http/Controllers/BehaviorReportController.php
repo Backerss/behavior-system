@@ -198,12 +198,13 @@ class BehaviorReportController extends Controller
     public function searchStudents(Request $request)
     {
         try {
-            $searchTerm = $request->input('term', '');
+            $searchTerm = trim($request->input('term', ''));
             $classId = $request->input('class_id', '');
             
             $query = DB::table('tb_students as s')
                 ->join('tb_users as u', 's.user_id', '=', 'u.users_id')
                 ->leftJoin('tb_classes as c', 's.class_id', '=', 'c.classes_id')
+                ->where('s.students_status', 'active') // เฉพาะนักเรียนที่ active
                 ->select(
                     's.students_id',
                     's.students_current_score',
@@ -215,12 +216,24 @@ class BehaviorReportController extends Controller
                     'c.classes_room_number'
                 );
             
-            // Apply search filters
+            // Apply search filters - ค้นหาแบบ flexible มากขึ้น
             if (!empty($searchTerm)) {
                 $query->where(function($q) use ($searchTerm) {
-                    $q->where('u.users_first_name', 'LIKE', '%' . $searchTerm . '%')
-                      ->orWhere('u.users_last_name', 'LIKE', '%' . $searchTerm . '%')
-                      ->orWhere('s.students_student_code', 'LIKE', '%' . $searchTerm . '%');
+                    // แยกคำค้นหาออกเป็นคำๆ
+                    $terms = explode(' ', $searchTerm);
+                    
+                    foreach ($terms as $term) {
+                        if (empty(trim($term))) continue;
+                        
+                        $q->where(function($subQ) use ($term) {
+                            $subQ->where('u.users_first_name', 'LIKE', '%' . $term . '%')
+                                 ->orWhere('u.users_last_name', 'LIKE', '%' . $term . '%')
+                                 ->orWhere('u.users_name_prefix', 'LIKE', '%' . $term . '%')
+                                 ->orWhere('s.students_student_code', 'LIKE', '%' . $term . '%')
+                                 ->orWhere(DB::raw("CONCAT(u.users_name_prefix, u.users_first_name, ' ', u.users_last_name)"), 'LIKE', '%' . $term . '%')
+                                 ->orWhere(DB::raw("CONCAT(u.users_first_name, ' ', u.users_last_name)"), 'LIKE', '%' . $term . '%');
+                        });
+                    }
                 });
             }
             
@@ -228,16 +241,27 @@ class BehaviorReportController extends Controller
                 $query->where('s.class_id', $classId);
             }
             
-            $students = $query->limit(10)->get();
+            // เรียงลำดับตามความเกี่ยวข้อง
+            $query->orderByRaw("
+                CASE 
+                    WHEN s.students_student_code LIKE ? THEN 1
+                    WHEN u.users_first_name LIKE ? THEN 2
+                    WHEN u.users_last_name LIKE ? THEN 3
+                    ELSE 4
+                END
+            ", [$searchTerm . '%', $searchTerm . '%', $searchTerm . '%'])
+            ->orderBy('u.users_first_name');
+            
+            $students = $query->limit(20)->get();
             
             // Format results
             $results = $students->map(function($student) {
                 return [
                     'id' => $student->students_id,
-                    'name' => ($student->users_name_prefix ?? '') . 
+                    'name' => trim(($student->users_name_prefix ?? '') . 
                              ($student->users_first_name ?? '') . ' ' . 
-                             ($student->users_last_name ?? ''),
-                    'student_id' => $student->students_student_code ?? '',
+                             ($student->users_last_name ?? '')),
+                    'student_id' => $student->students_student_code ?? 'ไม่มีรหัส',
                     'class' => $student->classes_level && $student->classes_room_number 
                               ? $student->classes_level . '/' . $student->classes_room_number 
                               : 'ไม่ระบุ',

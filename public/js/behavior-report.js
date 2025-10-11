@@ -36,16 +36,41 @@ function setupEventListeners() {
     // ค้นหานักเรียน
     if (studentSearch) {
         let searchTimeout;
+        
+        // เมื่อพิมพ์ในช่องค้นหา
         studentSearch.addEventListener('input', function() {
             clearTimeout(searchTimeout);
-            searchTimeout = setTimeout(() => {
-                if (this.value.length >= 2) {
-                    searchStudents(this.value);
-                } else {
-                    hideStudentResults();
-                }
-            }, 300);
+            const searchValue = this.value.trim();
+            
+            // ค้นหาทันทีถ้ามีข้อความ 1 ตัวอักษรขึ้นไป
+            if (searchValue.length >= 1) {
+                searchTimeout = setTimeout(() => {
+                    searchStudents(searchValue);
+                }, 300);
+            } else {
+                hideStudentResults();
+            }
         });
+        
+        // เมื่อกด Enter
+        studentSearch.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                clearTimeout(searchTimeout);
+                const searchValue = this.value.trim();
+                if (searchValue.length >= 1) {
+                    searchStudents(searchValue);
+                }
+            }
+        });
+        
+        // Focus ช่องค้นหาเมื่อเปิด modal
+        const modal = document.getElementById('newViolationModal');
+        if (modal) {
+            modal.addEventListener('shown.bs.modal', function() {
+                studentSearch.focus();
+            });
+        }
     }
     
     // กรองตามห้อง
@@ -108,16 +133,27 @@ function searchStudents(searchTerm) {
     
     if (!resultsContainer) return;
     
-    if (!searchTerm || searchTerm.length < 2) {
+    // ถ้าคำค้นหาสั้นเกินไป ให้ซ่อนผลลัพธ์
+    if (!searchTerm || searchTerm.trim().length < 1) {
         resultsContainer.style.display = 'none';
         return;
     }
     
     // แสดง loading
-    resultsContainer.innerHTML = '<div class="list-group-item">กำลังค้นหา...</div>';
+    resultsContainer.innerHTML = '<div class="list-group-item"><i class="fas fa-spinner fa-spin me-2"></i>กำลังค้นหา...</div>';
     resultsContainer.style.display = 'block';
     
-    fetch(`/api/behavior-reports/students/search?term=${encodeURIComponent(searchTerm)}&class_id=${classId}`)
+    // เพิ่ม CSRF token
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+    
+    fetch(`/api/behavior-reports/students/search?term=${encodeURIComponent(searchTerm.trim())}&class_id=${classId}`, {
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': csrfToken,
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
         .then(response => {
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
@@ -125,14 +161,15 @@ function searchStudents(searchTerm) {
             return response.json();
         })
         .then(data => {
-            if (data.success) {
+            if (data.success && data.data) {
                 displayStudentResults(data.data);
             } else {
-                resultsContainer.innerHTML = '<div class="list-group-item text-danger">เกิดข้อผิดพลาดในการค้นหา</div>';
+                resultsContainer.innerHTML = '<div class="list-group-item text-muted"><i class="fas fa-info-circle me-2"></i>ไม่พบนักเรียนที่ตรงกับคำค้นหา</div>';
             }
         })
         .catch(error => {
-            resultsContainer.innerHTML = '<div class="list-group-item text-danger">เกิดข้อผิดพลาดในการเชื่อมต่อ</div>';
+            console.error('Search error:', error);
+            resultsContainer.innerHTML = '<div class="list-group-item text-danger"><i class="fas fa-exclamation-circle me-2"></i>เกิดข้อผิดพลาดในการค้นหา กรุณาลองใหม่อีกครั้ง</div>';
         });
 }
 

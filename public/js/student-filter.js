@@ -377,63 +377,136 @@ document.addEventListener('DOMContentLoaded', function() {
     initAjaxPagination();
 
     // Re-apply filters/search when table is updated via AJAX
-    document.addEventListener('studentTableUpdated', function() {
-        // Re-apply the quick search and modal filters (if any)
-        applyQuickSearch();
-        try { applyFilters(); } catch (e) { /* ignore if modal filter not used */ }
-    });
+    // ลบ event listener ที่ไม่จำเป็นออก เนื่องจากใช้ server-side search
+    // document.addEventListener('studentTableUpdated', ...) - ไม่ใช้แล้ว
 
     function initQuickSearch() {
         const form = document.getElementById('studentSearchForm');
         const input = document.getElementById('studentSearchInput');
         const btn = document.getElementById('studentSearchBtn');
+        
         if (!form || !input || !btn) return;
-        form.addEventListener('submit', function(e){ e.preventDefault(); });
-        btn.addEventListener('click', function(e){ e.preventDefault(); applyQuickSearch(); });
-        input.addEventListener('input', debounce(applyQuickSearch, 150));
-        // Initial run
-        applyQuickSearch();
+        
+        // ป้องกันการ submit form
+        form.addEventListener('submit', function(e){ 
+            e.preventDefault(); 
+            performServerSearch();
+        });
+        
+        // เมื่อกดปุ่มค้นหา
+        btn.addEventListener('click', function(e){ 
+            e.preventDefault(); 
+            performServerSearch();
+        });
+        
+        // เมื่อพิมพ์ในช่องค้นหา - ค้นหาแบบ real-time
+        input.addEventListener('input', debounce(function() {
+            performServerSearch();
+        }, 500));
+        
+        // เมื่อกด Enter ในช่องค้นหา
+        input.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                performServerSearch();
+            }
+        });
+        
+        // เคลียร์การค้นหาเมื่อลบข้อความทั้งหมด
+        input.addEventListener('keyup', function(e) {
+            if (this.value.trim() === '') {
+                performServerSearch();
+            }
+        });
+    }
+    
+    function performServerSearch() {
+        const input = document.getElementById('studentSearchInput');
+        const searchTerm = input ? input.value.trim() : '';
+        
+        // สร้าง URL พร้อม query string
+        const url = new URL(window.location.href);
+        
+        if (searchTerm) {
+            url.searchParams.set('search', searchTerm);
+        } else {
+            url.searchParams.delete('search');
+        }
+        
+        // รีเซ็ตไปหน้าแรก
+        url.searchParams.delete('page');
+        
+        // ดึงข้อมูลจาก server
+        fetch(url.toString(), {
+            method: 'GET',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'text/html'
+            }
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.text();
+        })
+        .then(html => {
+            // Parse HTML response
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            
+            // ดึง elements ที่ต้องการอัพเดต
+            const newTbody = doc.querySelector('#students table tbody');
+            const newNav = doc.querySelector('#students .card-footer nav');
+            const newCountLabel = doc.querySelector('#studentCountLabel');
+            
+            // อัพเดต table body
+            const currentTbody = document.querySelector('#students table tbody');
+            if (newTbody && currentTbody) {
+                currentTbody.innerHTML = newTbody.innerHTML;
+            }
+            
+            // อัพเดต pagination
+            const currentNav = document.querySelector('#students .card-footer nav');
+            if (newNav && currentNav) {
+                currentNav.innerHTML = newNav.innerHTML;
+            }
+            
+            // อัพเดต count label
+            const currentCountLabel = document.querySelector('#studentCountLabel');
+            if (newCountLabel && currentCountLabel) {
+                currentCountLabel.innerHTML = newCountLabel.innerHTML;
+            }
+            
+            // อัพเดต URL โดยไม่ reload หน้า
+            if (history.pushState) {
+                history.pushState({}, '', url.toString());
+            }
+            
+            // Re-bind pagination clicks
+            initAjaxPagination();
+        })
+        .catch(error => {
+            console.error('Search error:', error);
+            // แสดงข้อความ error
+            alert('เกิดข้อผิดพลาดในการค้นหา กรุณาลองใหม่อีกครั้ง');
+        });
     }
 
+    // ฟังก์ชันนี้ไม่ใช้แล้ว เนื่องจากใช้ server-side search แทน
     function applyQuickSearch() {
-        const input = document.getElementById('studentSearchInput');
-        const q = (input?.value || '').toString().toLowerCase().trim();
-        const tbody = document.querySelector('#students table tbody');
-        if (!tbody) return;
-        const rows = Array.from(tbody.querySelectorAll('tr[data-student-row="1"]'));
-        let shown = 0;
-        rows.forEach(function(row){
-            const code = (row.cells[0]?.innerText || '').toLowerCase();
-            const name = (row.cells[1]?.innerText || '').toLowerCase();
-            const cls = (row.cells[2]?.innerText || '').toLowerCase();
-            const combined = code + ' ' + name + ' ' + cls;
-            const match = q === '' || combined.includes(q);
-            row.style.display = match ? '' : 'none';
-            if (match) shown++;
-        });
-        // Handle no-results row (prefer existing server empty row)
-        let noRow = tbody.querySelector('tr[data-empty-row="1"]') || tbody.querySelector('tr[data-no-results="1"]');
-        if (!noRow) {
-            noRow = document.createElement('tr');
-            noRow.setAttribute('data-no-results', '1');
-            const td = document.createElement('td');
-            td.colSpan = 6;
-            td.className = 'text-center py-4 text-muted';
-            td.innerHTML = '<i class="fas fa-info-circle me-2"></i>ไม่พบข้อมูลที่ตรงกับคำค้นหา';
-            noRow.appendChild(td);
-            noRow.style.display = 'none';
-            tbody.appendChild(noRow);
-        }
-        noRow.style.display = shown === 0 ? '' : 'none';
-        // Update footer small count (not the header total)
-        try { updateResultCount(shown); } catch (e) {}
+        // Deprecated - ใช้ performServerSearch() แทน
+        performServerSearch();
     }
 
     function initAjaxPagination() {
         const nav = document.querySelector('#studentsPagination');
         if (!nav) return;
         nav.addEventListener('click', onPageClick);
-        window.addEventListener('popstate', function(){ loadPage(location.href); });
+        window.addEventListener('popstate', function(){ 
+            // รีโหลดหน้าจาก URL ปัจจุบัน
+            window.location.reload();
+        });
     }
 
     function onPageClick(e) {
@@ -446,31 +519,43 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function loadPage(url) {
-        const card = document.querySelector('#students .card');
-        if (card) card.classList.add('opacity-50');
-        fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' }})
-            .then(r => r.text())
+        fetch(url, { 
+            headers: { 
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'text/html'
+            }
+        })
+            .then(r => {
+                if (!r.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return r.text();
+            })
             .then(html => {
                 const parser = new DOMParser();
                 const doc = parser.parseFromString(html, 'text/html');
                 const newTbody = doc.querySelector('#students table tbody');
                 const newNav = doc.querySelector('#students .card-footer nav');
+                const newCountLabel = doc.querySelector('#studentCountLabel');
+                
                 const table = document.querySelector('#students table');
                 const tbody = table && table.querySelector('tbody');
                 const navContainer = document.querySelector('#students .card-footer nav');
-                if (newTbody && tbody) tbody.replaceWith(newTbody);
-                if (newNav && navContainer) navContainer.replaceWith(newNav);
-                const updatedNav = document.querySelector('#students .card-footer nav');
-                if (updatedNav && !updatedNav.id) updatedNav.id = 'studentsPagination';
+                const currentCountLabel = document.querySelector('#studentCountLabel');
+                
+                if (newTbody && tbody) tbody.innerHTML = newTbody.innerHTML;
+                if (newNav && navContainer) navContainer.innerHTML = newNav.innerHTML;
+                if (newCountLabel && currentCountLabel) currentCountLabel.innerHTML = newCountLabel.innerHTML;
+                
                 // Re-bind pagination clicks
-                const newNavEl = document.querySelector('#studentsPagination');
-                if (newNavEl) newNavEl.addEventListener('click', onPageClick);
-                // Fire update event for filters/search to re-apply
-                document.dispatchEvent(new CustomEvent('studentTableUpdated'));
+                initAjaxPagination();
+                
                 if (history.pushState) history.pushState({}, '', url);
             })
-            .catch(err => console.error(err))
-            .finally(() => { if (card) card.classList.remove('opacity-50'); });
+            .catch(err => {
+                console.error(err);
+                alert('เกิดข้อผิดพลาดในการโหลดข้อมูล กรุณาลองใหม่อีกครั้ง');
+            });
     }
 
     // Simple debounce utility for quick search

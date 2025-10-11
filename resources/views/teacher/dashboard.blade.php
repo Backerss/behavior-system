@@ -490,7 +490,7 @@
                                     <h5 class="card-title mb-0">รายชื่อนักเรียน <span id="studentCountLabel" class="text-muted small">({{ $studentsTotal }} คน)</span></h5>
                                     <div class="d-flex">
                                         <form id="studentSearchForm" method="GET" action="{{ route('teacher.dashboard') }}" class="d-flex">
-                                            <div class="input-group me-2">
+                                            <div class="input-group me-2" style="width: 300px;">
                                                 <input type="text" id="studentSearchInput" name="search" class="form-control form-control-sm"
                                                        value="{{ request('search') }}" placeholder="ค้นหานักเรียน..." autocomplete="off">
                                                 <button type="button" id="studentSearchBtn" class="btn btn-sm btn-primary-app">
