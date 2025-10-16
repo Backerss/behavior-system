@@ -224,6 +224,69 @@ class AuthController extends Controller
                     }
                 });
             })
+            // เพิ่มตัวกรองจากฟอร์ม
+            ->when(request('filter_name'), function($query) {
+                $search = trim(request('filter_name'));
+                return $query->where(function($q) use ($search) {
+                    $q->whereHas('user', function($subquery) use ($search) {
+                        $subquery->where('users_first_name', 'like', "%{$search}%")
+                                ->orWhere('users_last_name', 'like', "%{$search}%");
+                    })
+                    ->orWhere('students_student_code', 'like', "%{$search}%");
+                });
+            })
+            ->when(request('filter_class_level'), function($query) {
+                return $query->whereHas('classroom', function($subquery) {
+                    $subquery->where('classes_level', request('filter_class_level'));
+                });
+            })
+            ->when(request('filter_class_room'), function($query) {
+                return $query->whereHas('classroom', function($subquery) {
+                    $subquery->where('classes_room_number', request('filter_class_room'));
+                });
+            })
+            ->when(request('filter_score_operator'), function($query) {
+                $operator = request('filter_score_operator');
+                $value = intval(request('filter_score_value', 75));
+                
+                if ($operator === 'less') {
+                    return $query->where('students_current_score', '<', $value);
+                } elseif ($operator === 'more') {
+                    return $query->where('students_current_score', '>', $value);
+                } elseif ($operator === 'equal') {
+                    return $query->where('students_current_score', '=', $value);
+                }
+            })
+            ->when(request('filter_violation_operator'), function($query) {
+                $operator = request('filter_violation_operator');
+                $value = intval(request('filter_violation_value', 5));
+                
+                // นับจำนวนการกระทำผิด
+                if ($operator === 'less') {
+                    return $query->withCount('behaviorReports')
+                        ->having('behavior_reports_count', '<', $value);
+                } elseif ($operator === 'more') {
+                    return $query->withCount('behaviorReports')
+                        ->having('behavior_reports_count', '>', $value);
+                } elseif ($operator === 'equal') {
+                    return $query->withCount('behaviorReports')
+                        ->having('behavior_reports_count', '=', $value);
+                }
+            })
+            ->when(request('filter_risk'), function($query) {
+                $risks = explode(',', request('filter_risk'));
+                return $query->where(function($q) use ($risks) {
+                    foreach ($risks as $risk) {
+                        if ($risk === 'high') {
+                            $q->orWhere('students_current_score', '<', 60);
+                        } elseif ($risk === 'medium') {
+                            $q->orWhereBetween('students_current_score', [60, 75]);
+                        } elseif ($risk === 'low') {
+                            $q->orWhere('students_current_score', '>', 75);
+                        }
+                    }
+                });
+            })
             ->when(request('class'), function($query) {
                 return $query->where('class_id', request('class'));
             })

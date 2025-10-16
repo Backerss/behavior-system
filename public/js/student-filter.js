@@ -56,11 +56,23 @@ document.addEventListener('DOMContentLoaded', function() {
                 form.reset();
                 
                 // รีเซ็ตสถานะ disabled ของ input
-                filterScoreValue.disabled = true;
-                filterViolationValue.disabled = true;
+                if (filterScoreValue) filterScoreValue.disabled = true;
+                if (filterViolationValue) filterViolationValue.disabled = true;
                 
-                // รีเซ็ตตัวแปรตัวกรอง
-                resetFilters();
+                // ดึงข้อมูลทั้งหมดใหม่โดยลบตัวกรองทั้งหมด
+                const url = new URL(window.location.href);
+                url.searchParams.delete('search');
+                url.searchParams.delete('filter_name');
+                url.searchParams.delete('filter_class_level');
+                url.searchParams.delete('filter_class_room');
+                url.searchParams.delete('filter_score_operator');
+                url.searchParams.delete('filter_score_value');
+                url.searchParams.delete('filter_violation_operator');
+                url.searchParams.delete('filter_violation_value');
+                url.searchParams.delete('filter_risk');
+                url.searchParams.delete('page');
+                
+                performFilterSearch(url.toString());
             }
         });
     }
@@ -69,31 +81,58 @@ document.addEventListener('DOMContentLoaded', function() {
     const applyFilterBtn = document.getElementById('applyFilterBtn');
     if (applyFilterBtn) {
         applyFilterBtn.addEventListener('click', function() {
+            // สร้าง URL พร้อม query string สำหรับตัวกรอง
+            const url = new URL(window.location.href);
+            
             // อ่านค่าจากฟอร์ม
-            studentFilter.name = document.getElementById('filter_name').value.trim();
-            studentFilter.classLevel = document.getElementById('filter_class_level').value;
-            studentFilter.classRoom = document.getElementById('filter_class_room').value;
+            const name = document.getElementById('filter_name').value.trim();
+            const classLevel = document.getElementById('filter_class_level').value;
+            const classRoom = document.getElementById('filter_class_room').value;
+            const scoreOp = document.getElementById('filter_score_operator').value;
+            const scoreVal = document.getElementById('filter_score_value').value;
+            const violationOp = document.getElementById('filter_violation_operator').value;
+            const violationVal = document.getElementById('filter_violation_value').value;
             
-            studentFilter.score.operator = document.getElementById('filter_score_operator').value;
-            studentFilter.score.value = parseInt(document.getElementById('filter_score_value').value) || 75;
+            const riskHigh = document.getElementById('filter_risk_high').checked;
+            const riskMedium = document.getElementById('filter_risk_medium').checked;
+            const riskLow = document.getElementById('filter_risk_low').checked;
             
-            studentFilter.violation.operator = document.getElementById('filter_violation_operator').value;
-            studentFilter.violation.value = parseInt(document.getElementById('filter_violation_value').value) || 5;
+            // ล้าง query parameters ก่อน
+            url.searchParams.delete('search');
+            url.searchParams.delete('filter_name');
+            url.searchParams.delete('filter_class_level');
+            url.searchParams.delete('filter_class_room');
+            url.searchParams.delete('filter_score_operator');
+            url.searchParams.delete('filter_score_value');
+            url.searchParams.delete('filter_violation_operator');
+            url.searchParams.delete('filter_violation_value');
+            url.searchParams.delete('filter_risk');
+            url.searchParams.delete('page');
             
-            // อ่านค่าความเสี่ยง
-            studentFilter.risk = [];
-            if (document.getElementById('filter_risk_high').checked) {
-                studentFilter.risk.push('high');
+            // เพิ่ม query parameters ตัวกรอง
+            if (name) url.searchParams.set('filter_name', name);
+            if (classLevel) url.searchParams.set('filter_class_level', classLevel);
+            if (classRoom) url.searchParams.set('filter_class_room', classRoom);
+            if (scoreOp !== 'any') {
+                url.searchParams.set('filter_score_operator', scoreOp);
+                url.searchParams.set('filter_score_value', scoreVal);
             }
-            if (document.getElementById('filter_risk_medium').checked) {
-                studentFilter.risk.push('medium');
-            }
-            if (document.getElementById('filter_risk_low').checked) {
-                studentFilter.risk.push('low');
+            if (violationOp !== 'any') {
+                url.searchParams.set('filter_violation_operator', violationOp);
+                url.searchParams.set('filter_violation_value', violationVal);
             }
             
-            // นำค่าตัวกรองไปใช้
-            applyFilters();
+            // รวม risk status
+            const risks = [];
+            if (riskHigh) risks.push('high');
+            if (riskMedium) risks.push('medium');
+            if (riskLow) risks.push('low');
+            if (risks.length > 0) {
+                url.searchParams.set('filter_risk', risks.join(','));
+            }
+            
+            // ดึงข้อมูลจาก server
+            performFilterSearch(url.toString());
             
             // ปิด Modal
             const modal = bootstrap.Modal.getInstance(document.getElementById('studentFilterModal'));
@@ -103,237 +142,86 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // ฟังก์ชันรีเซ็ตตัวกรอง
+    // ฟังก์ชันการค้นหาตัวกรองจาก server
+    function performFilterSearch(url) {
+        fetch(url, {
+            method: 'GET',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'text/html'
+            }
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.text();
+        })
+        .then(html => {
+            // Parse HTML response
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            
+            // ดึง elements ที่ต้องการอัพเดต
+            const newTbody = doc.querySelector('#students table tbody');
+            const newNav = doc.querySelector('#students .card-footer nav');
+            const newCountLabel = doc.querySelector('#studentCountLabel');
+            
+            // อัพเดต table body
+            const currentTbody = document.querySelector('#students table tbody');
+            if (newTbody && currentTbody) {
+                currentTbody.innerHTML = newTbody.innerHTML;
+            }
+            
+            // อัพเดต pagination
+            const currentNav = document.querySelector('#students .card-footer nav');
+            if (newNav && currentNav) {
+                currentNav.innerHTML = newNav.innerHTML;
+            }
+            
+            // อัพเดต count label
+            const currentCountLabel = document.querySelector('#studentCountLabel');
+            if (newCountLabel && currentCountLabel) {
+                currentCountLabel.innerHTML = newCountLabel.innerHTML;
+            }
+            
+            // อัพเดต URL โดยไม่ reload หน้า
+            if (history.pushState) {
+                history.pushState({}, '', url);
+            }
+            
+            // Re-bind pagination clicks
+            initAjaxPagination();
+        })
+        .catch(error => {
+            console.error('Filter error:', error);
+            alert('เกิดข้อผิดพลาดในการกรองข้อมูล กรุณาลองใหม่อีกครั้ง');
+        });
+    }
+    
+    // ฟังก์ชันรีเซ็ตตัวกรอง (deprecated - ไม่ใช้แล้ว)
     function resetFilters() {
-        studentFilter.name = '';
-        studentFilter.classLevel = '';
-        studentFilter.classRoom = '';
-        studentFilter.score.operator = 'any';
-        studentFilter.score.value = 75;
-        studentFilter.violation.operator = 'any';
-        studentFilter.violation.value = 5;
-        studentFilter.risk = [];
-        
-        // แสดงข้อมูลทั้งหมดใหม่
-        showAllStudents();
-        
-        // อัพเดตแบดจ์ตัวกรอง
-        updateFilterBadge(0);
+        // ไม่ใช้แล้ว ใช้ performFilterSearch แทน
     }
     
-    // ฟังก์ชันใช้ตัวกรอง
+    // ฟังก์ชันใช้ตัวกรอง (deprecated - ไม่ใช้แล้ว)
     function applyFilters() {
-        // นับจำนวนตัวกรองที่เลือก
-        let activeFilterCount = 0;
-        
-        // ตรวจสอบแต่ละตัวกรอง
-        if (studentFilter.name) activeFilterCount++;
-        if (studentFilter.classLevel) activeFilterCount++;
-        if (studentFilter.classRoom) activeFilterCount++;
-        if (studentFilter.score.operator !== 'any') activeFilterCount++;
-        if (studentFilter.violation.operator !== 'any') activeFilterCount++;
-        if (studentFilter.risk.length > 0) activeFilterCount++;
-        
-        // อัพเดตแบดจ์แสดงจำนวนตัวกรอง
-        updateFilterBadge(activeFilterCount);
-        
-        // กรองข้อมูลนักเรียน
-        filterStudents();
+        // ไม่ใช้แล้ว ใช้ performFilterSearch แทน
     }
     
-    // ฟังก์ชันอัพเดตแบดจ์แสดงจำนวนตัวกรองที่ใช้งาน
+    // ฟังก์ชันอัพเดตแบดจ์แสดงจำนวนตัวกรองที่ใช้งาน (deprecated - ไม่ใช้แล้ว)
     function updateFilterBadge(count) {
-        const filterButton = document.querySelector('[data-bs-target="#studentFilterModal"] i.fas.fa-filter');
-        
-        if (filterButton) {
-            // ลบ span เก่าถ้ามี
-            const oldBadge = filterButton.nextElementSibling;
-            if (oldBadge && oldBadge.classList.contains('filter-badge')) {
-                oldBadge.remove();
-            }
-            
-            // สร้างแบดจ์ใหม่ถ้ามีตัวกรองที่ใช้งาน
-            if (count > 0) {
-                const badge = document.createElement('span');
-                badge.textContent = count;
-                badge.className = 'filter-badge';
-                badge.style.position = 'absolute';
-                badge.style.top = '-5px';
-                badge.style.right = '-5px';
-                badge.style.fontSize = '10px';
-                badge.style.background = '#1020AD';
-                badge.style.color = 'white';
-                badge.style.borderRadius = '50%';
-                badge.style.width = '16px';
-                badge.style.height = '16px';
-                badge.style.display = 'flex';
-                badge.style.alignItems = 'center';
-                badge.style.justifyContent = 'center';
-                
-                // เพิ่ม position: relative ให้กับ parent ถ้ายังไม่มี
-                filterButton.parentElement.style.position = 'relative';
-                
-                // เพิ่มแบดจ์เข้าไป
-                filterButton.parentElement.appendChild(badge);
-            }
-        }
+        // ไม่ใช้แล้ว
     }
     
-    // ฟังก์ชันแสดงนักเรียนทั้งหมด
+    // ฟังก์ชันแสดงนักเรียนทั้งหมด (deprecated - ไม่ใช้แล้ว)
     function showAllStudents() {
-        const tableRows = document.querySelectorAll('#students .table tbody tr');
-        
-        tableRows.forEach(row => {
-            row.style.display = '';
-        });
-        
-        // อัพเดตข้อความแสดงจำนวนรายการ
-        updateResultCount(tableRows.length);
+        // ไม่ใช้แล้ว
     }
     
-    // ฟังก์ชันกรองข้อมูลนักเรียน
+    // ฟังก์ชันกรองข้อมูลนักเรียน (deprecated - ไม่ใช้แล้ว)
     function filterStudents() {
-        const tableRows = document.querySelectorAll('#students .table tbody tr');
-        let visibleCount = 0;
-        
-        // ตรวจสอบทุกแถว
-        tableRows.forEach(row => {
-            // ซ่อนแถวก่อน
-            row.style.display = 'none';
-            
-            // ข้ามถ้าเป็นแถวข้อความ "ไม่พบข้อมูล"
-            if (row.querySelector('.text-muted')) {
-                return;
-            }
-            
-            // ดึงข้อมูลจากแถว
-            const studentCode = row.cells[0].textContent.trim();
-            const studentName = row.cells[1].querySelector('span').textContent.trim();
-            const classInfo = row.cells[2].textContent.trim();
-            let classLevel = '';
-            let classRoom = '';
-            
-            // แยกระดับชั้นและห้อง
-            if (classInfo && classInfo !== '-') {
-                const parts = classInfo.split('/');
-                if (parts.length === 2) {
-                    classLevel = parts[0].trim();
-                    classRoom = parts[1].trim();
-                }
-            }
-            
-            // คะแนน
-            const scoreText = row.cells[3].querySelector('.small').textContent.trim();
-            const score = parseInt(scoreText.split('/')[0]) || 0;
-            
-            // จำนวนครั้งที่ทำผิด
-            const violationText = row.cells[4].textContent.trim();
-            const violationCount = parseInt(violationText) || 0;
-            
-            // กำหนดระดับความเสี่ยง
-            let riskLevel = '';
-            if (score <= 60) {
-                riskLevel = 'high';
-            } else if (score <= 75) {
-                riskLevel = 'medium';
-            } else {
-                riskLevel = 'low';
-            }
-            
-            // ตรวจสอบตามเงื่อนไขทั้งหมด
-            let showRow = true;
-            
-            // กรองตามชื่อหรือรหัสนักเรียน
-            if (studentFilter.name && 
-                !studentCode.toLowerCase().includes(studentFilter.name.toLowerCase()) && 
-                !studentName.toLowerCase().includes(studentFilter.name.toLowerCase())) {
-                showRow = false;
-            }
-            
-            // กรองตามระดับชั้น
-            if (studentFilter.classLevel && classLevel !== studentFilter.classLevel) {
-                showRow = false;
-            }
-            
-            // กรองตามห้อง
-            if (studentFilter.classRoom && classRoom !== studentFilter.classRoom) {
-                showRow = false;
-            }
-            
-            // กรองตามคะแนน
-            if (studentFilter.score.operator !== 'any') {
-                switch (studentFilter.score.operator) {
-                    case 'less':
-                        if (!(score < studentFilter.score.value)) showRow = false;
-                        break;
-                    case 'more':
-                        if (!(score > studentFilter.score.value)) showRow = false;
-                        break;
-                    case 'equal':
-                        if (score !== studentFilter.score.value) showRow = false;
-                        break;
-                }
-            }
-            
-            // กรองตามจำนวนครั้งที่ทำผิด
-            if (studentFilter.violation.operator !== 'any') {
-                switch (studentFilter.violation.operator) {
-                    case 'less':
-                        if (!(violationCount < studentFilter.violation.value)) showRow = false;
-                        break;
-                    case 'more':
-                        if (!(violationCount > studentFilter.violation.value)) showRow = false;
-                        break;
-                    case 'equal':
-                        if (violationCount !== studentFilter.violation.value) showRow = false;
-                        break;
-                }
-            }
-            
-            // กรองตามความเสี่ยง
-            if (studentFilter.risk.length > 0 && !studentFilter.risk.includes(riskLevel)) {
-                showRow = false;
-            }
-            
-            // แสดงแถวถ้าผ่านเงื่อนไขทั้งหมด
-            if (showRow) {
-                row.style.display = '';
-                visibleCount++;
-            }
-        });
-        
-        // แสดงข้อความถ้าไม่พบข้อมูล
-        if (visibleCount === 0) {
-            // ตรวจสอบถ้ามีข้อความว่าไม่พบข้อมูลอยู่แล้ว
-            if (!document.querySelector('#students .table tbody tr.no-results')) {
-                const tbody = document.querySelector('#students .table tbody');
-                if (tbody) {
-                    const noResultRow = document.createElement('tr');
-                    noResultRow.className = 'no-results';
-                    noResultRow.innerHTML = `
-                        <td colspan="6" class="text-center py-4">
-                            <div class="text-muted">
-                                <i class="fas fa-filter fa-2x mb-3"></i>
-                                <p>ไม่พบข้อมูลนักเรียนที่ตรงกับเงื่อนไข</p>
-                                <button class="btn btn-sm btn-outline-secondary mt-2" onclick="resetStudentFilters()">
-                                    <i class="fas fa-sync-alt me-1"></i> รีเซ็ตตัวกรอง
-                                </button>
-                            </div>
-                        </td>
-                    `;
-                    tbody.appendChild(noResultRow);
-                }
-            }
-        } else {
-            // ลบข้อความไม่พบข้อมูลถ้ามี
-            const noResultRow = document.querySelector('#students .table tbody tr.no-results');
-            if (noResultRow) {
-                noResultRow.remove();
-            }
-        }
-        
-        // อัพเดตข้อความแสดงจำนวนรายการ
-        updateResultCount(visibleCount);
+        // ไม่ใช้แล้ว
     }
     
     // ฟังก์ชันอัพเดตข้อความแสดงจำนวนรายการ
@@ -566,4 +454,31 @@ document.addEventListener('DOMContentLoaded', function() {
             t = setTimeout(() => fn.apply(this, arguments), wait);
         };
     }
+    
+    // Global functions สำหรับใช้จากนอก
+    window.resetStudentFilters = function() {
+        const form = document.getElementById('studentFilterForm');
+        if (form) {
+            form.reset();
+            
+            // รีเซ็ตสถานะ disabled ของ input
+            if (filterScoreValue) filterScoreValue.disabled = true;
+            if (filterViolationValue) filterViolationValue.disabled = true;
+            
+            // ดึงข้อมูลทั้งหมดใหม่โดยลบตัวกรองทั้งหมด
+            const url = new URL(window.location.href);
+            url.searchParams.delete('search');
+            url.searchParams.delete('filter_name');
+            url.searchParams.delete('filter_class_level');
+            url.searchParams.delete('filter_class_room');
+            url.searchParams.delete('filter_score_operator');
+            url.searchParams.delete('filter_score_value');
+            url.searchParams.delete('filter_violation_operator');
+            url.searchParams.delete('filter_violation_value');
+            url.searchParams.delete('filter_risk');
+            url.searchParams.delete('page');
+            
+            performFilterSearch(url.toString());
+        }
+    };
 });
