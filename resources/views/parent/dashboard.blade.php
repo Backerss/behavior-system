@@ -346,10 +346,10 @@
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="#">
+                            <a class="nav-link" href="javascript:void(0);" onclick="showAllNotifications(); return false;">
                                 <i class="fas fa-bell me-1"></i>การแจ้งเตือน
                                 @if($user->notifications && $user->notifications->where('read_at', null)->count() > 0)
-                                <span class="badge bg-danger ms-1">{{ $user->notifications->where('read_at', null)->count() }}</span>
+                                <span class="badge bg-danger ms-1 nav-notification-badge">{{ $user->notifications->where('read_at', null)->count() }}</span>
                                 @endif
                             </a>
                         </li>
@@ -743,7 +743,7 @@
                         </a>
                     </div>
                     <div class="col">
-                        <a href="#" class="nav-link text-muted">
+                        <a href="javascript:void(0);" class="nav-link text-muted" onclick="showAllNotifications(); return false;">
                             <i class="fas fa-bell"></i>
                             <span class="small">การแจ้งเตือน</span>
                         </a>

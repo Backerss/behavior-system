@@ -24,10 +24,8 @@ class NotificationController extends Controller
             'student_id' => 'required|integer',
             'message' => 'required|string|max:1000',
             'channels' => 'required|array',
-            'channels.sms' => 'boolean',
-            'channels.line' => 'boolean',
             'channels.system' => 'boolean',
-            'phone' => 'required|string',
+            // ตัดการตรวจสอบช่องทางภายนอกออก (SMS/LINE/Phone)
             'score' => 'required|numeric',
             'notification_type' => 'required|string'
         ]);
@@ -114,16 +112,7 @@ class NotificationController extends Controller
                 ], 500);
             }
 
-            // ส่งการแจ้งเตือนตามช่องทางที่เลือก
-            $channels = $request->channels;
-            
-            if ($channels['sms'] && $request->phone) {
-                $this->sendSMS($request->phone, $request->message);
-            }
-            
-            if ($channels['line']) {
-                $this->sendLineNotification('line_id_placeholder', $request->message);
-            }
+            // ระบบใช้งานเฉพาะการแจ้งเตือนภายใน (system) เท่านั้น ไม่มีการส่งผ่าน SMS/LINE อีกต่อไป
             
             Log::info('Notification sent successfully', [
                 'notification_id' => $notification->id,

@@ -50,7 +50,11 @@ function openParentNotificationModal(studentId, studentName, classroom, score, p
     document.getElementById('notification-student-id').value = studentId;
     document.getElementById('notification-score').value = score;
     document.getElementById('notification-phone').value = phone;
-    document.getElementById('notification-phone-display').textContent = formatPhoneNumber(phone);
+    // UI สำหรับ SMS/LINE ถูกนำออก หาก element ไม่อยู่ ให้ข้ามได้อย่างปลอดภัย
+    const phoneDisplay = document.getElementById('notification-phone-display');
+    if (phoneDisplay) {
+        phoneDisplay.textContent = formatPhoneNumber(phone);
+    }
     
     // แสดงข้อมูลนักเรียน
     document.getElementById('notification-student-info').innerHTML = `
@@ -152,15 +156,8 @@ function sendParentNotification() {
         return;
     }
     
-    // ตรวจสอบว่ามีช่องทางการส่ง
-    const smsChecked = document.getElementById('notification-sms').checked;
-    const lineChecked = document.getElementById('notification-line').checked;
-    const systemChecked = document.getElementById('notification-system').checked;
-    
-    if (!smsChecked && !lineChecked && !systemChecked) {
-        alert('กรุณาเลือกอย่างน้อยหนึ่งช่องทางในการส่งการแจ้งเตือน');
-        return;
-    }
+    // ใช้เฉพาะการแจ้งเตือนภายในระบบเท่านั้น
+    const systemChecked = document.getElementById('notification-system')?.checked ?? true;
     
     // แสดงสถานะกำลังส่ง
     const sendButton = document.getElementById('send-notification-btn');
@@ -177,8 +174,6 @@ function sendParentNotification() {
         student_id: parseInt(currentNotification.studentId),
         message: message,
         channels: {
-            sms: smsChecked,
-            line: lineChecked,
             system: systemChecked
         },
         phone: currentNotification.phone,

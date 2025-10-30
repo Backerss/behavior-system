@@ -1701,11 +1701,22 @@ function resetStudentPassword(studentId) {
         },
         credentials: 'same-origin',
         body: JSON.stringify({
-            password: password,
-            password_confirmation: confirmation
+            new_password: password,
+            new_password_confirmation: confirmation
         })
     })
-    .then(response => response.json())
+    .then(async response => {
+        const data = await response.json().catch(() => ({}));
+        // ถ้า validation ไม่ผ่าน ให้แสดงรายละเอียดจากเซิร์ฟเวอร์
+        if (!response.ok) {
+            if (response.status === 422 && data && data.errors) {
+                const messages = Object.values(data.errors).flat().join('\n');
+                throw new Error(messages || data.message || 'ข้อมูลไม่ถูกต้อง');
+            }
+            throw new Error(data.message || `เกิดข้อผิดพลาด (HTTP ${response.status})`);
+        }
+        return data;
+    })
     .then(data => {
         if (data.success) {
             showSuccess(data.message || 'รีเซ็ตรหัสผ่านสำเร็จแล้ว');

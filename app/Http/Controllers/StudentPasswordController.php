@@ -140,7 +140,7 @@ class StudentPasswordController extends Controller
                     $title,
                     $message,
                     'security_alert',
-                    ['system', 'email']
+                    ['system']
                 );
             }
         } catch (\Exception $e) {

@@ -497,19 +497,19 @@ function generateParentingTips() {
                 tips.push({
                     icon: 'fas fa-star',
                     color: 'success',
-                    message: `${name} มีผลการเรียนดีเยี่ยม ควรสนับสนุนให้เข้าร่วมกิจกรรมเพิ่มเติม`
+                    message: `${name} มีคะแนนพฤติกรรมดีเยี่ยม ควรชื่นชมและเสริมแรงเชิงบวกเพื่อรักษามาตรฐาน`
                 });
             } else if (score >= 80) {
                 tips.push({
                     icon: 'fas fa-thumbs-up',
                     color: 'info',
-                    message: `${name} มีความก้าวหน้าที่ดี ควรให้กำลังใจต่อไป`
+                    message: `${name} มีคะแนนพฤติกรรมดี ควรให้กำลังใจและสื่อสารอย่างสม่ำเสมอ`
                 });
             } else if (score < 70) {
                 tips.push({
                     icon: 'fas fa-bell',
                     color: 'warning',
-                    message: `${name} ต้องการความช่วยเหลือเพิ่มเติม ควรติดตามอย่างใกล้ชิด`
+                    message: `${name} คะแนนพฤติกรรมต้องปรับปรุง แนะนำให้เข้าร่วมกิจกรรมจิตอาสา/บำเพ็ญประโยชน์เพื่อชดเชยและพัฒนาพฤติกรรม`
                 });
             }
         }

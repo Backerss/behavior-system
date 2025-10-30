@@ -18,6 +18,51 @@ use Exception;
 class NotificationService
 {
     /**
+     * ส่งการแจ้งเตือนให้นักเรียนอัตโนมัติเมื่อคะแนนลดลงต่ำกว่า 50
+     * เงื่อนไข: ต้องเป็นการ "ข้ามเส้น" จากคะแนนเดิม >= 50 ไปเป็นคะแนนใหม่ < 50 เท่านั้น
+     * ผู้ส่งที่แสดงผล: ชื่อครูประจำชั้น (ถ้ามี) หรือ "ระบบ" หากไม่มีครูประจำชั้น
+     *
+     * @param int $studentId
+     * @param int|null $oldScore หากไม่ทราบให้ส่ง null ระบบจะตีเป็น 100 คะแนน
+     * @param int $newScore
+     * @return bool ส่งสำเร็จหรือไม่ (true เมื่อมีการส่งแจ้งเตือน)
+     */
+    public function sendLowScoreAlertIfCrossed(int $studentId, ?int $oldScore, int $newScore): bool
+    {
+        try {
+            $prev = $oldScore ?? 100;
+            if (!($prev >= 50 && $newScore < 50)) {
+                return false; // ไม่เข้าเงื่อนไขการข้ามเส้น
+            }
+
+            $student = Student::with(['user', 'classroom.teacher.user'])->find($studentId);
+            if (!$student || !$student->user) {
+                return false;
+            }
+
+            // ชื่อผู้ส่ง: ครูประจำชั้น หรือ ระบบ
+            $senderName = 'ระบบ';
+            if ($student->classroom && $student->classroom->teacher && $student->classroom->teacher->user) {
+                $u = $student->classroom->teacher->user;
+                $senderName = trim(($u->users_name_prefix ?? '') . ($u->users_first_name ?? '') . ' ' . ($u->users_last_name ?? '')) ?: 'ระบบ';
+            }
+
+            $studentFirstName = $student->user->users_first_name ?? 'นักเรียน';
+            $title = 'แจ้งเตือนคะแนนความประพฤติต่ำกว่าเกณฑ์';
+            $message = "ผู้ส่ง: {$senderName}\nคะแนนความประพฤติปัจจุบันของคุณคือ {$newScore} คะแนน ซึ่งต่ำกว่า 50 โปรดปรับปรุงพฤติกรรมและปฏิบัติตามกฎระเบียบของโรงเรียน";
+
+            return $this->sendToStudent($studentId, $title, $message, 'low_score_alert');
+        } catch (Exception $e) {
+            Log::error('Error sending low score alert', [
+                'student_id' => $studentId,
+                'old_score' => $oldScore,
+                'new_score' => $newScore,
+                'error' => $e->getMessage()
+            ]);
+            return false;
+        }
+    }
+    /**
      * ส่งการแจ้งเตือนไปยังผู้ปกครอง
      * 
      * @param int $studentId
@@ -53,9 +98,7 @@ class NotificationService
             foreach ($guardians as $guardian) {
                 if ($this->createNotification($guardian->user_id, $title, $message, $type)) {
                     $sentCount++;
-                    
-                    // ส่งผ่านช่องทางอื่นๆ ถ้าระบุ
-                    $this->sendThroughChannels($guardian, $title, $message, $channels);
+                    // นโยบายใหม่: ใช้เฉพาะการแจ้งเตือนภายในระบบเท่านั้น (ตัด SMS/LINE/Email)
                 }
             }
 
@@ -460,12 +503,8 @@ class NotificationService
                ($pointsDeducted >= 5 ? 'medium_behavior' : 'light_behavior');
         
         // กำหนดช่องทางการแจ้งเตือนตามคะแนนปัจจุบัน
+        // ใช้เฉพาะการแจ้งเตือนภายในระบบเท่านั้น
         $channels = ['system'];
-        if ($currentScore <= 40) {
-            $channels = array_merge($channels, ['email', 'sms']);
-        } elseif ($currentScore <= 60) {
-            $channels[] = 'email';
-        }
         
         return $this->sendToParent($studentId, $title, $message, $type, $channels);
     }

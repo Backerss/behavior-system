@@ -199,7 +199,7 @@ class TeacherPasswordController extends Controller
                 $title,
                 $message,
                 'password_reset',
-                ['system', 'email']
+                ['system']
             );
 
         } catch (\Exception $e) {

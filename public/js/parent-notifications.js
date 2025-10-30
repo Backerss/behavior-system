@@ -246,13 +246,25 @@ function updateUnreadCount() {
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                const badge = document.querySelector('.notification-badge .badge');
-                if (badge) {
+                // Update badge in profile card
+                const cardBadge = document.querySelector('.notification-badge .badge');
+                if (cardBadge) {
                     if (data.count > 0) {
-                        badge.textContent = data.count;
-                        badge.style.display = 'inline-block';
+                        cardBadge.textContent = data.count;
+                        cardBadge.style.display = 'inline-block';
                     } else {
-                        badge.style.display = 'none';
+                        cardBadge.style.display = 'none';
+                    }
+                }
+
+                // Update badge in top navbar link
+                const navBadge = document.querySelector('.nav-notification-badge');
+                if (navBadge) {
+                    if (data.count > 0) {
+                        navBadge.textContent = data.count;
+                        navBadge.style.display = 'inline-block';
+                    } else {
+                        navBadge.style.display = 'none';
                     }
                 }
             }

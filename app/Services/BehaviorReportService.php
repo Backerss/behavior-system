@@ -261,9 +261,17 @@ class BehaviorReportService
      */
     private function deductStudentScoreBy(Student $student, int $points): void
     {
-        $currentScore = $student->students_current_score ?? 100;
+        $currentScore = (int)($student->students_current_score ?? 100);
         $newScore = max(0, $currentScore - abs($points));
         $student->update(['students_current_score' => $newScore]);
+
+        // Auto-notify when crossing below threshold
+        try {
+            app(\App\Services\NotificationService::class)
+                ->sendLowScoreAlertIfCrossed((int)$student->students_id, $currentScore, (int)$newScore);
+        } catch (\Throwable $e) {
+            // Do not block main flow
+        }
     }
 
     /**
@@ -278,9 +286,17 @@ class BehaviorReportService
         // Sum all snapshot deductions for the student
         $totalDeducted = BehaviorReport::where('student_id', $student->students_id)
             ->sum('reports_points_deducted');
-
+        $oldScore = (int)($student->students_current_score ?? 100);
         $newScore = max(0, 100 - (int) $totalDeducted);
         $student->update(['students_current_score' => $newScore]);
+
+        // Auto-notify when crossing below threshold
+        try {
+            app(\App\Services\NotificationService::class)
+                ->sendLowScoreAlertIfCrossed((int)$student->students_id, $oldScore, (int)$newScore);
+        } catch (\Throwable $e) {
+            // Do not block main flow
+        }
     }
 
     private function logBehavior(int $reportId, string $action, ?int $performedBy, $before, $after): void

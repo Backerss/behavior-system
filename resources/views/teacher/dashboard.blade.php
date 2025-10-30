@@ -85,7 +85,7 @@
                     <i class="fas fa-file-import"></i>
                     <span>ส่งออกรายงาน</span>
                 </a>
-                <a href="#" onclick="openArchivedStudentsSidebar()" class="menu-item">
+                <a href="javascript:void(0);" onclick="openArchivedStudentsSidebar(); return false;" class="menu-item">
                     <i class="fas fa-archive"></i>
                     <span>ประวัติการเก็บข้อมูล</span>
                 </a>
@@ -861,7 +861,7 @@
                     </a>
                 </div>
                 <div class="col">
-                    <a href="#" class="nav-link text-center" onclick="openArchivedStudentsSidebar()">
+                    <a href="javascript:void(0);" class="nav-link text-center" onclick="openArchivedStudentsSidebar(); return false;">
                         <i class="fas fa-archive"></i>
                         <span>ประวัติ</span>
                     </a>
@@ -3406,18 +3406,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
                         <div class="mb-3">
                             <label for="notification-method" class="form-label">วิธีการแจ้งเตือน</label>
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" id="notification-sms" checked>
-                                <label class="form-check-label" for="notification-sms">
-                                    <i class="fas fa-sms me-1"></i> SMS (<span id="notification-phone-display"></span>)
-                                </label>
-                            </div>
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" id="notification-line">
-                                <label class="form-check-label" for="notification-line">
-                                    <i class="fab fa-line me-1"></i> Line
-                                </label>
-                            </div>
                             <div class="form-check">
                                 <input class="form-check-input" type="checkbox" id="notification-system" checked>
                                 <label class="form-check-label" for="notification-system">

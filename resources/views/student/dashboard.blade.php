@@ -368,39 +368,33 @@
                         </div>
                         <div class="card-body p-4">
                             @if($behavior_summary && $behavior_summary['total_reports'] > 0)
-                                <div class="row mb-3">
-                                    <div class="col-4">
-                                        <div class="text-center">
-                                            <div class="h3 fw-bold">{{ $behavior_summary['total_reports'] }}</div>
-                                            <div class="small text-muted">รายงานทั้งหมด</div>
-                                        </div>
-                                    </div>
-                                    <div class="col-4">
-                                        <div class="text-center">
-                                            <div class="h3 fw-bold text-danger">{{ $behavior_summary['negative_reports'] }}</div>
-                                            <div class="small text-muted">รายงานเชิงลบ</div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <hr>
-                                <div class="row mb-3">
-                                    <div class="col-6">
-                                        <div class="d-flex">
-                                            <div class="info-icon me-3 text-danger">
-                                                <i class="fas fa-minus-circle"></i>
-                                            </div>
-                                            <div>
-                                                <div class="small text-muted">คะแนนที่ถูกหัก</div>
-                                                <div class="fw-bold text-danger">-{{ $behavior_summary['total_negative_points'] }}</div>
+                                <div class="row g-3">
+                                    <div class="col-12 col-sm-6">
+                                        <div class="p-3 border rounded-3 bg-light h-100">
+                                            <div class="d-flex align-items-center">
+                                                <div class="me-3 text-danger">
+                                                    <i class="fas fa-minus-circle fa-lg"></i>
+                                                </div>
+                                                <div>
+                                                    <div class="small text-muted">คะแนนที่ถูกหักรวม</div>
+                                                    <div class="h4 mb-0 text-danger">-{{ number_format($behavior_summary['total_negative_points']) }}</div>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
-                                </div>
-                                <div class="text-center mt-4">
-                                    <div class="progress mb-2" style="height: 10px;">
-                                        <div class="progress-bar bg-success" role="progressbar" style="width: {{ $behavior_summary['positive_ratio'] }}%" aria-valuenow="{{ $behavior_summary['positive_ratio'] }}" aria-valuemin="0" aria-valuemax="100"></div>
+                                    <div class="col-12 col-sm-6">
+                                        <div class="p-3 border rounded-3 bg-light h-100">
+                                            <div class="d-flex align-items-center">
+                                                <div class="me-3 text-secondary">
+                                                    <i class="fas fa-clipboard-list fa-lg"></i>
+                                                </div>
+                                                <div>
+                                                    <div class="small text-muted">จำนวนครั้งที่ถูกหัก</div>
+                                                    <div class="h4 mb-0">{{ number_format($behavior_summary['negative_reports']) }} ครั้ง</div>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div class="small text-muted">อัตราส่วนรายงานเชิงบวก {{ $behavior_summary['positive_ratio'] }}%</div>
                                 </div>
                             @else
                                 <div class="text-center text-muted py-4">

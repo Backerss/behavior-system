@@ -152,13 +152,27 @@ class BehaviorReportController extends Controller
             ]);
 
             // Update student's behavior score
-            $newScore = max(0, ($student->students_current_score ?? 100) - $snapshotPoints);
+            $oldScore = (int)($student->students_current_score ?? 100);
+            $newScore = max(0, $oldScore - $snapshotPoints);
             DB::table('tb_students')
                 ->where('students_id', $request->student_id)
                 ->update([
                     'students_current_score' => $newScore,
                     'updated_at' => now()
                 ]);
+
+            // Auto-notify when score crosses below 50
+            try {
+                app(\App\Services\NotificationService::class)
+                    ->sendLowScoreAlertIfCrossed((int)$request->student_id, $oldScore, (int)$newScore);
+            } catch (\Throwable $e) {
+                Log::warning('Failed to send low score alert (store)', [
+                    'student_id' => (int)$request->student_id,
+                    'old' => $oldScore,
+                    'new' => (int)$newScore,
+                    'error' => $e->getMessage()
+                ]);
+            }
 
             return response()->json([
                 'success' => true,
@@ -591,10 +605,25 @@ class BehaviorReportController extends Controller
             // Recalculate student's total score from all report snapshots
             $student = Student::find($behaviorReport->student_id);
             if ($student) {
+                $oldScore = (int)($student->students_current_score ?? 100);
                 $totalDeducted = BehaviorReport::where('student_id', $student->students_id)
                     ->sum('reports_points_deducted');
-                $student->students_current_score = max(0, 100 - (int)$totalDeducted);
+                $newScore = max(0, 100 - (int)$totalDeducted);
+                $student->students_current_score = $newScore;
                 $student->save();
+
+                // Auto-notify when score crosses below 50
+                try {
+                    app(\App\Services\NotificationService::class)
+                        ->sendLowScoreAlertIfCrossed((int)$student->students_id, $oldScore, (int)$newScore);
+                } catch (\Throwable $e) {
+                    Log::warning('Failed to send low score alert (update)', [
+                        'student_id' => (int)$student->students_id,
+                        'old' => $oldScore,
+                        'new' => (int)$newScore,
+                        'error' => $e->getMessage()
+                    ]);
+                }
             }
 
             // Create behavior log entry
@@ -711,10 +740,25 @@ class BehaviorReportController extends Controller
             // Recalculate student's total score from remaining report snapshots
             $student = Student::find($behaviorReport->student_id);
             if ($student) {
+                $oldScore = (int)($student->students_current_score ?? 100);
                 $totalDeducted = BehaviorReport::where('student_id', $student->students_id)
                     ->sum('reports_points_deducted');
-                $student->students_current_score = max(0, 100 - (int)$totalDeducted);
+                $newScore = max(0, 100 - (int)$totalDeducted);
+                $student->students_current_score = $newScore;
                 $student->save();
+
+                // Auto-notify when score crosses below 50
+                try {
+                    app(\App\Services\NotificationService::class)
+                        ->sendLowScoreAlertIfCrossed((int)$student->students_id, $oldScore, (int)$newScore);
+                } catch (\Throwable $e) {
+                    Log::warning('Failed to send low score alert (destroy)', [
+                        'student_id' => (int)$student->students_id,
+                        'old' => $oldScore,
+                        'new' => (int)$newScore,
+                        'error' => $e->getMessage()
+                    ]);
+                }
             }
 
             DB::commit();
